@@ -29,16 +29,16 @@ void initZ(int seed) {
 BB _hash(Pos p) {
     BB key = 0ULL;
 
-    for (int i = 0; i < 6; i++) {
-        if (p.white_pieces[i] != 0) {
-            BB save = p.white_pieces[i];
+    for (int i = PAWN; i < KING+1; i++) {
+        if (p.getPieceMask(WHITE, i) != 0) {
+            BB save = p.getPieceMask(WHITE, i);
             while (save) {
                 int s = poplsb(save);
                 key ^= z_white_squares[i][s];
             }
         }
-        if (p.black_pieces[i] != 0) {
-            BB save = p.black_pieces[i];
+        if (p.getPieceMask(BLACK, i) != 0) {
+            BB save = p.getPieceMask(BLACK, i);
             while (save) {
                 int s = poplsb(save);
                 key ^= z_black_squares[i][s];

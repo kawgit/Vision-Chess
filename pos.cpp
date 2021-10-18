@@ -19,6 +19,9 @@ map<char, Piece> fen_table {
 };
 
 Pos::Pos(string fen) {
+    fill(pieces, pieces+64, NO_P);
+
+
     string board = fen.substr(0, fen.find(' '));
     int col = 0;
     int row = 7;
@@ -37,7 +40,7 @@ Pos::Pos(string fen) {
                 c = toupper(c);
             }
 
-            setPiece(cl, fen_table[c], sq);
+            setPiece(sq, cl, fen_table[c]);
             col++;
         }
     }
@@ -61,10 +64,11 @@ Pos::Pos(string fen) {
 }
 
 SPiece Pos::getSPieceAt(Square s) {
-    BB sm = getBB(s);
-    for (int i = 0; i != 6; i++) {
-        if (white_pieces[i] & sm) return SPiece(WHITE, i);
-        if (black_pieces[i] & sm) return SPiece(BLACK, i);
-    }
-    return SPiece(WHITE, NO_P);
+    int p = getPieceAt(s);
+    return SPiece(((p != NO_P && bitAt(piece_masks[WHITE][p], s)) ? WHITE : BLACK), p);
+}
+
+void Pos::setPiece(Square s, Color c, Piece p) {
+    getPieceMask(c, p) |= getBB(s);
+    pieces[s] = p; 
 }

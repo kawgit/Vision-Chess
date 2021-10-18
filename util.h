@@ -13,8 +13,14 @@ inline bool bitAt(BB b, int i) { return b & (1ULL << i);};
 
 string getSquareN(Square s);
 
-inline BB randBB() { return ((long long)rand() << 32) | rand();};
+inline BB randBB() {
+    unsigned long long r = 0;
+    for (int i = 0; i < 5; ++i) r = (r << 15) | (rand() & 0x7FFF);
+    return r & 0xFFFFFFFFFFFFFFFFULL;
+};
 
 int lsb(BB n);
 
 int poplsb(BB &n);
+
+int bitcount(BB x);

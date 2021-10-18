@@ -1,6 +1,7 @@
 #pragma once
 
 #include "types.h"
+#include <vector>
 
 using namespace std;
 
@@ -8,18 +9,24 @@ class Pos {
 public:
     Pos(string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
-    inline void setPiece(Color c, Piece p, Square s) { (c == WHITE ? white_pieces[p] : black_pieces[p]) |= getBB(s);}
+    BB& getPieceMask(Color c, Piece p) { return piece_masks[c][p]; }
 
-    inline BB* getPieces(Color c) { return c == WHITE ? white_pieces : black_pieces; }
-    inline BB& getPieces(Color c, Piece p) { return c == WHITE ? white_pieces[p] : black_pieces[p]; }
+    int getPieceAt(Square s) {return pieces[s];};
 
     SPiece getSPieceAt(Square s);
+
+    void setPiece(Square s, Color c, Piece p);
+
+    void makeMove(Move m);
+    void undoMove();
+
 
 public:
 
     Color turn = WHITE;
-    BB white_pieces[6] = {0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL};
-    BB black_pieces[6] = {0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL};
+
+    Piece pieces[64] = {NO_P};
+    BB piece_masks[2][6] = {0};
 
     Square ep = -1;
     CR cr;
@@ -28,4 +35,6 @@ public:
     int hm_clock = -1;
 
     BB key;
+    
+    vector<Move> move_log;
 };
