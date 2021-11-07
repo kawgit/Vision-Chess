@@ -10,7 +10,7 @@ BB z_white_squares[6][64] = {};
 BB z_black_squares[6][64] = {};
 BB z_ep[8] = {}; //one for each column
 BB z_cr[4] = {};
-BB z_turn = {};
+BB z_turn = 0;
 
 void initZ(int seed) {
     srand(seed);

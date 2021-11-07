@@ -3,13 +3,14 @@
 #include "types.h"
 #include "pos.h"
 
+
 void print(Pos p);
 
 void print(BB b);
 
 inline int RC2SQ(int r, int c) { return r*8+c;}
 
-inline bool bitAt(BB b, int i) { return b & (1ULL << i);};
+inline bool bitAt(BB b, int i) { return b & getBB(i);};
 
 string getSquareN(Square s);
 
@@ -24,3 +25,5 @@ int lsb(BB n);
 int poplsb(BB &n);
 
 int bitcount(BB x);
+
+unsigned int getCurrentMs();
