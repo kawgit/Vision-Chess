@@ -143,7 +143,8 @@ Eval Search::negaMax(Pos &p, Depth depth, Eval alpha, Eval beta) {
 
     if (moves.size() == 0) return (p.inCheck ? -INF_EVAL + p.move_clock : 0);
 
-    order(moves, entry_move, Move());
+    Move &prev_move = p.move_log.back();
+    order(moves, entry_move, cm_hueristic[prev_move.getFr()][prev_move.getTo()]);
 
     Move best_move = moves[0];
 
@@ -157,7 +158,11 @@ Eval Search::negaMax(Pos &p, Depth depth, Eval alpha, Eval beta) {
             alpha = eval;
             best_move = m;
 
-            if (alpha >= beta) break;
+            if (alpha >= beta) {
+                Move &prev_move = p.move_log.back();
+                cm_hueristic[prev_move.getFr()][prev_move.getTo()] = m;
+                break;
+            }
         }
     }
 

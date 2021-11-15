@@ -7,3 +7,4 @@ info depth 10 score cp 32740 time 81649 nodes 260573535 nps 3191347 hashfull 999
 info depth 10 score cp 32740 time 75167 nodes 246096533 nps 3273997 hashfull 999 pv d5f6 d4f6 g5f6 r fp
 info depth 11 score cp 32740 time 15225 nodes 58389469 nps 3834852 hashfull 999 pv d5f6 d4f6 g5f6 r fp lmr 3 2
 info depth 11 score cp 32740 time 15344 nodes 58389469 nps 3805361 hashfull 999 pv d5f6 d4f6 g5f6 r fp lmr 3 3
+info depth 11 score cp 32740 time 15586 nodes 58389469 nps 3746036 hashfull 999 pv d5f6 d4f6 g5f6 r fp lmr 3 3 cm_h

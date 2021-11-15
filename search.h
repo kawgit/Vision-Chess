@@ -47,6 +47,7 @@ public:
 
 private:
     TT table;
+    Move cm_hueristic[64][64];
 
     bool searching = false;
     int root_move_clock;
