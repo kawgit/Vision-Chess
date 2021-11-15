@@ -216,8 +216,8 @@ void Pos::makeMove(Move &m) {
 
     }
 
-    /* do later, need log for hm_clock
     if (turn == BLACK) move_clock++;
+    /* do later, need log for hm_clock
     hm_clock++;
     if (fp == PAWN || move.isCapture()) hm_clock = 0;
     */
@@ -237,6 +237,8 @@ void Pos::undoMove() {
 
     switchTurn();
 
+    if (turn == BLACK) move_clock--;
+    
     int fr = m.getFr();
     int to = m.getTo();
     int fp = m.getFp();

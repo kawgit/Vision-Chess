@@ -22,11 +22,15 @@ struct Task {
 class Search {
 public:
     const static int num_threads = 1;
-    const static int hash_size = 16;
-    const static int mutex_table_size = 1<<(hash_size/2);
-    const static BB hash_key_mask = (1<<hash_size) - 1 ;
 
-    const int PV_extension_depth = 6;
+    const int RAZOR_DEPTH = 3;
+    const Eval RAZOR_MARGIN = 100;
+
+    const int FPRUNE_DEPTH = 3;
+    const Eval FPRUNE_MARGIN = 950;
+
+    const int MIN_LMR_DEPTH = 3;
+    const int LMR_MARGIN = 3;
 
     Search(Pos &p);
 

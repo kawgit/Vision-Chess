@@ -1,5 +1,6 @@
 #include "tt.h"
 #include "types.h"
+#include <iostream>
 
 TTEntry* TT::getEntry(BB key, bool &found) {
     TTGroup& group = table[key & HASH_MASK];
@@ -29,4 +30,37 @@ TTEntry* TT::getEntry(BB key, bool &found) {
     found = false;
 
     return usable;
+}
+
+void TT::clear() {
+    for (int i = 0; i < TT::TABLE_SIZE; i++) {
+        for (int j = 0; j < TTGroup::GROUP_SIZE; j++) {
+            table[i].entries[j].save(0, Move(), 0, 0, -1, LB);
+        }
+    }
+}
+
+int TT::hashfull() {
+    int count = 0;
+    for (int i = 0; i < 1000/TTGroup::GROUP_SIZE; i++) {
+        for (int j = 0; j < TTGroup::GROUP_SIZE; j++) {
+            if (table[i].entries[j].key) count++;
+        }
+    }
+    return count;
+}
+
+vector<Move> TT::getPV(Pos p) {
+    vector<Move> PV;
+    while (true) {
+        bool found = false;
+        TTEntry* entry = getEntry(p.key, found);
+        Move move = entry->move;
+        if (found) {
+            PV.push_back(move);
+            p.makeMove(move);
+        }
+        else break;
+    }
+    return PV;
 }

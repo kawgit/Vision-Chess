@@ -7,4 +7,5 @@ extern Eval piece_eval_maps[5][64];
 
 extern Eval king_eval_map[64];
 
+Eval evalMat(Pos &p);
 Eval evalPos(Pos &p, Eval LB, Eval UB);

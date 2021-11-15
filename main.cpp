@@ -19,7 +19,7 @@ int main() {
     print(p);
 
     Search s(p);
-    s.max_depth = 10;
+    s.max_depth = 18;
     s.go();
 
     return 0;

@@ -52,29 +52,35 @@ void Search::go() {
     Pos p = root_p;
     begin_ms = get_current_ms();
 
+    table.mclock_threshold = p.move_clock;
+
     vector<Move> moves;
     addLegalMoves(p, moves);
 
     Move best_move = moves[0];
-    Eval alpha = -INF_EVAL;
+    Eval alpha = 0;
 
     Timestamp time_of_last_it = get_current_ms();
     BB last_it_nodes = nodes;
 
-    for (int d = 1; d <= max_depth && alpha != INF_EVAL; d++) {
+    for (int d = 2; d <= max_depth && abs(alpha) <= INF_EVAL-200; d++) {
+        alpha = -INF_EVAL;
         for (Move &m : moves) {
             cout<<"currmove "<<m.getSAN()<<endl;
             p.makeMove(m);
-            m.eval = -negaMax(p, d, -INF_EVAL, -alpha);
+            m.eval = -negaMax(p, d-1, -INF_EVAL, -alpha);
             p.undoMove();
-
             if (m.eval > alpha) {
                 alpha = m.eval;
                 best_move = m;
 
-                if (alpha == INF_EVAL) break;
+                if (alpha > INF_EVAL-200) break;
             }
         }
+        sort(moves);
+        bool found = false;
+        table.getEntry(p.key, found)->save(p.key, best_move, alpha, d, p.move_clock, EXACT);
+
         cout<<"info ";
         cout<<"depth "<<to_string(d)<<" ";
         cout<<"score ";
@@ -82,7 +88,11 @@ void Search::go() {
         cout<<"time "<<to_string(get_time_diff(begin_ms))<<" ";
         cout<<"nodes "<<to_string(nodes)<<" ";
         cout<<"nps "<<to_string((int)((double)(nodes-last_it_nodes)*1000/get_time_diff(time_of_last_it)))<<" ";
-        sort(moves);
+        cout<<"hashfull "<<to_string(table.hashfull())<<" ";
+        cout<<"pv ";
+        vector<Move> pv = table.getPV(p);
+        for (Move &m : pv) cout<<m.getSAN()<<" ";
+        cout<<endl;
     }
 
     cout<<"bestmove "<<best_move.getSAN()<<endl;
@@ -108,6 +118,10 @@ Eval Search::negaMax(Pos &p, Depth depth, Eval alpha, Eval beta) {
     if (!searching) return 0;
     if (depth == 0) return quies(p, alpha, beta);
 
+    Eval mat_score = evalMat(p);
+    if (depth <= FPRUNE_DEPTH && mat_score + FPRUNE_MARGIN <= alpha) return quies(p, alpha, beta);
+    if (depth == RAZOR_DEPTH && mat_score + RAZOR_MARGIN <= alpha) depth--;
+
     Eval original_alpha = alpha;
 
     bool found = false;
@@ -127,15 +141,16 @@ Eval Search::negaMax(Pos &p, Depth depth, Eval alpha, Eval beta) {
     vector<Move> moves;
     addLegalMoves(p, moves);
 
-    if (moves.size() == 0) return (p.inCheck ? -INF_EVAL : 0);
+    if (moves.size() == 0) return (p.inCheck ? -INF_EVAL + p.move_clock : 0);
 
     order(moves, entry_move, Move());
 
     Move best_move = moves[0];
 
-    for (Move &m : moves) {
+    for (int i = 0; i < moves.size(); i++) {
+        Move &m = moves[i];
         p.makeMove(m);
-        Eval eval = -negaMax(p, depth-1, -beta, -alpha);
+        Eval eval = -negaMax(p, (depth >= MIN_LMR_DEPTH && i >= LMR_MARGIN && !p.inCheck && !m.isCheck()) ? depth - 2 : depth-1, -beta, -alpha);
         p.undoMove();
 
         if (eval > alpha) {
@@ -152,12 +167,12 @@ Eval Search::negaMax(Pos &p, Depth depth, Eval alpha, Eval beta) {
     else if (alpha < beta) flag = EXACT;
     else flag = LB;
 
-    entry->save(p.key, best_move, alpha, depth, p.move_clock, flag);
+    if (entry->depth < depth) entry->save(p.key, best_move, alpha, depth, p.move_clock, flag);
 
     return alpha;
 }
 
-Eval Search::quies(Pos &p, Eval alpha, Eval beta) { //REMEMBER OPTIMIZE THIS
+Eval Search::quies(Pos &p, Eval alpha, Eval beta) { //REMEMBER OPTIMIZE THIS, ALSO SHOULD INCLUDE CHECKS
     nodes++;
     Eval stand_pat = evalPos(p, alpha, beta);
     if (stand_pat >= beta) return beta;
@@ -167,7 +182,7 @@ Eval Search::quies(Pos &p, Eval alpha, Eval beta) { //REMEMBER OPTIMIZE THIS
     addLegalMoves(p, moves);
     
     for (Move &m : moves) {
-        if (m.isCapture() || m.isPromotion()) {
+        if (m.isCapture() || m.isPromotion() || m.isCheck()) {
             p.makeMove(m);
             alpha = max(alpha, (Eval)-quies(p, -beta, -alpha));
             p.undoMove();

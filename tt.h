@@ -33,6 +33,9 @@ class TT {
     
     public:
     TTEntry* getEntry(BB key, bool &found);
+    void clear();
+    int hashfull();
+    vector<Move> getPV(Pos p);
 
     public:
     int mclock_threshold = 0; //entries with mclock less than mclock_threshold will be disregarded

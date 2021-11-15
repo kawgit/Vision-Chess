@@ -74,18 +74,22 @@ Eval king_eval_map[64] = {
     20, 30, 10,  0,  0, 10, 30, 20
 };
 
-int sqMapTrans(int sq) {
-    return RC2SQ(7-(sq/8), sq%8);
-}
-
-Eval evalPos(Pos &p, Eval LB, Eval UB) {
-    Eval mat = (
+Eval evalMat(Pos &p) {
+    return (
         (bitcount(p.pieces[p.turn][PAWN]) - bitcount(p.pieces[p.notturn][PAWN])) * mat_points[PAWN] +
         (bitcount(p.pieces[p.turn][KNIGHT]) - bitcount(p.pieces[p.notturn][KNIGHT])) * mat_points[KNIGHT] +
         (bitcount(p.pieces[p.turn][BISHOP]) - bitcount(p.pieces[p.notturn][BISHOP])) * mat_points[BISHOP] +
         (bitcount(p.pieces[p.turn][ROOK]) - bitcount(p.pieces[p.notturn][ROOK])) * mat_points[ROOK] +
         (bitcount(p.pieces[p.turn][QUEEN]) - bitcount(p.pieces[p.notturn][QUEEN])) * mat_points[QUEEN]
     );
+}
+
+int sqMapTrans(int sq) {
+    return RC2SQ(7-(sq/8), sq%8);
+}
+
+Eval evalPos(Pos &p, Eval LB, Eval UB) {
+    Eval mat = evalMat(p);
 
     if (mat < LB - 100 || mat > UB + 100) return mat;
 
