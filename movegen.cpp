@@ -218,11 +218,10 @@ BB getKingAtk(Square s) {
     return king_moves[s];
 }
 
-vector<Move> getLegalMoves(Pos &p) {
+void addLegalMoves(Pos &p, vector<Move> &moves) {
     p.updateMasks();
     PNC pnc = getPNC(p);
 
-    vector<Move> moves;
     moves.reserve(100);
 
     if (pnc.checks != 2) {
@@ -234,11 +233,12 @@ vector<Move> getLegalMoves(Pos &p) {
     }
     addKingMoves(moves, p, pnc);
 
-    return moves;
+    p.inCheck = (pnc.checks != 0);
 }
 
 PNC getPNC(Pos &p) {
     PNC pnc;
+
 
     int ksq = lsb(p.getPieceMask(p.turn, KING));
 

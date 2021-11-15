@@ -314,5 +314,7 @@ BB Pos::getAtkMask(Color c) {
         mask |= getQueenAtk(from, nonking_occ);
     }
 
+    mask |= getKingAtk(lsb(getPieceMask(c, KING)));
+
     return mask;
 }

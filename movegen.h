@@ -21,7 +21,7 @@ BB getBishopAtk(Square s, BB &occupied);
 BB getQueenAtk(Square s, BB &occupied);
 BB getKingAtk(Square s);
 
-vector<Move> getLegalMoves(Pos& p);
+void addLegalMoves(Pos& p, vector<Move> &moves);
 
 PNC getPNC(Pos &p);
 

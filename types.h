@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -9,6 +10,9 @@ typedef uint64_t BB; //bitboard
 typedef uint8_t Square;
 typedef uint8_t Piece;
 typedef bool Color;
+typedef int16_t Eval;
+typedef uint8_t Depth;
+const Eval INF_EVAL = 32767;
 
 //enums
 enum GENERATION_MODES : uint8_t {QUIET = 0b1, CAPTURES = 0b10, CHECKS = 0b100, LEGAL = 0b11111111};
@@ -31,9 +35,14 @@ enum RAY_DIRECTIONS {NORTH, NORTHEAST, EAST, SOUTHEAST, SOUTH, SOUTHWEST, WEST, 
 Color getOppositeColor(Color c);
 
 struct Move {
-    int FLAG_SHIFT = 18;
+    const static int FLAG_SHIFT = 18;
 
-    uint32_t encode;
+    uint32_t encode = 0;
+    Eval eval = 0;
+
+    Move() {
+
+    }
     Move(uint32_t from, uint32_t to, uint32_t fp, uint32_t tp, uint32_t flags) {
         //encode = (flags << FLAG_SHIFT) | (fp << 15) | (tp << 12) | (from << 6) | to; 
         encode = ((flags & 0b11111) << FLAG_SHIFT) | ((fp & 0b111) << 15) | ((tp & 0b111) << 12) | ((from & 0b111111) << 6) | (to & 0b111111);
@@ -58,6 +67,11 @@ struct Move {
    string getSAN();
 };
 
+void order(vector<Move> &moveList, Move table_move, Move huerist_move);
+
+void sort(vector<Move> &moveList);
+
+void insertToSortedMoveList(vector<Move> &moveList, Move m);
 
 struct CR { //castle rights
     uint8_t bits = 0;

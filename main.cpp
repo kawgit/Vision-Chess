@@ -11,15 +11,16 @@ int main() {
     initZ();
     initM();
 
-    Pos p("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    cout.setf(ios::unitbuf);
+
+    Pos p("r3r1k1/1p2pp2/3pb1p1/3N2P1/2PbP3/pP3P2/P3K2R/7R w - - 1 23");
+
 
     print(p);
 
-    for (int i = 1; i < 8; i++) {
-        cout<<to_string(perft(p, i, false))<<endl;
-    }
-
-    print(p);
+    Search s(p);
+    s.max_depth = 10;
+    s.go();
 
     return 0;
 }

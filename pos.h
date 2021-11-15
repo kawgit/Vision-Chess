@@ -61,4 +61,5 @@ public:
     BB notturn_occ = 0;
     BB occ = 0;
 
+    bool inCheck = false;
 };
