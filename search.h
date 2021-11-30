@@ -32,26 +32,46 @@ public:
     const int MIN_LMR_DEPTH = 3;
     const int LMR_MARGIN = 3;
 
+    bool NMR = true;
+    const int MIN_NULL_MOVE_R = 3;
+    const int MAX_NULL_MOVE_R = 4;
+    const int NULL_MOVE_R = 4;
+
+    const int LMP_MARGIN = 25;
+
     Search(Pos &p);
 
     void go();
+    void runThread();
+    void timeThread();
+
+
     void stop();
+    void quit();
     Eval negaMax(Pos &p, Depth depth, Eval alpha, Eval beta);
     Eval quies(Pos &p, Eval alpha, Eval beta);
 
 public:
+    Timestamp wtime = 0;
+    Timestamp btime = 0;
+    Timestamp winc = 0;
+    Timestamp binc = 0;
+
+
     Timestamp begin_ms = 0;
     Timestamp min_ms = 0;
     Timestamp max_ms = ~0ULL;
     Depth max_depth = -1;
+    bool pondering = false;
+    bool infinite = false;
 
-private:
     TT table;
     Move cm_hueristic[64][64];
 
     bool searching = false;
-    int root_move_clock;
+    bool running = true;
     Pos root_p;
 
     BB nodes = 0;
+    Move root_bestmove = MOVENONE;
 };

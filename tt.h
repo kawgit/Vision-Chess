@@ -8,19 +8,11 @@ struct TTEntry {
     Move move;
     Eval eval = 0;
     Depth depth = 0;
-    int mclock = -1; //how far through the game was this entry made? used to check for entries made before root node
     Bound_Flag bound = LB;
 
-    void save(BB key_, Move move_, Eval eval_, Depth depth_, int mclock_, Bound_Flag bound_) {
-        key = key_;
-        move = move_;
-        eval = eval_;
-        depth = depth_;
-        mclock = mclock_;
-        bound = bound_;
-    }
+    void save(BB key_, Move move_, Eval eval_, Depth depth_, Bound_Flag bound_);
 };
-
+ 
 struct TTGroup {
     const static int GROUP_SIZE = 3;
     TTEntry entries[GROUP_SIZE];
@@ -34,11 +26,11 @@ class TT {
     public:
     TTEntry* getEntry(BB key, bool &found);
     void clear();
+    void reset();
     int hashfull();
     vector<Move> getPV(Pos p);
 
     public:
-    int mclock_threshold = 0; //entries with mclock less than mclock_threshold will be disregarded
     TTGroup table[TABLE_SIZE];
 };
 

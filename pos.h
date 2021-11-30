@@ -23,10 +23,15 @@ public:
     void remCR(CR_ CR);
     void setEP(Square s);
     void switchTurn();
+    void makeNullMove();
+    void undoNullMove();
 
     void makeMove(Move &m);
     void undoMove();
     
+    void makeMoveSAN(string SAN);
+    string getPGN();
+
     BB getAtkMask(Color c);
 
     inline void updateMasks() {
@@ -62,4 +67,5 @@ public:
     BB occ = 0;
 
     bool inCheck = false;
+    int nullMovesMade = 0;
 };

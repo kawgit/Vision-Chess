@@ -1,29 +1,34 @@
 #include "tt.h"
 #include "types.h"
+#include "util.h"
 #include <iostream>
+
+void TTEntry::save(BB key_, Move move_, Eval eval_, Depth depth_, Bound_Flag bound_) {
+    if (bound == EXACT && bound_ != EXACT) return;
+    else if ((bound != EXACT && bound_ == EXACT) || (depth < depth_)) {
+        key = key_;
+        move = move_;
+        eval = eval_;
+        depth = depth_;
+        bound = bound_;
+    }
+}
 
 TTEntry* TT::getEntry(BB key, bool &found) {
     TTGroup& group = table[key & HASH_MASK];
 
     TTEntry* usable = &group.entries[0];
-    bool usable_found = false;
     int min_depth_found = 500;
 
     for (int i = 0; i < TTGroup::GROUP_SIZE; i++) {
         if (group.entries[i].key == key) {
             found = true;
-            return &group.entries[i];
+            return &(group.entries[i]);
         }
         
-        if (!usable_found) {
-            if (group.entries[i].mclock < mclock_threshold) {
-                usable_found = true;
-                usable = &group.entries[i];
-            }
-            else if (group.entries[i].depth < min_depth_found) {
-                min_depth_found = group.entries[i].depth;
-                usable = &group.entries[i];
-            }
+        if (group.entries[i].depth < min_depth_found) {
+            min_depth_found = group.entries[i].depth;
+            usable = &(group.entries[i]);
         }
     }
 
@@ -35,7 +40,12 @@ TTEntry* TT::getEntry(BB key, bool &found) {
 void TT::clear() {
     for (int i = 0; i < TT::TABLE_SIZE; i++) {
         for (int j = 0; j < TTGroup::GROUP_SIZE; j++) {
-            table[i].entries[j].save(0, Move(), 0, 0, -1, LB);
+            TTEntry& t = table[i].entries[j];
+            t.key = 0;
+            t.move = MOVENONE;
+            t.eval = 0;
+            t.depth = -1;
+            t.bound = LB;
         }
     }
 }

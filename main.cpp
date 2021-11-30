@@ -8,19 +8,36 @@
 
 int main() {
     initBB();
-    initZ();
+    initZ(3333333);
     initM();
 
     cout.setf(ios::unitbuf);
 
-    Pos p("r3r1k1/1p2pp2/3pb1p1/3N2P1/2PbP3/pP3P2/P3K2R/7R w - - 1 23");
-
+    Pos p("r3k2r/ppp2ppp/1q2p3/3p2P1/1b1Pb3/2B1PN1P/PPP2P2/1R1QK2R w Kkq - 2 14");
 
     print(p);
 
-    Search s(p);
-    s.max_depth = 18;
-    s.go();
+
+    bool ongoing = true;
+    while (ongoing) {
+        Search s(p);
+
+        s.max_ms = 5000;
+
+        s.max_depth = 9;
+        s.table.clear();
+        s.go();
+        cout<<s.root_bestmove.getSAN()<<endl;
+        p.makeMove(s.root_bestmove);
+
+        vector<Move> moves;
+        addLegalMoves(p, moves);
+        if (moves.size() == 0) ongoing = false;
+    
+        cout<<p.getPGN()<<endl;
+        print(p);
+        break;
+    }
 
     return 0;
 }

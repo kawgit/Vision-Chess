@@ -118,6 +118,17 @@ __forceinline void Pos::switchTurn() {
     key ^= z_turn;
 }
 
+void Pos::makeNullMove() {
+    switchTurn();
+    move_clock++;
+    nullMovesMade++;
+}
+void Pos::undoNullMove() {
+    switchTurn();
+    move_clock--;
+    nullMovesMade--;
+}
+
 void Pos::makeMove(Move &m) {
     move_log.push_back(m);
     cr_log.push_back(cr);
@@ -319,4 +330,23 @@ BB Pos::getAtkMask(Color c) {
     mask |= getKingAtk(lsb(getPieceMask(c, KING)));
 
     return mask;
+}
+
+void Pos::makeMoveSAN(string SAN) {
+    vector<Move> moves;
+    addLegalMoves(*this, moves);
+    for (Move &m : moves) {
+        if (SAN == m.getSAN()) {
+            makeMove(m);
+            break;
+        }
+    }
+}
+
+string Pos::getPGN() {
+    string PGN = "";
+    for (int i = 0; i < move_log.size(); i++) {
+        PGN += (i%2 == 0 ? " " + to_string(i/2 + 1) + "." : "") + " " + move_log[i].getSAN();
+    }
+    return PGN;
 }

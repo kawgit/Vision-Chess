@@ -11,7 +11,7 @@ typedef uint8_t Square;
 typedef uint8_t Piece;
 typedef bool Color;
 typedef int16_t Eval;
-typedef uint8_t Depth;
+typedef int16_t Depth;
 const Eval INF_EVAL = 32767;
 
 //enums
@@ -66,6 +66,8 @@ struct Move {
 
    string getSAN();
 };
+
+extern Move MOVENONE;
 
 void order(vector<Move> &moveList, Move table_move, Move huerist_move);
 

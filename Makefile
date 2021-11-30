@@ -1,7 +1,7 @@
 all : pos.o types.o util.o zobrist.o movegen.o search.o timer.o tt.o eval.o main.exe
 
-main.exe : main.cpp pos.o types.o util.o zobrist.o movegen.o search.o timer.o
-	g++ -Ofast -o main.exe main.cpp pos.o types.o util.o zobrist.o movegen.o search.o timer.o tt.o eval.o
+main.exe : main.cpp pos.o types.o util.o zobrist.o movegen.o search.o timer.o tt.o eval.o
+	g++ -std=c++11 -Ofast -o main.exe main.cpp pos.o types.o util.o zobrist.o movegen.o search.o timer.o tt.o eval.o
 
 pos.o : pos.cpp pos.h types.h util.h
 	g++ -c -Ofast -o pos.o pos.cpp
@@ -19,7 +19,7 @@ movegen.o : movegen.cpp movegen.h
 	g++ -c -Ofast -o movegen.o movegen.cpp
 
 search.o : search.cpp search.h
-	g++ -c -Ofast -o search.o search.cpp
+	g++ -c -std=c++11 -Ofast -o search.o search.cpp
 
 timer.o : timer.cpp timer.h
 	g++ -c -Ofast -o timer.o timer.cpp
