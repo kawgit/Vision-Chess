@@ -1,305 +1,324 @@
-#include "types.h"
 #include "pos.h"
-#include "util.h"
-#include "zobrist.h"
+#include "bits.h"
+#include "types.h"
 #include "movegen.h"
-#include <string>
-#include <map>
-
+#include "eval.h"
 #include <iostream>
+#include <map>
+#include <string>
 
 using namespace std;
 
-map<char, Piece> fen_table {
-    {'P', PAWN},
-    {'N', KNIGHT},
-    {'B', BISHOP},
-    {'R', ROOK},
-    {'Q', QUEEN},
-    {'K', KING},
-};
-
 Pos::Pos(string fen) {
+	static map<char, Piece> fenmap = {
+		{'p', PAWN},
+		{'n', KNIGHT},
+		{'b', BISHOP},
+		{'r', ROOK},
+		{'q', QUEEN},
+		{'k', KING},
+	};
 
-    string board = fen.substr(0, fen.find(' '));
-    int col = 0;
-    int row = 7;
-    for (char c : board) {
-        int a = c - '0';
-        if (c == '/') {
-            row--;
-            col = 0;
-        }
-        else if (a >= 1 && a <= 8) col+=a;
-        else {
-            int sq = RC2SQ(row, col);
-            Color cl = WHITE;
-            if (c >= 'a') {
-                cl = BLACK;
-                c = toupper(c);
-            }
+	for (int i = 0; i < 64; i++) {
+		mailboxes[WHITE][i] = PIECENONE;
+		mailboxes[BLACK][i] = PIECENONE;
+	}
 
-            setPiece(sq, cl, fen_table[c]);
-            col++;
-        }
-    }
+	int r = 7;
+	int c = 0;
+	int i = 0;
+	while (!(r == 0 && c == 8)) {
+		char ch = fen[i++];
+		if (ch == '/') {
+			c = 0;
+			r--;
+		}
+		else if (ch >= '0' && ch <= '9') {
+			c += ch - '0';
+		}
+		else {
+			Color color = (ch >= 'a' ? BLACK : WHITE);
+			setPiece(color, rc(r, c), fenmap[(color == BLACK ? ch : (ch - 'A' + 'a'))]);
+			c++;
+		}
+	}
 
-    fen = fen.substr(fen.find(' ')+1);
-    if (fen.find('w') != string::npos) turn = WHITE;
-    else turn = BLACK;
+	fen = fen.substr(i);
 
-    notturn = (turn == WHITE ? BLACK : WHITE);
+	setTurn(fen.find("w") != string::npos ? WHITE : BLACK);
 
-    fen = fen.substr(fen.find(' ')+1);
-    if (fen.find('K') != string::npos) cr.adWK();
-    if (fen.find('Q') != string::npos) cr.adWQ();
-    if (fen.find('k') != string::npos) cr.adBK();
-    if (fen.find('q') != string::npos) cr.adBQ();
-    fen = fen.substr(fen.find(' ')+1);
-    if (fen.at(0) != '-') setEP(RC2SQ(fen.at(1)-'1', fen.at(0)-'a'));
-    fen = fen.substr(fen.find(' ')+1);
-    if (fen == "" || fen.at(0) == ' ') goto out;
-    hm_clock = stoi(fen.substr(0, fen.find(' ')));
-    fen = fen.substr(fen.find(' ')+1);
-    if (fen == "" || fen.at(0) == ' ') goto out;
-    move_clock = stoi(fen);
+	if (fen.find("K") != string::npos) switchCR(WKS_I);
+	if (fen.find("Q") != string::npos) switchCR(WQS_I);
+	if (fen.find("k") != string::npos) switchCR(BKS_I);
+	if (fen.find("q") != string::npos) switchCR(BQS_I);
 
-    out:
+	for (int i = 0; i < 3; i++) fen = fen.substr(fen.find(" ")+1);
 
-    key = _hash(*this);
+	if (fen[0] != '-') setEp(notToSq(fen));
 
-    move_log.reserve(150);
-    cr_log.reserve(150);
-    ep_log.reserve(150);
-    key_log.reserve(150);
+	fen = fen.substr(fen.find(" ")+1);
+	if (fen.size() == 0) goto end;
+
+	hm_clock = stoi(fen.substr(0, fen.find(" ")));
+
+	fen = fen.substr(fen.find(" ")+1);
+	if (fen.size() == 0) goto end;
+
+	m_clock = stoi(fen);
+
+	end:
+
+	move_log.reserve(RESERVE_SIZE);
+	hashkey_log.reserve(RESERVE_SIZE);
+	cr_log.reserve(RESERVE_SIZE);
+	to_piece_log.reserve(RESERVE_SIZE);
+	ep_log.reserve(RESERVE_SIZE);
+
+	return;
 }
 
-SPiece Pos::getSPieceAt(Square s) {
-    int p = getPieceAt(s, WHITE);
-    if (p == NO_P) p = getPieceAt(s, BLACK);
-    return SPiece(((p != NO_P && bitAt(pieces[WHITE][p], s)) ? WHITE : BLACK), p);
-}
+void Pos::makeMove(Move m) {
+	move_log.push_back(m);
+	hashkey_log.push_back(hashkey);
+	cr_log.push_back(cr);
+	ep_log.push_back(ep);
+	hm_clock_log.push_back(hm_clock);
+	repetitions_index_log.push_back(repetitions_index);
 
-int Pos::getPieceAt(Square s, Color c) {
-    BB a = getBB(s);
-    if (pieces[c][PAWN] & a) return PAWN;
-    if (pieces[c][KNIGHT] & a) return KNIGHT;
-    if (pieces[c][BISHOP] & a) return BISHOP;
-    if (pieces[c][ROOK] & a) return ROOK;
-    if (pieces[c][QUEEN] & a) return QUEEN;
-    if (pieces[c][KING] & a) return KING;
-    return NO_P;
-}
+	
+	Square from = getFrom(m);
+	Square to = getTo(m);
+	Piece fromPiece = getPieceAt(turn, from);
+	Piece toPiece = getPieceAt(notturn, to);
+	to_piece_log.push_back(toPiece);
 
-__forceinline void Pos::setPiece(Square s, Color c, Piece p) {
-    key ^= (c== WHITE ? z_white_squares[p][s] : z_black_squares[p][s]);
-    getPieceMask(c, p) |= getBB(s);
-}
+	removePiece(turn, from, fromPiece);
 
-__forceinline void Pos::remPiece(Square s, Color c, Piece p) {
-    key ^= (c== WHITE ? z_white_squares[p][s] : z_black_squares[p][s]);
-    getPieceMask(c, p) &= ~getBB(s);
-}
+	if (isCapture(m) || fromPiece == PAWN) {
+		hm_clock = 0;
+		repetitions_index = hashkey_log.size();
+	}
+	else hm_clock++;
+	if (turn == BLACK) m_clock++;
 
-__forceinline void Pos::remCR(CR_ CR) {
-    cr.rmCR(CR);
-    key ^= z_cr[CR];
-}
+	if (!isPromotion(m)) setPiece(turn, to, fromPiece);
+	else setPiece(turn, to, getPromotionType(m));
 
-__forceinline void Pos::setEP(Square s) {
-    if (ep < 64) key ^= z_ep[ep%8];
-    ep = s;
-    if (ep < 64) key ^= z_ep[ep%8];
-}
+	setEp(SQUARENONE);
 
-__forceinline void Pos::switchTurn() {
-    turn = notturn;
-    notturn = (turn == WHITE ? BLACK : WHITE);
-    key ^= z_turn;
-}
-
-void Pos::makeNullMove() {
-    switchTurn();
-    move_clock++;
-    nullMovesMade++;
-}
-void Pos::undoNullMove() {
-    switchTurn();
-    move_clock--;
-    nullMovesMade--;
-}
-
-void Pos::makeMove(Move &m) {
-    move_log.push_back(m);
-    cr_log.push_back(cr);
-    ep_log.push_back(ep);
-    key_log.push_back(key);
-
-    int fr = m.getFr();
-    int to = m.getTo();
-    int fp = m.getFp();
-    int tp = m.getTp();
-
-    remPiece(fr, turn, fp);
-
-    setEP(-1);
-
-    if (m.getFlags()) {
-
-        if (m.isCapture()) {
-            if (m.isEp())
-                remPiece(to - (turn == WHITE ? 8 : -8), notturn, PAWN);
-            else
-                remPiece(to, notturn, tp);
-        }
-        else if (m.isDoublePawnPush() && (getKingAtk(to) & rank_masks[to/8] & pieces[notturn][PAWN]))
-            setEP(to - (turn == WHITE ? 8 : -8));
-        else if (m.isKC()) {
+	if (getFlags(m)) {
+		if (isCapture(m)) {
+			if (!isEp(m)) removePiece(notturn, to, toPiece);
+			else removePiece(notturn, to + (turn == WHITE ? -8 : 8), PAWN);
+		}
+		else if (isDoublePawnPush(m) && (getRowMask(to/8) & getKingAtk(to) & getPieceMask(notturn, PAWN))) 
+			setEp(to + (turn == WHITE ? -8 : 8));
+		else if (isKingCastle(m)) {
             if (turn == WHITE) {
-                remPiece(H1, turn, ROOK);
-                setPiece(F1, turn, ROOK);
-                remCR(WKS);
+                removePiece(WHITE, H1, ROOK);
+                setPiece(WHITE, F1, ROOK);
             }
             else {
-                remPiece(H8, turn, ROOK);
-                setPiece(F8, turn, ROOK);
-                remCR(BKS);
+                removePiece(BLACK, H8, ROOK);
+                setPiece(BLACK, F8, ROOK);
             }
-        }
-        else if (m.isQC()) {
+		}
+		else if (isQueenCastle(m)) {
             if (turn == WHITE) {
-                remPiece(A1, turn, ROOK);
-                setPiece(D1, turn, ROOK);
-                remCR(WQS);
+                removePiece(WHITE, A1, ROOK);
+                setPiece(WHITE, D1, ROOK);
             }
             else {
-                remPiece(A8, turn, ROOK);
-                setPiece(D8, turn, ROOK);
-                remCR(BQS);
+                removePiece(BLACK, A8, ROOK);
+                setPiece(BLACK, D8, ROOK);
             }
         }
+	}
+
+	if (cr) {
+		if (turn == WHITE) {
+			if (fromPiece == ROOK) {
+				if (getWK(cr) && from == H1) switchCR(WKS_I);
+				if (getWQ(cr) && from == A1) switchCR(WQS_I);
+			}
+			if (fromPiece == KING) {
+				if (getWK(cr)) switchCR(WKS_I);
+				if (getWQ(cr)) switchCR(WQS_I);
+			}
+			if (toPiece == ROOK) {
+				if (getBK(cr) && to == H8) switchCR(BKS_I);
+				if (getBQ(cr) && to == A8) switchCR(BQS_I);
+			}
+		}
+		else {
+			if (fromPiece == ROOK) {
+				if (getBK(cr) && from == H8) switchCR(BKS_I);
+				if (getBQ(cr) && from == A8) switchCR(BQS_I);
+			}
+			if (fromPiece == KING) {
+				if (getBK(cr)) switchCR(BKS_I);
+				if (getBQ(cr)) switchCR(BQS_I);
+			}
+			if (toPiece == ROOK) {
+				if (getWK(cr) && to == H1) switchCR(WKS_I);
+				if (getWQ(cr) && to == A1) switchCR(WQS_I);
+			}
+		}
     }
 
-    if (m.isPromotion())
-        setPiece(to, turn, m.getProm());
-    else 
-        setPiece(to, turn, fp);
-
-    if (cr.bits) {
-        if (turn == WHITE) {
-            if (cr.bits & 0b0011) {
-                if (fp == ROOK) {
-                    if (cr.getWK() && fr == H1) remCR(WKS);
-                    if (cr.getWQ() && fr == A1) remCR(WQS);
-                }
-                if (fp == KING) {
-                    if (cr.getWK()) remCR(WKS);
-                    if (cr.getWQ()) remCR(WQS);
-                }
-            }
-
-            if (cr.bits & 0b1100) {
-                if (tp == ROOK) {
-                    if (cr.getBK() && to == H8) remCR(BKS);
-                    if (cr.getBQ() && to == A8) remCR(BQS);
-                }
-            }
-        }
-        else {
-            if (cr.bits & 0b1100) {
-                if (fp == ROOK) {
-                    if (cr.getBK() && fr == H8) remCR(BKS);
-                    if (cr.getBQ() && fr == A8) remCR(BQS);
-                }
-                if (fp == KING) {
-                    if (cr.getBK()) remCR(BKS);
-                    if (cr.getBQ()) remCR(BQS);
-                }
-            }
-
-            if (cr.bits & 0b0011) {
-                if (tp == ROOK) {
-                    if (cr.getWK() && to == H1) remCR(WKS);
-                    if (cr.getWQ() && to == A1) remCR(WQS);
-                }
-            }
-        }
-
-    }
-
-    if (turn == BLACK) move_clock++;
-    /* do later, need log for hm_clock
-    hm_clock++;
-    if (fp == PAWN || move.isCapture()) hm_clock = 0;
-    */
-
-    switchTurn();
+	switchTurn();
 }
 
 void Pos::undoMove() {
-    Move m = move_log.back();
-    cr = cr_log.back();
-    ep = ep_log.back();
+	switchTurn();
 
-    move_log.pop_back();
-    cr_log.pop_back();
-    ep_log.pop_back();
+	if (turn == BLACK) m_clock--;
 
+	Move m = move_log.back();
 
-    switchTurn();
+	Color notturn = getOppositeColor(turn);
+	
+	Square from = getFrom(m);
+	Square to = getTo(m);
+	Piece fromPiece = getPieceAt(turn, to);
+	Piece toPiece = to_piece_log.back();
 
-    if (turn == BLACK) move_clock--;
-    
-    int fr = m.getFr();
-    int to = m.getTo();
-    int fp = m.getFp();
-    int tp = m.getTp();
+	if (!isPromotion(m)) {
+		removePiece(turn, to, fromPiece);
+		setPiece(turn, from, fromPiece);
+	}
+	else {
+		removePiece(turn, to, getPromotionType(m));
+		setPiece(turn, from, PAWN);
+	}
 
-    setPiece(fr, turn, fp);
-
-    if (m.isPromotion()) remPiece(to, turn, m.getProm());
-    else remPiece(to, turn, fp);
-
-    if (m.getFlags()) {
-        if (m.isCapture()) {
-            if (m.isEp())
-                setPiece(to - (turn == WHITE ? 8 : -8), notturn, PAWN);
-            else
-                setPiece(to, notturn, tp);
-        }
-        else if (m.isKC()) {
+	if (getFlags(m)) {
+		if (isCapture(m)) {
+			if (!isEp(m)) setPiece(notturn, to, toPiece);
+			else setPiece(notturn, to + (turn == WHITE ? -8 : 8), PAWN);
+		}
+        else if (isKingCastle(m)) {
             if (turn == WHITE) {
-                remPiece(F1, turn, ROOK);
-                setPiece(H1, turn, ROOK);
+                removePiece(WHITE, F1, ROOK);
+                setPiece(WHITE, H1, ROOK);
             }
             else {
-                remPiece(F8, turn, ROOK);
-                setPiece(H8, turn, ROOK);
+                removePiece(BLACK, F8, ROOK);
+                setPiece(BLACK, H8, ROOK);
             }
         }
-        else if (m.isQC()) {
+        else if (isQueenCastle(m)) {
             if (turn == WHITE) {
-                remPiece(D1, turn, ROOK);
-                setPiece(A1, turn, ROOK);
+                removePiece(WHITE, D1, ROOK);
+                setPiece(WHITE, A1, ROOK);
             }
             else {
-                remPiece(D8, turn, ROOK);
-                setPiece(A8, turn, ROOK);
+                removePiece(BLACK, D8, ROOK);
+                setPiece(BLACK, A8, ROOK);
             }
         }
-    }
-    
-    key = key_log.back();
-    key_log.pop_back();
+	}
+	
+	hashkey = hashkey_log.back();
+	ep = ep_log.back();
+	cr = cr_log.back();
+	hm_clock = hm_clock_log.back();
+	repetitions_index = repetitions_index_log.back();
+
+	move_log.pop_back();
+	to_piece_log.pop_back();
+	hashkey_log.pop_back();
+	ep_log.pop_back();
+	cr_log.pop_back();
+	hm_clock_log.pop_back();
+	repetitions_index_log.pop_back();
+
+}
+
+void print(Pos& p, bool meta) {
+	const static char white_piece_notation[6] = {'P', 'N', 'B', 'R', 'Q', 'K'};
+	const static char black_piece_notation[6] = {'p', 'n', 'b', 'r', 'q', 'k'};
+
+	for (int r = 7; r >= 0; r--) {
+		cout<<" +---+---+---+---+---+---+---+---+ "<<endl;
+		for (int c = 0; c < 8; c++) {
+			cout<<" | ";
+			if (p.getPieceAt(WHITE, rc(r, c)) != PIECENONE) {
+				cout<<white_piece_notation[p.getPieceAt(WHITE, rc(r, c))];
+			}
+			else if (p.getPieceAt(BLACK, rc(r, c)) != PIECENONE) {
+				cout<<black_piece_notation[p.getPieceAt(BLACK, rc(r, c))];
+			}
+			else {
+				cout<<' ';
+			}
+		}
+		cout<<" | "<<endl;
+	}
+	cout<<" +---+---+---+---+---+---+---+---+ "<<endl;
+
+	if (meta) {
+		cout<<"turn: "<<(p.turn == WHITE ? "WHITE" : "BLACK")<<endl;
+		cout<<"hashkey: "<< hex << uppercase << p.hashkey << nouppercase << dec << endl;
+		cout<<"castle rights: ";
+		if (getWK(p.cr)) cout<<"K";
+		if (getWQ(p.cr)) cout<<"Q";
+		if (getBK(p.cr)) cout<<"k";
+		if (getBQ(p.cr)) cout<<"q";
+		cout<<endl;
+		cout<<"ep: "<<sqToNot(p.ep)<<endl;
+		cout<<"halfmove clock: "<<to_string(p.hm_clock)<<endl;
+		cout<<"move clock: "<<to_string(p.m_clock)<<endl;
+		cout<<"fen: "<<getFen(p)<<endl;
+	}
+}
+
+string getFen(Pos& p) {
+	const static char white_piece_notation[6] = {'P', 'N', 'B', 'R', 'Q', 'K'};
+	const static char black_piece_notation[6] = {'p', 'n', 'b', 'r', 'q', 'k'};
+
+	string fen = "";
+
+	for (int r = 7; r >= 0; r--) {
+		int space_count = 0;
+		for (int c = 0; c < 8; c++) {
+			if (p.getPieceAt(WHITE, rc(r, c)) != PIECENONE) {
+				if (space_count != 0) fen += to_string(space_count);
+				space_count = 0;
+				fen += white_piece_notation[p.getPieceAt(WHITE, rc(r, c))];
+			}
+			else if (p.getPieceAt(BLACK, rc(r, c)) != PIECENONE) {
+				if (space_count != 0) fen += to_string(space_count);
+				space_count = 0;
+				fen += black_piece_notation[p.getPieceAt(BLACK, rc(r, c))];
+			}
+			else space_count++;
+		}
+		if (space_count != 0) fen += to_string(space_count);
+		if (r != 0) fen += '/';
+	}
+
+	fen += (p.turn == WHITE ? " w " : " b ");
+
+	if (getWK(p.cr)) fen+="K";
+	if (getWQ(p.cr)) fen+="Q";
+	if (getBK(p.cr)) fen+="k";
+	if (getBQ(p.cr)) fen+="q";
+
+	fen += " " + sqToNot(p.ep);
+	fen += " " + to_string(p.hm_clock);
+	fen += " " + to_string(p.m_clock);
+
+	return fen;
 }
 
 BB Pos::getAtkMask(Color c) {
-    BB mask = 0ULL;
+	    BB mask = 0ULL;
 
     if (c == WHITE)
-        mask |= ((getPieceMask(c, PAWN) & ~file_masks[7]) << 9) | ((getPieceMask(c, PAWN) & ~file_masks[0]) << 7);
+        mask |= ((getPieceMask(c, PAWN) & ~getColMask(7)) << 9) | ((getPieceMask(c, PAWN) & ~getColMask(0)) << 7);
     else
-        mask |= ((getPieceMask(c, PAWN) & ~file_masks[0]) >> 9) | ((getPieceMask(c, PAWN) & ~file_masks[7]) >> 7);
+        mask |= ((getPieceMask(c, PAWN) & ~getColMask(0)) >> 9) | ((getPieceMask(c, PAWN) & ~getColMask(7)) >> 7);
 
     BB knights = getPieceMask(c, KNIGHT);
     while (knights) {
@@ -307,7 +326,7 @@ BB Pos::getAtkMask(Color c) {
         mask |= getKnightAtk(from);
     }
 
-    BB nonking_occ = occ & ~getPieceMask(getOppositeColor(c), KING);
+    BB nonking_occ = getOcc() & ~getPieceMask(getOppositeColor(c), KING);
 
     BB bishops = getPieceMask(c, BISHOP);
     while (bishops) {
@@ -332,21 +351,88 @@ BB Pos::getAtkMask(Color c) {
     return mask;
 }
 
-void Pos::makeMoveSAN(string SAN) {
-    vector<Move> moves;
-    addLegalMoves(*this, moves);
-    for (Move &m : moves) {
-        if (SAN == m.getSAN()) {
-            makeMove(m);
-            break;
-        }
-    }
+bool Pos::isInCheck() {
+	Square ksq = lsb(getPieceMask(turn, KING));
+	BB rooks = getPieceMask(notturn, ROOK) | getPieceMask(notturn, QUEEN);
+	BB bishops = getPieceMask(notturn, BISHOP) | getPieceMask(notturn, QUEEN);
+
+	BB occ = getOcc();
+
+	return  (getRookAtk(ksq, occ) & rooks) || 
+			(getBishopAtk(ksq, occ) & bishops) || 
+			(getKnightAtk(ksq) & getPieceMask(notturn, KNIGHT)) ||
+			(getPawnAtk(turn, ksq) & getPieceMask(notturn, PAWN));
 }
 
-string Pos::getPGN() {
-    string PGN = "";
-    for (int i = 0; i < move_log.size(); i++) {
-        PGN += (i%2 == 0 ? " " + to_string(i/2 + 1) + "." : "") + " " + move_log[i].getSAN();
-    }
-    return PGN;
+bool Pos::causesCheck(Move m) {
+	makeMove(m);
+	bool r = isInCheck();
+	undoMove();
+	return r;
+}
+
+bool Pos::threeRepetitions() {
+	int count = 1;
+	for (int i = hashkey_log.size()-4; i >= repetitions_index; i-=2) {
+		if (hashkey_log[i] == hashkey) {
+			count++;
+			if (count == 3) return true;
+		}
+	}
+	return false;
+}
+
+bool Pos::makeMove(string SAN) {
+	vector<Move> moves = getLegalMoves(*this);
+	Move move = MOVENONE;
+	for (Move m : moves) {
+		if (getSAN(m) == SAN) move = m;
+	}
+	if (move == MOVENONE) return false;
+	makeMove(move);
+	return true;
+}
+
+bool Pos::isGameOver() {
+	if (threeRepetitions()) return true;
+	if (hm_clock == 50) return true;
+	if (!getLegalMoves(*this).size()) return true;
+	if (!evalMat(*this, WHITE) && !evalMat(*this, BLACK)) return true;
+	return false;
+}
+
+bool Pos::oneRepetition(int root) {
+	for (int i = hashkey_log.size()-4; i >= max((int)repetitions_index, root); i-=2) if (hashkey_log[i] == hashkey) return true;
+	return false;
+}
+
+bool Pos::insufficientMaterial() {
+	if (getPieceMask(WHITE, PAWN) | getPieceMask(BLACK, PAWN) | 
+		getPieceMask(WHITE, QUEEN) | getPieceMask(BLACK, QUEEN) |
+		getPieceMask(WHITE, ROOK) | getPieceMask(BLACK, ROOK))
+		return false;
+
+	BB occ = getOcc();
+	int piece_count = bitcount(occ);
+
+	if (piece_count == 2) return true; //KvK
+	if (bitcount(getPieceMask(WHITE, BISHOP) | getPieceMask(WHITE, KNIGHT)) > 1) return false;
+	if (bitcount(getPieceMask(BLACK, BISHOP) | getPieceMask(BLACK, KNIGHT)) > 1) return false;
+	if (piece_count == 3) return true;
+	if (piece_count == 4) {
+		if (getPieceMask(WHITE, BISHOP) && getPieceMask(BLACK, BISHOP) &&
+		   ((lsb(getPieceMask(WHITE, BISHOP)) % 2) == (lsb(getPieceMask(BLACK, BISHOP)) % 2))) 
+			return true;
+	}
+
+	return false;
+}
+
+void Pos::makeNullMove() {
+	nullMovesMade++;
+	switchTurn();
+}
+void Pos::undoNullMove() {
+	nullMovesMade--;
+	switchTurn();
 }

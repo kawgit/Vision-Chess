@@ -1,33 +1,50 @@
 #pragma once
-#include "types.h"
+
 #include "pos.h"
+#include "types.h"
+#include "bits.h"
 #include <vector>
 
-const int ROOK_BITS = 16;
-const int BISHOP_BITS = 11;
+using namespace std;
+
+const int ROOK_BITS = 20;
+const int BISHOP_BITS = 20;
 
 const int ROOK_SHIFT = 64-ROOK_BITS;
 const int BISHOP_SHIFT = 64-BISHOP_BITS;
 
+void initMoveGen(int seed = 38921083);
 
-
-void initM(int seed = 32123);
-
-
-BB getPawnAtk(Square s);
+BB getPawnAtk(Color c, Square s);
 BB getKnightAtk(Square s);
-BB getRookAtk(Square s, BB &occupied);
-BB getBishopAtk(Square s, BB &occupied);
-BB getQueenAtk(Square s, BB &occupied);
+BB getRookAtk(Square s, BB occupied);
+BB getBishopAtk(Square s, BB occupied);
+BB getQueenAtk(Square s, BB occupied);
 BB getKingAtk(Square s);
 
-void addLegalMoves(Pos& p, vector<Move> &moves);
+struct PosInfo { //pins and checks
+    BB occ;
+    BB notturn_occ;
+    BB turn_occ;
 
-PNC getPNC(Pos &p);
+    int checks = 0;
+    BB check_blocking_squares = ~0ULL;
+    BB moveable_squares[64] = {};
+    BB pinned_mask = 0ULL;
+    bool isPawnCheck = false;
 
-void addPawnMoves(vector<Move> &moves, Pos &p, PNC &pnc);
-void addKnightMoves(vector<Move> &moves, Pos &p, PNC &pnc);
-void addBishopMoves(vector<Move> &moves, Pos &p, PNC &pnc);
-void addRookMoves(vector<Move> &moves, Pos &p, PNC &pnc);
-void addQueenMoves(vector<Move> &moves, Pos &p, PNC &pnc);
-void addKingMoves(vector<Move> &moves, Pos &p, PNC &pnc);
+    PosInfo(Pos &p);
+    void add_check(BB block_squares);
+    void add_pin(int square, BB moveable_squares_);
+    bool is_moveable(int from, int to);
+};
+
+vector<Move> getLegalMoves(Pos& p);
+
+void addPawnMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo);
+void addKnightMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo);
+void addBishopMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo);
+void addRookMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo);
+void addQueenMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo);
+void addKingMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo);
+

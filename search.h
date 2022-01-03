@@ -1,77 +1,74 @@
-#include "types.h"
+#pragma once
+
 #include "pos.h"
 #include "timer.h"
 #include "tt.h"
-#include <vector>
+#include "types.h"
+#include <thread>
+#include <atomic>
 
 using namespace std;
 
-BB perft(Pos &p, Depth depth, bool divide);
+BB perft(Pos &p, Depth depth, bool divide = false);
 
-struct Task {
-    Pos p;
-    Depth depth;
-    Eval beta;
-    Task(Pos &p_, Depth &max_depth_, Eval &beta_) {
-        p = p_;
-        depth = max_depth_;
-        beta = beta_;
-    }
-};
+void perftTest();
+
+void puzzleTest(int min_time = 1000, int maxtime = 10000);
 
 class Search {
-public:
-    const static int num_threads = 1;
+	public:
+	
+	Search(Pos p);
 
-    const int RAZOR_DEPTH = 3;
-    const Eval RAZOR_MARGIN = 100;
+	void go();
+	void stop();
+	void manager();
+	void limitsChecker();
+	Eval search(Pos &p, Depth depth, Eval alpha, Eval beta);
+	Eval qsearch(Pos &p, Eval alpha, Eval beta);
 
-    const int FPRUNE_DEPTH = 3;
-    const Eval FPRUNE_MARGIN = 950;
+	public:
+	//settings
 
-    const int MIN_LMR_DEPTH = 3;
-    const int LMR_MARGIN = 3;
+	bool useHashTable = true;
+	bool futilityPruning = true;
+	Eval futilityMargin = 900;
+	int num_threads = 1;
 
-    bool NMR = true;
-    const int MIN_NULL_MOVE_R = 3;
-    const int MAX_NULL_MOVE_R = 4;
-    const int NULL_MOVE_R = 4;
+	//info
 
-    const int LMP_MARGIN = 25;
+	Timestamp search_start = 0;
+	atomic<Move> root_bestmove;
+	Pos root_pos;
+	vector<Move> root_moves;
+	bool searching = false;
+	atomic_int min_thread_depth{1};
+	atomic_int max_thread_depth{1};
+	TT tt;
 
-    Search(Pos &p);
+	//limits
+	Depth max_depth = 100;
 
-    void go();
-    void runThread();
-    void timeThread();
+	Timestamp wtime = 0;
+	Timestamp btime = 0;
+	Timestamp winc = 0;
+	Timestamp binc = 0;
+	bool infinite = false;
+	bool ponder = false;
 
+	//hueristics
+	Move cm_hueristic[6][64] = {MOVENONE}; //previous move (fromPiece, toSquare)
+	unsigned int hist_hueristic[6][64] = {0}; //fromPiece, toSquare
+};
 
-    void stop();
-    void quit();
-    Eval negaMax(Pos &p, Depth depth, Eval alpha, Eval beta);
-    Eval quies(Pos &p, Eval alpha, Eval beta);
+struct WorkerThread {
+	Pos root_pos;
+	Depth root_depth = 0;
+	Search* parent;
+	BB nodes = 0;
 
-public:
-    Timestamp wtime = 0;
-    Timestamp btime = 0;
-    Timestamp winc = 0;
-    Timestamp binc = 0;
-
-
-    Timestamp begin_ms = 0;
-    Timestamp min_ms = 0;
-    Timestamp max_ms = ~0ULL;
-    Depth max_depth = -1;
-    bool pondering = false;
-    bool infinite = false;
-
-    TT table;
-    Move cm_hueristic[64][64];
-
-    bool searching = false;
-    bool running = true;
-    Pos root_p;
-
-    BB nodes = 0;
-    Move root_bestmove = MOVENONE;
+	WorkerThread(Search& search);
+	void start();
+	Eval search(Pos &p, Depth depth, Eval alpha, Eval beta);
+	Eval qsearch(Pos &p, Eval alpha, Eval beta);
 };

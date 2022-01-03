@@ -1,71 +1,91 @@
 #pragma once
 
-#include "types.h"
 #include <vector>
+#include <stdint.h>
+#include <string>
+#include "bits.h"
+#include "types.h"
+#include "hash.h"
 
 using namespace std;
 
+
+
 class Pos {
-public:
-    Pos(string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+	public:
 
-    inline BB& getPieceMask(Color c, Piece p) { return pieces[c][p]; }
+	const static int RESERVE_SIZE = 100;
 
-    inline BB getOcc(Color c) { return (pieces[c][PAWN] | pieces[c][KNIGHT] | pieces[c][BISHOP] | pieces[c][ROOK] | pieces[c][QUEEN] | pieces[c][KING]); }
-    inline BB getOcc() { return getOcc(WHITE) | getOcc(BLACK); }
+	Color turn = WHITE;
+	Color notturn = BLACK;
+	BB pieces[2][6] = {{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}};
+	Piece mailboxes[2][64] = { PIECENONE };
+	BB hashkey = 0;
+	CR cr = 0;
+	Square ep = SQUARENONE;
+	Clock hm_clock = 0;
+	Clock m_clock = 1;
+	Clock repetitions_index = 0;
+	int nullMovesMade = 0;
 
-    int getPieceAt(Square s, Color c);
 
-    SPiece getSPieceAt(Square s);
 
-    void setPiece(Square s, Color c, Piece p);
-    void remPiece(Square s, Color c, Piece p);
-    void remCR(CR_ CR);
-    void setEP(Square s);
-    void switchTurn();
-    void makeNullMove();
-    void undoNullMove();
+	vector<Move> move_log;
+	vector<BB> hashkey_log;
+	vector<CR> cr_log;
+	vector<Piece> to_piece_log;
+	vector<Square> ep_log;
+	vector<Clock> hm_clock_log;
+	vector<Clock> repetitions_index_log;
+	
 
-    void makeMove(Move &m);
-    void undoMove();
-    
-    void makeMoveSAN(string SAN);
-    string getPGN();
+	Pos(string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+	
+	inline void switchCR(CR_Index i) {
+		hashkey ^= z_cr[i];
+		cr ^= 1<<i;
+	}
+	inline void setEp(Square s) {
+		hashkey ^= z_ep[ep != SQUARENONE ? ep%8 : 8];
+		hashkey ^= z_ep[s != SQUARENONE ? s%8 : 8]; 
+		ep = s;
+	}
+	inline void setTurn(Color c) { if (c != turn) switchTurn(); }
+	inline void switchTurn() { 
+		hashkey ^= z_turn;
+		turn = notturn; 
+		notturn = getOppositeColor(notturn); 
+	}
+	inline BB& getPieceMask(Color c, Piece p) { return pieces[c == WHITE ? 1 : 0][p]; }
+	inline Square getPieceAt(Color c, Square s) { return mailboxes[c][s]; }
+	inline void setPiece(Color c, Square s, Piece p) { 
+		hashkey ^= z_squares[c == WHITE ? 1 : 0][p][s];
+		getPieceMask(c, p) |= getBB(s);
+		mailboxes[c][s] = p;
+	}
+	inline void removePiece(Color c, Square s, Piece p) {
+		hashkey ^= z_squares[c == WHITE ? 1 : 0][p][s];
+		getPieceMask(c, p) &= ~getBB(s);
+		mailboxes[c][s] = PIECENONE;
+	}
 
-    BB getAtkMask(Color c);
+	BB getAtkMask(Color c);
+	bool isInCheck();
+	bool causesCheck(Move m);
+	bool threeRepetitions();
+	bool oneRepetition(int root);
+	bool insufficientMaterial();
+	bool isGameOver();
 
-    inline void updateMasks() {
-        turn_occ = getOcc(turn);
-        notturn_occ = getOcc(notturn);
-        occ = turn_occ | notturn_occ;
-    }
-
-public:
-
-    Color turn = WHITE;
-    Color notturn = BLACK;
-
-    BB pieces[2][6] = {0};
-
-    Square ep = -1;
-    CR cr;
-
-    int move_clock = -1;
-    int hm_clock = -1;
-
-    BB key;
-    
-    vector<Move> move_log;
-    vector<Square> ep_log;
-    vector<CR> cr_log;
-    vector<BB> key_log;
-
-    //masks
-
-    BB turn_occ = 0;
-    BB notturn_occ = 0;
-    BB occ = 0;
-
-    bool inCheck = false;
-    int nullMovesMade = 0;
+	inline BB getOcc(Color c) { return getPieceMask(c, PAWN) | getPieceMask(c, KNIGHT) |getPieceMask(c, BISHOP) |getPieceMask(c, ROOK) |getPieceMask(c, KING) |getPieceMask(c, QUEEN); }
+	inline BB getOcc() { return getOcc(WHITE) | getOcc(BLACK); }
+	void makeMove(Move m);
+	void undoMove();
+	bool makeMove(string SAN);
+	void makeNullMove();
+	void undoNullMove();
 };
+
+void print(Pos& p, bool meta = false);
+
+string getFen(Pos& p);

@@ -1,76 +1,59 @@
+#include "pos.h"
+#include "bits.h"
 #include "tt.h"
-#include "types.h"
-#include "util.h"
-#include <iostream>
+#include "search.h"
 
-void TTEntry::save(BB key_, Move move_, Eval eval_, Depth depth_, Bound_Flag bound_) {
-    if (bound == EXACT && bound_ != EXACT) return;
-    else if ((bound != EXACT && bound_ == EXACT) || (depth < depth_)) {
-        key = key_;
-        move = move_;
-        eval = eval_;
-        depth = depth_;
-        bound = bound_;
-    }
+void TTEntry::save(BB _hashkey, Eval _eval, Bound _bound, Depth _depth, Move _move, Gen _gen) {
+	if ( _gen > gen ||
+		(bound != EXACT && (_bound == EXACT || depth < _depth)) ||
+		(bound == EXACT && (_bound == EXACT && depth < _depth))) {
+		hashkey32 = _hashkey>>32;
+		eval = _eval;
+		bound = _bound;
+		depth = _depth;
+		move = _move;
+		gen = _gen;
+	}
 }
 
-TTEntry* TT::getEntry(BB key, bool &found) {
-    TTGroup& group = table[key & HASH_MASK];
+void TTEntry::forcesave(BB _hashkey, Eval _eval, Bound _bound, Depth _depth, Move _move, Gen _gen) {
+	hashkey32 = _hashkey>>32;
+	eval = _eval;
+	bound = _bound;
+	depth = _depth;
+	move = _move;
+	gen = _gen;
+}
 
-    TTEntry* usable = &group.entries[0];
-    int min_depth_found = 500;
-
-    for (int i = 0; i < TTGroup::GROUP_SIZE; i++) {
-        if (group.entries[i].key == key) {
-            found = true;
-            return &(group.entries[i]);
-        }
-        
-        if (group.entries[i].depth < min_depth_found) {
-            min_depth_found = group.entries[i].depth;
-            usable = &(group.entries[i]);
-        }
-    }
-
-    found = false;
-
-    return usable;
+TTEntry* TT::probe(BB hashkey, bool& found) {
+	TTEntry* entry = &table[hashkey & HASHMASK];
+	found = entry->hashkey32 == hashkey>>32;
+	return entry;
 }
 
 void TT::clear() {
-    for (int i = 0; i < TT::TABLE_SIZE; i++) {
-        for (int j = 0; j < TTGroup::GROUP_SIZE; j++) {
-            TTEntry& t = table[i].entries[j];
-            t.key = 0;
-            t.move = MOVENONE;
-            t.eval = 0;
-            t.depth = -1;
-            t.bound = LB;
-        }
-    }
+	gen = 0;
+	for (int i = 0; i < TABLESIZE; i++) {
+		table[i].forcesave(0, 0, LB, 0, 0, 0);
+	}
 }
 
-int TT::hashfull() {
-    int count = 0;
-    for (int i = 0; i < 1000/TTGroup::GROUP_SIZE; i++) {
-        for (int j = 0; j < TTGroup::GROUP_SIZE; j++) {
-            if (table[i].entries[j].key) count++;
-        }
-    }
-    return count;
-}
 
 vector<Move> TT::getPV(Pos p) {
-    vector<Move> PV;
-    while (true) {
-        bool found = false;
-        TTEntry* entry = getEntry(p.key, found);
-        Move move = entry->move;
-        if (found) {
-            PV.push_back(move);
-            p.makeMove(move);
-        }
-        else break;
-    }
-    return PV;
+	vector<Move> pv;
+	addPV(p, pv);
+	return pv;
+}
+
+void TT::addPV(Pos& p, vector<Move>& pv) {
+	bool found = false;
+	TTEntry* entry = probe(p.hashkey, found);
+	Move move = entry->move;
+	Bound bound = entry->bound;
+	if (found && bound == EXACT) {
+		p.makeMove(move);
+		pv.push_back(move);
+		if (!p.isGameOver()) addPV(p, pv);
+		p.undoMove();
+	}
 }

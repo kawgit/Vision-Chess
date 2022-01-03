@@ -1,35 +1,27 @@
-all : pos.o types.o util.o zobrist.o movegen.o search.o timer.o tt.o eval.o main.exe
+all: bits.o eval.o hash.o movegen.o pos.o search.o timer.o tt.o types.o uci.exe
 
-main.exe : main.cpp pos.o types.o util.o zobrist.o movegen.o search.o timer.o tt.o eval.o
-	g++ -std=c++11 -Ofast -o main.exe main.cpp pos.o types.o util.o zobrist.o movegen.o search.o timer.o tt.o eval.o
+uci.exe: bits.o eval.o hash.o movegen.o pos.o search.o timer.o tt.o types.o uci.cpp
+	g++ -Ofast bits.o eval.o hash.o movegen.o pos.o search.o timer.o tt.o types.o uci.cpp -o main.exe
 
-pos.o : pos.cpp pos.h types.h util.h
-	g++ -c -Ofast -o pos.o pos.cpp
+bits.o: bits.cpp bits.h
+	g++ -c -Ofast bits.cpp -o bits.o
+eval.o: eval.cpp eval.h
+	g++ -c -Ofast eval.cpp -o eval.o
+hash.o: hash.cpp hash.h
+	g++ -c -Ofast hash.cpp -o hash.o
+movegen.o: movegen.cpp movegen.h
+	g++ -c -Ofast movegen.cpp -o movegen.o
+pos.o: pos.cpp pos.h
+	g++ -c -Ofast pos.cpp -o pos.o
+search.o: search.cpp search.h
+	g++ -c -Ofast search.cpp -o search.o
+timer.o: timer.cpp timer.h
+	g++ -c -Ofast timer.cpp -o timer.o
+tt.o: tt.cpp tt.h
+	g++ -c -Ofast tt.cpp -o tt.o
+types.o: types.cpp types.h
+	g++ -c -Ofast types.cpp -o types.o
 
-types.o : types.cpp types.h
-	g++ -c -Ofast -o types.o types.cpp
-
-util.o : util.cpp util.h
-	g++ -c -Ofast -o util.o util.cpp
-
-zobrist.o : zobrist.cpp zobrist.h
-	g++ -c -Ofast -o zobrist.o zobrist.cpp
-
-movegen.o : movegen.cpp movegen.h
-	g++ -c -Ofast -o movegen.o movegen.cpp
-
-search.o : search.cpp search.h
-	g++ -c -std=c++11 -Ofast -o search.o search.cpp
-
-timer.o : timer.cpp timer.h
-	g++ -c -Ofast -o timer.o timer.cpp
-
-tt.o : tt.cpp tt.h
-	g++ -c -Ofast -o tt.o tt.cpp
-
-eval.o : eval.cpp eval.h
-	g++ -c -Ofast -o eval.o eval.cpp
-
-
-clean : 
+clean:
 	del *.o
+	del *.exe

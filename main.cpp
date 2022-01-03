@@ -1,43 +1,82 @@
-#include "pos.h"
-#include "util.h"
-#include "types.h"
-#include "zobrist.h"
-#include "movegen.h"
-#include "search.h"
 #include <iostream>
+#include <vector>
+#include <string>
+#include <thread>
+#include "pos.h"
+#include "bits.h"
+#include "search.h"
+#include "timer.h"
+#include "search.h"
+#include "types.h"
+#include "movegen.h"
+#include "eval.h"
+
+using namespace std;
+
+vector<string> split(string x, char delim = ' ')
+{
+    x += delim; //includes a delimiter at the end so last word is also read
+    vector<string> splitted;
+    string temp = "";
+    for (int i = 0; i < x.length(); i++)
+    {
+        if (x[i] == delim)
+        {
+            splitted.push_back(temp); //store words in "splitted" vector
+            temp = "";
+            i++;
+        }
+        temp += x[i];
+    }
+    return splitted;
+}
 
 int main() {
-    initBB();
-    initZ(3333333);
-    initM();
+	initMoveGen();
+	initHash(323);
 
-    cout.setf(ios::unitbuf);
+	Search s(Pos("r2q2k1/5brp/1pQ5/5N2/3P3b/1P2P3/P2B1PP1/R4RK1 b - - 4 34"));
+	s.wtime = 3000;
+	s.btime = 3000;
+	s.binc = 1000;
+	s.binc = 1000;
+	s.num_threads = 4;
 
-    Pos p("r3k2r/ppp2ppp/1q2p3/3p2P1/1b1Pb3/2B1PN1P/PPP2P2/1R1QK2R w Kkq - 2 14");
+	Pos& p = s.root_pos;
 
-    print(p);
+	print(p);
 
+	while (!p.isGameOver()) {
+	
+	/*
+		{
+			string move;
+			cin>>move;
 
-    bool ongoing = true;
-    while (ongoing) {
-        Search s(p);
+			p.makeMove(move);
+			print(p);
+			cout<<getFen(p)<<endl;
 
-        s.max_ms = 5000;
+			if (p.isGameOver()) break;
+		}
+*/
+		{
+			s.tt.gen++;
+			s.go();
+			Move bestmove = s.tt.getPV(s.root_pos)[0];
 
-        s.max_depth = 9;
-        s.table.clear();
-        s.go();
-        cout<<s.root_bestmove.getSAN()<<endl;
-        p.makeMove(s.root_bestmove);
+			p.makeMove(bestmove);
+			print(p);
+			print(p.move_log); cout<<endl;
+			cout<<getFen(p)<<endl;
 
-        vector<Move> moves;
-        addLegalMoves(p, moves);
-        if (moves.size() == 0) ongoing = false;
-    
-        cout<<p.getPGN()<<endl;
-        print(p);
-        break;
-    }
+			if (p.isGameOver()) break;
+		}
+	}
 
-    return 0;
+	print(p);
+	cout<<getFen(p)<<endl;
+	print(p.move_log);
+	cout<<"end main reached"<<endl;
+	return 0;
 }
