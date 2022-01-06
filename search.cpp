@@ -93,6 +93,11 @@ Eval WorkerThread::search(Pos &p, Depth depth, Eval alpha, Eval beta) {
 	Move entry_move = entry->move;
 
 	if (found && parent->useHashTable) {
+		if (entry->eval >= MINMATE && entry->eval > alpha) {
+			alpha = entry->eval;
+			if (alpha >= beta) return beta;
+		}
+		
 		if (entry->depth >= depth) {
 			if (entry->bound == EXACT) return entry->eval;
 			else if (entry->bound == UB && entry->eval < beta) beta = entry->eval;
@@ -120,7 +125,7 @@ Eval WorkerThread::search(Pos &p, Depth depth, Eval alpha, Eval beta) {
 		if (!isfutilityPruningNode || isCapture(move) || isPromotion(move) || p.causesCheck(move)) {
 			p.makeMove(move);
 
-			Eval eval = -search(p, depth - (i >= (found ? 1 : 3) ? (i >= 8 ? 3 : 2) : 1), -beta, -max(alpha, besteval));
+			Eval eval = -search(p, (i >= (found ? 1 : 10) ? depth-2 : depth - 1), -beta, -max(alpha, besteval));
 
 			p.undoMove();
 
@@ -139,14 +144,16 @@ Eval WorkerThread::search(Pos &p, Depth depth, Eval alpha, Eval beta) {
 			}
 		}
 	}
+
 	if (!parent->searching) return 0;
+	
+	if (besteval > MINMATE) besteval--;
 
 	if (besteval <= alpha) 	  entry->save(p.hashkey, besteval, UB   , depth, bestmove, parent->tt.gen);
 	else if (besteval < beta) entry->save(p.hashkey, besteval, EXACT, depth, bestmove, parent->tt.gen);
 	else if (besteval == INF) entry->save(p.hashkey, besteval, EXACT, depth, bestmove, parent->tt.gen);
 	else 					  entry->save(p.hashkey, besteval, LB   , depth, bestmove, parent->tt.gen);
 
-	if (besteval > MINMATE) besteval--;
 	return besteval;
 }
 
@@ -159,6 +166,8 @@ Eval WorkerThread::qsearch(Pos &p, Eval alpha, Eval beta) {
     if (alpha < stand_pat) alpha = stand_pat;
 
     vector<Move> moves = getLegalMoves(p);
+
+	if (moves.size() == 0) return -INF;
     
     for (Move& m : moves) {
         if (isCapture(m) || isPromotion(m)) {
@@ -199,6 +208,8 @@ void Search::stop() {
 }
 
 void Search::manager() {
+	if (root_pos.isGameOver()) return;
+
 	search_start = get_current_ms();
 
 	searching = true;
@@ -227,8 +238,8 @@ void Search::manager() {
 		entry = tt.probe(root_pos.hashkey, found);
 
 		Timestamp max_time;
-		if (root_pos.turn == WHITE) max_time = min((Timestamp)5000, wtime/2);
-		else max_time = min((Timestamp)5000, btime/2);
+		if (root_pos.turn == WHITE) max_time = min(wtime/10, (Timestamp)10000);
+		else max_time = min(btime/10, (Timestamp)10000);
 
 		//cout<<to_string(get_time_diff(search_start))<<" < "<<to_string(max_time)<<endl;
 		if (get_time_diff(search_start) > max_time && !ponder && !infinite) {
@@ -254,6 +265,8 @@ void Search::manager() {
 
 			nodes_at_last = nodes;
 			time_of_last = get_current_ms();
+
+			if (entry->eval > INF-(min_thread_depth/2-1) && !infinite && !ponder) break;
 		}
 	}
 
@@ -266,6 +279,7 @@ void Search::manager() {
 	cout<<" score "<<evalToString(entry->eval);
 	cout<<" time "<<to_string(get_time_diff(search_start));
 	cout<<" nodes "<<to_string(nodes);
+	cout<<" multipv 1 hashfull 997 tbhits 0 ";
 	if (get_time_diff(time_of_last)) cout<<" nps "<<to_string((nodes-nodes_at_last)*1000/get_time_diff(time_of_last));
 
 	vector<Move> pv = tt.getPV(root_pos);
@@ -273,7 +287,9 @@ void Search::manager() {
 	cout<<" pv "; print(tt.getPV(root_pos));
 	cout<<endl;
 
-	cout<<"bestmove "<<getSAN(pv[0])<<endl;
+	cout<<"bestmove "<<getSAN(pv[0]);
+	if (pv.size() > 1) cout<<" ponder "<<getSAN(pv[1]);
+	cout<<endl;
 
 	if (root_pos.turn == WHITE) wtime += -get_time_diff(search_start) + winc;
 	else 						btime += -get_time_diff(search_start) + binc;
@@ -302,6 +318,8 @@ void WorkerThread::start() {
 		parent->min_thread_depth = max(root_depth, (Depth)parent->min_thread_depth);
 		root_depth = ++parent->max_thread_depth;
 
+		if ((Depth)parent->min_thread_depth < 0 || (Depth)parent->max_thread_depth < 0) break;
+
 		Pos p = root_pos;
 
 		bool found = false;
@@ -316,7 +334,7 @@ void WorkerThread::start() {
 			Move &move = moves[i];
 			p.makeMove(move);
 
-			Eval eval = -search(p, root_depth - (i >= (found ? 1 : 3) ? (i >= 8 ? 3 : 2) : 1), -INF, -besteval);
+			Eval eval = -search(p, root_depth - (i >= (found ? 1 : 16) ? 2 : 1), -INF, -besteval);
 
 			p.undoMove();
 

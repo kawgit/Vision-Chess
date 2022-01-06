@@ -15,8 +15,9 @@ using namespace std;
 
 int main() {
 	initMoveGen();
-	initHash(323);
+	initHash(44324);
     Search s(Pos("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"));
+    s.num_threads = 1;
     string token;
 
     while (true) {
@@ -48,8 +49,12 @@ int main() {
             cin>>token;
             if (token == "startpos") s.root_pos = Pos("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
             else if (token == "fen") {
-                cin>>token;
-                s.root_pos = Pos(token);
+                string fen = "";
+                for (int i = 0; i < 6; i++) {
+                    cin>>token;
+                    fen += token + " ";
+                }
+                s.root_pos = Pos(fen);
             }
 
             cin>>token;
@@ -71,7 +76,7 @@ int main() {
                     s.ponder = true;
                 }
                 if (token == "searchmoves") {
-                    cout<<"SEARCHMOVES INCOMPLETE"<<endl;
+                    //cout<<"SEARCHMOVES INCOMPLETE"<<endl;
                 }
                 if (token == "wtime") {
                     cin>>token;
@@ -90,20 +95,20 @@ int main() {
                     s.binc = stoi(token);
                 }
                 else if (token == "movestogo") {
-                    cout<<"movestogo incomplete"<<endl;
+                    //cout<<"movestogo incomplete"<<endl;
                 }
                 else if (token == "depth") {
                     cin>>token;
                     s.max_depth = stoi(token);
                 }
                 else if (token == "nodes") {
-                    cout<<"nodes incomplete"<<endl;
+                    //cout<<"nodes incomplete"<<endl;
                 }
                 else if (token == "mate") {
-                    cout<<"mate incomplete"<<endl;
+                    //cout<<"mate incomplete"<<endl;
                 }
                 else if (token == "movetime") {
-                    cout<<"movetime incomplete"<<endl;
+                    //cout<<"movetime incomplete"<<endl;
                 }
                 else if (token == "infinite") {
                     s.infinite = true;

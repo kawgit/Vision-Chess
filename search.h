@@ -47,7 +47,7 @@ class Search {
 	TT tt;
 
 	//limits
-	Depth max_depth = 100;
+	Depth max_depth = DEPTHMAX;
 
 	Timestamp wtime = 0;
 	Timestamp btime = 0;

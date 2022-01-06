@@ -18,6 +18,9 @@ inline string evalToString(Eval& eval) {
 }
 
 typedef int8_t Depth;
+
+const Depth DEPTHMAX = 127;
+
 typedef uint8_t Clock;
 
 //SQUARE
