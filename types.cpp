@@ -10,6 +10,15 @@ string getSAN(Move m) {
     return sqToNot(getFrom(m)) + sqToNot(getTo(m)) + (isPromotion(m) ? piece_notations[getPromotionType(m)] : "");
 }
 
+string to_string(vector<Move> moves) {
+	string result = "";
+	for (Move& m : moves) {
+        result += getSAN(m);
+		result += " ";
+    }
+	return result;
+}
+
 void print(vector<Move> moves) {
     for (Move& m : moves) {
         cout<<getSAN(m)<<" ";

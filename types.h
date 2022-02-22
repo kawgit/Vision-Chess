@@ -85,6 +85,7 @@ inline Piece getPromotionType(Move m) { return (getFlags(m) & 0b0011) + KNIGHT; 
 
 string getSAN(Move m);
 
+string to_string(vector<Move> moves);
 void print(vector<Move> moves);
 
 //CASTLE RIGHTS

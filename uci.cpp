@@ -13,6 +13,10 @@
 
 using namespace std;
 
+/*
+
+NEEDS REVISION DUE TO REVISION OF SEARCH.H
+
 int main() {
 	initMoveGen();
 	initHash(44324);
@@ -135,3 +139,5 @@ int main() {
 
     cout<<"uci quit"<<endl;
 }
+
+*/

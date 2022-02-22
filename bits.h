@@ -23,3 +23,5 @@ BB getRowMask(int r);
 BB getBB(int s);
 
 BB randBB();
+
+float randf(float lb, float ub);

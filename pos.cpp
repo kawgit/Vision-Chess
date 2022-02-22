@@ -166,6 +166,9 @@ void Pos::makeMove(Move m) {
 		}
     }
 
+	if (nnue != nullptr && fromPiece == KING) 
+		nnue->load_pos((char*)this);
+
 	switchTurn();
 }
 
@@ -218,6 +221,9 @@ void Pos::undoMove() {
             }
         }
 	}
+
+	if (nnue != nullptr && fromPiece == KING) 
+		nnue->load_pos((char*)this);
 	
 	hashkey = hashkey_log.back();
 	ep = ep_log.back();
@@ -397,8 +403,13 @@ bool Pos::isGameOver() {
 	if (threeRepetitions()) return true;
 	if (hm_clock == 50) return true;
 	if (!getLegalMoves(*this).size()) return true;
-	if (!evalMat(*this, WHITE) && !evalMat(*this, BLACK)) return true;
+	if (insufficientMaterial()) return true;
 	return false;
+}
+
+int Pos::getResult() {
+	if (!getLegalMoves(*this).size() && isInCheck()) return (turn == WHITE ? -1 : 1);
+	return 0;
 }
 
 bool Pos::oneRepetition(int root) {

@@ -1,6 +1,5 @@
 #include "types.h"
 #include "pos.h"
-#include "search.h"
 
 extern Eval mat_points[6];
 
@@ -19,5 +18,3 @@ Eval evalMat(Pos& p, Color c);
 Eval evalPawns(Pos& p, Color c);
 
 Eval evalKingSafety(Pos& p, Color c);
-
-vector<Move> order(Search& search, Pos& pos, vector<Move> unsorted, Move entry_move);

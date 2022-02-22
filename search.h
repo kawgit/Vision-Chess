@@ -13,62 +13,25 @@ BB perft(Pos &p, Depth depth, bool divide = false);
 
 void perftTest();
 
-void puzzleTest(int min_time = 1000, int maxtime = 10000);
-
-class Search {
-	public:
-	
-	Search(Pos p);
-
-	void go();
-	void stop();
-	void manager();
-	void limitsChecker();
-	Eval search(Pos &p, Depth depth, Eval alpha, Eval beta);
-	Eval qsearch(Pos &p, Eval alpha, Eval beta);
-
-	public:
-	//settings
-
-	bool useHashTable = true;
-	bool futilityPruning = true;
-	Eval futilityMargin = 900;
-	int num_threads = 1;
-
-	//info
-
-	Timestamp search_start = 0;
-	atomic<Move> root_bestmove;
-	Pos root_pos;
-	vector<Move> root_moves;
-	bool searching = false;
-	atomic_int min_thread_depth{1};
-	atomic_int max_thread_depth{1};
-	TT tt;
-
-	//limits
-	Depth max_depth = DEPTHMAX;
-
-	Timestamp wtime = 0;
-	Timestamp btime = 0;
-	Timestamp winc = 0;
-	Timestamp binc = 0;
-	bool infinite = false;
-	bool ponder = false;
-
-	//hueristics
-	Move cm_hueristic[6][64] = {MOVENONE}; //previous move (fromPiece, toSquare)
-	unsigned int hist_hueristic[6][64] = {0}; //fromPiece, toSquare
+struct SearchInfo {
+	TT* tt;
+	Move cm_hueristic[6][64] = {MOVENONE};
+	uint32_t hist_hueristic[6][64] = {0};
 };
 
-struct WorkerThread {
-	Pos root_pos;
-	Depth root_depth = 0;
-	Search* parent;
-	BB nodes = 0;
-
-	WorkerThread(Search& search);
-	void start();
-	Eval search(Pos &p, Depth depth, Eval alpha, Eval beta);
-	Eval qsearch(Pos &p, Eval alpha, Eval beta);
+struct ThreadInfo {
+	int root_ply = 0;
+	int nodes = 0;
+	bool searching = true;
+	ThreadInfo(Pos& p) {
+		root_ply = p.m_clock;
+	}
 };
+
+Eval search(Pos &p, Depth depth, SearchInfo* searchInfo = nullptr);
+
+Eval search(Pos &p, Depth depth, Eval alpha, Eval beta, ThreadInfo& threadInfo, SearchInfo* searchInfo = nullptr);
+
+Eval qsearch(Pos &p, Eval alpha, Eval beta, ThreadInfo& threadInfo, SearchInfo* searchInfo = nullptr);
+
+vector<Move> order(SearchInfo* searchInfo, Pos& pos, vector<Move> unsorted_moves, Move entry_move);

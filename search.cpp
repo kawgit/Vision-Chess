@@ -13,6 +13,8 @@
 
 using namespace std;
 
+#define REDUCTION(d, i, f) ((d)-1)
+
 BB perft(Pos &p, Depth depth, bool divide) {
 	if (depth == 0) return 1;
 
@@ -71,17 +73,25 @@ void perftTest() {
 
 }
 
-Eval WorkerThread::search(Pos &p, Depth depth, Eval alpha, Eval beta) {
-	if (!parent->searching) return 0;
-	nodes++;
+Eval search(Pos &p, Depth depth, SearchInfo* searchInfo) {
+	ThreadInfo threadInfo(p);
+	return search(p, depth, -INF, INF, threadInfo, searchInfo);
+}
 
-	if (depth <= 0) return qsearch(p, alpha, beta);
+Eval search(Pos &p, Depth depth, Eval alpha, Eval beta, ThreadInfo& threadInfo, SearchInfo* searchInfo)
+{
+
+	if (!threadInfo.searching) return 0;
+	threadInfo.nodes++;
+
 	if (p.hm_clock >= 4) {
 		if (p.hm_clock == 50) return 0;
 		if (p.insufficientMaterial()) return 0;
-		if (p.oneRepetition(root_pos.hashkey_log.size())) return 0;
+		if (p.oneRepetition(threadInfo.root_ply)) return 0;
 		if (p.threeRepetitions()) return 0;
 	}
+
+	if (depth <= 0) return qsearch(p, alpha, beta, threadInfo, searchInfo);
 
 	if (alpha >= MINMATE && alpha != INF) {
 		alpha++;
@@ -89,10 +99,10 @@ Eval WorkerThread::search(Pos &p, Depth depth, Eval alpha, Eval beta) {
 	}
 
 	bool found = false;
-	TTEntry* entry = parent->tt.probe(p.hashkey, found);
-	Move entry_move = entry->move;
+	TTEntry* entry = (searchInfo != nullptr && searchInfo->tt != nullptr) ? searchInfo->tt->probe(p.hashkey, found) : nullptr;
+	Move entry_move = found ? entry->move : MOVENONE;
 
-	if (found && parent->useHashTable) {
+	if (found) {
 		if (entry->eval >= MINMATE && entry->eval > alpha) {
 			alpha = entry->eval;
 			if (alpha >= beta) return beta;
@@ -112,54 +122,56 @@ Eval WorkerThread::search(Pos &p, Depth depth, Eval alpha, Eval beta) {
 		if (p.isInCheck()) return -INF;
 		else return 0;
 	}
-
-	moves = order(*parent, p, moves, found ? entry_move : MOVENONE);
+	
+	moves = order(searchInfo, p, moves, found ? entry_move : MOVENONE);
 
 	Eval besteval = -INF;
 	Move bestmove = moves[0];
 
-	bool isfutilityPruningNode = parent->futilityPruning && depth == 1 && (evalPos(p, alpha, beta) + parent->futilityMargin < alpha);
 
 	for (int i = 0; i < moves.size(); i++) {
 		Move &move = moves[i];
-		if (!isfutilityPruningNode || isCapture(move) || isPromotion(move) || p.causesCheck(move)) {
-			p.makeMove(move);
+		p.makeMove(move);
+		
+		Eval eval = -search(p, REDUCTION(depth, i, found), -beta, -max(alpha, besteval), threadInfo, searchInfo);
 
-			Eval eval = -search(p, (i >= (found ? 1 : 10) ? depth-2 : depth - 1), -beta, -max(alpha, besteval));
+		p.undoMove();
+		
+		if (eval > besteval) {
+			if (!threadInfo.searching) return 0;
 
-			p.undoMove();
-
-			if (!parent->searching) return 0;
+			besteval = eval;
+			bestmove = move;
 			
-			if (eval > besteval) {
-				besteval = eval;
-				bestmove = move;
-				
-				if (besteval >= beta) {
+			if (besteval >= beta) {
+				if (searchInfo != nullptr) {
 					Move& prev_move = p.move_log.back();
-					parent->cm_hueristic[p.getPieceAt(p.notturn, getTo(prev_move))][getTo(prev_move)] = move;
-					parent->hist_hueristic[p.getPieceAt(p.turn, getFrom(move))][getTo(move)]++;
-					break;
+					searchInfo->cm_hueristic[p.getPieceAt(p.notturn, getTo(prev_move))][getTo(prev_move)] = move;
+					searchInfo->hist_hueristic[p.getPieceAt(p.turn, getFrom(move))][getTo(move)]++;
 				}
+				break;
 			}
 		}
 	}
 
-	if (!parent->searching) return 0;
+	if (!threadInfo.searching) return 0;
 	
 	if (besteval > MINMATE) besteval--;
 
-	if (besteval <= alpha) 	  entry->save(p.hashkey, besteval, UB   , depth, bestmove, parent->tt.gen);
-	else if (besteval < beta) entry->save(p.hashkey, besteval, EXACT, depth, bestmove, parent->tt.gen);
-	else if (besteval == INF) entry->save(p.hashkey, besteval, EXACT, depth, bestmove, parent->tt.gen);
-	else 					  entry->save(p.hashkey, besteval, LB   , depth, bestmove, parent->tt.gen);
+	if (searchInfo != nullptr && searchInfo->tt != nullptr) {
+		if (besteval <= alpha) 	  entry->save(p.hashkey, besteval, UB   , depth, bestmove, searchInfo->tt->gen);
+		else if (besteval < beta) entry->save(p.hashkey, besteval, EXACT, depth, bestmove, searchInfo->tt->gen);
+		else if (besteval == INF) entry->save(p.hashkey, besteval, EXACT, depth, bestmove, searchInfo->tt->gen);
+		else 					  entry->save(p.hashkey, besteval, LB   , depth, bestmove, searchInfo->tt->gen);
+	}
 
 	return besteval;
 }
 
-Eval WorkerThread::qsearch(Pos &p, Eval alpha, Eval beta) {
-	if (!parent->searching) return 0;
-	nodes++;
+Eval qsearch(Pos &p, Eval alpha, Eval beta, ThreadInfo& threadInfo, SearchInfo* searchInfo)
+{
+	if (!threadInfo.searching) return 0;
+	threadInfo.nodes++;
 
     Eval stand_pat = evalPos(p, alpha, beta);
     if (stand_pat >= beta) return beta;
@@ -167,189 +179,84 @@ Eval WorkerThread::qsearch(Pos &p, Eval alpha, Eval beta) {
 
     vector<Move> moves = getLegalMoves(p);
 
-	if (moves.size() == 0) return -INF;
+	if (moves.size() == 0) {
+		if (p.isInCheck()) return -INF;
+		else return 0;
+	}
     
     for (Move& m : moves) {
         if (isCapture(m) || isPromotion(m)) {
             p.makeMove(m);
-            alpha = max(alpha, (Eval)-qsearch(p, -beta, -alpha));
+            alpha = max(alpha, (Eval)-qsearch(p, -beta, -alpha, threadInfo, searchInfo));
             p.undoMove();
-			if (!parent->searching) return 0;
             if (alpha >= beta) {
                 return beta;
             }
         }
     }
+	
     return alpha;
 }
 
-/*
-	static const vector<pair<string, string>> puzzles = {
-		{"1Q6/1pR2p1p/3pkp2/5p2/q3P3/3P4/Pr5P/7K w - - 6 25", "b8c8"},
-		{"r4rk1/ppp1qppp/4bn2/6B1/4n2Q/2P2N2/PP2PPBP/3RK2R w K - 5 15", "h4e4"},
-		{"6k1/5r1p/p5p1/1p6/4q1PP/1Q1p1NK1/PP3P2/8 w - - 3 33", "b3f7"},
-		{"r2q3k/pp2p2p/3p4/5b2/3Pn3/1P3N2/P1P2Pr1/2KR1Q1R w - - 0 22", "f1g2"},
-		{"2k5/p1p5/5r2/2PP2n1/P3r1p1/4N1P1/5P2/R1R3K1 b - - 3 43", "g5h3"},
-		{"1k4r1/n1p3q1/Qb1p4/3P2rp/1PN4N/8/4R1P1/R6K b - - 11 40", "g5g4"},
-		{"5r1k/p5p1/4Q2p/3N4/3q4/5r2/PPP1R2P/1R5K b - - 5 27", "f3f1"},
-		{"r5k1/pp4pp/2p3q1/3p1r2/3Pb3/N1PBp1P1/PPQ4P/R3R1K1 b - - 6 22", "f5f2"},
-		{"8/3P4/n2K2kp/2p3nN/1b6/2p1p1P1/8/3B4 w - - 4 3", "d1c2"},
-	};
-*/
-
-mutex depth_mtx;
-
-void Search::go() {
-	thread(&Search::manager, &(*this)).detach();
+inline unsigned int mvvlva(Piece attacker, Piece victim) {
+    static const unsigned int table[6][6] = { //attacker, victim
+        {6000, 20220, 20250, 20400, 20800, 26900},
+        {4770,  6000, 20020, 20170, 20570, 26670},
+        {4750,  4970,  6000, 20150, 20550, 26650},
+        {4600,  4820,  4850,  6000, 20400, 26500},
+        {4200,  4420,  4450,  4600,  6010, 26100},
+        {3100,  3320,  3350,  3500,  3900, 26000},
+    };
+    return table[attacker][victim];
 }
 
-void Search::stop() {
-	searching = false;
-}
+vector<Move> order(SearchInfo* searchInfo, Pos& pos, vector<Move> unsorted_moves, Move entry_move) {
+    Move prev_move = (pos.move_log.size() ? pos.move_log.back() : MOVENONE);
+    Move cm = (searchInfo != nullptr && pos.move_log.size()) ? searchInfo->cm_hueristic[pos.getPieceAt(pos.notturn, getTo(prev_move))][getTo(prev_move)] : MOVENONE;
 
-void Search::manager() {
-	if (root_pos.isGameOver()) return;
+    vector<unsigned int> unsorted_scores;
+    unsorted_scores.reserve(unsorted_moves.size());
+    for (Move& move : unsorted_moves) {
+        unsigned int score = 0;
+        if (move == entry_move) score = -1;
+        else {
+			if (move == cm) score += 10000;
+            Piece fromPiece = pos.getPieceAt(pos.turn, getFrom(move));
+            if (isCapture(move)) {
+                if (!isEp(move)) score += mvvlva(fromPiece, pos.getPieceAt(pos.notturn, getTo(move)));
+                else score += mvvlva(fromPiece, PAWN);
+            }
+            if (isPromotion(move)) score += mat_points[getPromotionType(move)]*12;
+            if (fromPiece >= KNIGHT && pos.causesCheck(move)) score += 10000 + fromPiece;
+			score += searchInfo->hist_hueristic[fromPiece][getTo(move)];
+        }
+        unsorted_scores.push_back(score);
+    }
 
-	search_start = get_current_ms();
 
-	searching = true;
-	min_thread_depth = 0;
-	max_thread_depth = 0;
+    vector<Move> sorted_moves;
+    vector<unsigned int> sorted_scores;
+    sorted_moves.reserve(unsorted_moves.size());
+    sorted_scores.reserve(unsorted_moves.size());
 
-	for (int i = 0; i < 6; i++) {
-		for (int ii = 0; ii < 64; ii++) {
-			hist_hueristic[i][ii] = 0;
-		}
-	}
+    for (int j = 0; j < unsorted_moves.size(); j++) {
+        Move& move = unsorted_moves[j];
+        unsigned int& score = unsorted_scores[j];
 
-	vector<thread> threads;
-	vector<WorkerThread> workers;
-	for (int i = 0; i < num_threads; i++) workers.push_back(WorkerThread(*this));
-	for (int i = 0; i < num_threads; i++) thread(&WorkerThread::start, &workers[i]).detach();
+        sorted_moves.push_back(move);
+        sorted_scores.push_back(score);
+        int i = sorted_moves.size()-1;
+        while (i != -1) {
+            i--;
+            if (sorted_scores[i] < score) {
+                sorted_moves[i+1] = sorted_moves[i];
+                sorted_scores[i+1] = sorted_scores[i];
+            }
+            else break;
+        }
+        sorted_moves[i+1] = move;
+        sorted_scores[i+1] = score;
+    }
 
-	Depth last_depth_printed = 0;
-	BB nodes_at_last = 0;
-	Timestamp time_of_last = get_current_ms();
-	
-	TTEntry* entry;
-
-	while (searching) {
-		bool found = false;
-		entry = tt.probe(root_pos.hashkey, found);
-
-		Timestamp max_time;
-		if (root_pos.turn == WHITE) max_time = min(wtime/10, (Timestamp)10000);
-		else max_time = min(btime/10, (Timestamp)10000);
-
-		//cout<<to_string(get_time_diff(search_start))<<" < "<<to_string(max_time)<<endl;
-		if (get_time_diff(search_start) > max_time && !ponder && !infinite) {
-			searching = false;
-		}
-		
-		if (last_depth_printed != min_thread_depth) {
-
-			BB nodes = 0;
-			for (WorkerThread& worker : workers) nodes += worker.nodes;
-				
-			last_depth_printed = min_thread_depth;
-
-			cout<<"info";
-			cout<<" depth "<<to_string(min_thread_depth);
-			cout<<" seldepth "<<to_string(max_thread_depth);
-			cout<<" score "<<evalToString(entry->eval);
-			cout<<" time "<<to_string(get_time_diff(search_start));
-			cout<<" nodes "<<to_string(nodes);
-			if (get_time_diff(time_of_last)) cout<<" nps "<<to_string((nodes-nodes_at_last)*1000/get_time_diff(time_of_last));
-			cout<<" pv "; print(tt.getPV(root_pos));
-			cout<<endl;
-
-			nodes_at_last = nodes;
-			time_of_last = get_current_ms();
-
-			if (entry->eval > INF-(min_thread_depth/2-1) && !infinite && !ponder) break;
-		}
-	}
-
-	BB nodes = 0;
-	for (WorkerThread& worker : workers) nodes += worker.nodes;
-
-	cout<<"info";
-	cout<<" depth "<<to_string(min_thread_depth);
-	cout<<" seldepth "<<to_string(max_thread_depth);
-	cout<<" score "<<evalToString(entry->eval);
-	cout<<" time "<<to_string(get_time_diff(search_start));
-	cout<<" nodes "<<to_string(nodes);
-	cout<<" multipv 1 hashfull 997 tbhits 0 ";
-	if (get_time_diff(time_of_last)) cout<<" nps "<<to_string((nodes-nodes_at_last)*1000/get_time_diff(time_of_last));
-
-	vector<Move> pv = tt.getPV(root_pos);
-
-	cout<<" pv "; print(tt.getPV(root_pos));
-	cout<<endl;
-
-	cout<<"bestmove "<<getSAN(pv[0]);
-	if (pv.size() > 1) cout<<" ponder "<<getSAN(pv[1]);
-	cout<<endl;
-
-	if (root_pos.turn == WHITE) wtime += -get_time_diff(search_start) + winc;
-	else 						btime += -get_time_diff(search_start) + binc;
-}
-
-Search::Search(Pos p) {
-	root_pos = p;
-	root_moves = getLegalMoves(root_pos);
-}
-
-WorkerThread::WorkerThread(Search& search) {
-	parent = &search;
-	root_pos = search.root_pos;
-}
-
-void WorkerThread::start() {
-	if (root_pos.hm_clock >= 4) {
-		if (root_pos.hm_clock == 50) return;
-		if (root_pos.insufficientMaterial()) return;
-		if (root_pos.oneRepetition(root_pos.hashkey_log.size())) return;
-		if (root_pos.threeRepetitions()) return;
-	}
-
-	
-	while (parent->searching) {
-		parent->min_thread_depth = max(root_depth, (Depth)parent->min_thread_depth);
-		root_depth = ++parent->max_thread_depth;
-
-		if ((Depth)parent->min_thread_depth < 0 || (Depth)parent->max_thread_depth < 0) break;
-
-		Pos p = root_pos;
-
-		bool found = false;
-		TTEntry* entry = parent->tt.probe(p.hashkey, found);
-		Move entry_move = entry->move;
-
-		vector<Move> moves = getLegalMoves(p);
-		moves = order(*parent, p, moves, found ? entry_move : MOVENONE);
-		Eval besteval = -INF;
-		Move bestmove = moves[0];
-		for (int i = 0; i < moves.size(); i++) {
-			Move &move = moves[i];
-			p.makeMove(move);
-
-			Eval eval = -search(p, root_depth - (i >= (found ? 1 : 16) ? 2 : 1), -INF, -besteval);
-
-			p.undoMove();
-
-			if (!parent->searching) return;
-			
-			if (eval > besteval) {
-				besteval = eval;
-				bestmove = move;
-			}
-		}
-		
-		if (!parent->searching) return;
-
-		entry->save(p.hashkey, besteval, EXACT, root_depth, bestmove, parent->tt.gen);
-
-		parent->root_bestmove = bestmove;
-	}
+    return sorted_moves;
 }

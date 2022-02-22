@@ -77,3 +77,7 @@ BB getBB(int s) {
 BB randBB() {
 	return ((BB)rand() << 48) | ((BB)rand() << 32) | ((BB)rand() << 16) | (BB)rand();
 }
+
+float randf(float lb, float ub) {
+	return lb + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(ub-lb)));
+}

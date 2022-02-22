@@ -4,6 +4,7 @@
 #include "pos.h"
 #include "bits.h"
 #include "movegen.h"
+#include "nnue.h"
 #include "search.h"
 #include <iostream>
 #include <vector>
@@ -98,13 +99,15 @@ int sqMapTrans(int sq) {
     return rc(7-(sq/8), sq%8);
 }
 
-Eval evalPos(Pos& p, Eval LB, Eval UB) {
+Eval evalPos(Pos& p, Eval lb, Eval ub) {
     Eval turnmat = evalMat(p, p.turn);
     Eval notturnmat = evalMat(p, p.notturn);
     Eval mat = turnmat - notturnmat;
     Eval totalmat = turnmat + notturnmat;
 
-    if (mat < LB - 100 || mat > UB + 100) return mat;
+    if (mat < lb - 100 || mat > ub + 100) return mat;
+
+	if (p.nnue != nullptr) return p.nnue->evaluate(p.turn);
 
     Eval map = 0;
 
@@ -189,68 +192,3 @@ Eval evalKingSafety(Pos& p, Color c) {
 
 
 
-
-
-inline unsigned int mvvlva(Piece attacker, Piece victim) {
-    static const unsigned int table[6][6] = { //attacker, victim
-        {6000, 20220, 20250, 20400, 20800, 26900},
-        {4770,  6000, 20020, 20170, 20570, 26670},
-        {4750,  4970,  6000, 20150, 20550, 26650},
-        {4600,  4820,  4850,  6000, 20400, 26500},
-        {4200,  4420,  4450,  4600,  6010, 26100},
-        {3100,  3320,  3350,  3500,  3900, 26000},
-    };
-    return table[attacker][victim];
-}
-
-
-vector<Move> order(Search& search, Pos& pos, vector<Move> unsorted_moves, Move entry_move) {
-    Move prev_move = (pos.move_log.size() ? pos.move_log.back() : MOVENONE);
-    Move cm = (pos.move_log.size() ? search.cm_hueristic[pos.getPieceAt(pos.notturn, getTo(prev_move))][getTo(prev_move)] : MOVENONE);
-
-    vector<unsigned int> unsorted_scores;
-    unsorted_scores.reserve(unsorted_moves.size());
-    for (Move& move : unsorted_moves) {
-        unsigned int score = 0;
-        if (move == entry_move) score = -1;
-        else {
-			if (move == cm) score += 10000;
-            Piece fromPiece = pos.getPieceAt(pos.turn, getFrom(move));
-            if (isCapture(move)) {
-                if (!isEp(move)) score += mvvlva(fromPiece, pos.getPieceAt(pos.notturn, getTo(move)));
-                else score += mvvlva(fromPiece, PAWN);
-            }
-            if (isPromotion(move)) score += mat_points[getPromotionType(move)]*12;
-            if (fromPiece >= KNIGHT && pos.causesCheck(move)) score += 10000 + fromPiece;
-			if (!(getFlags(move) & 0b1100)) score += search.hist_hueristic[fromPiece][getTo(move)];
-        }
-        unsorted_scores.push_back(score);
-    }
-
-
-    vector<Move> sorted_moves;
-    vector<unsigned int> sorted_scores;
-    sorted_moves.reserve(unsorted_moves.size());
-    sorted_scores.reserve(unsorted_moves.size());
-
-    for (int j = 0; j < unsorted_moves.size(); j++) {
-        Move& move = unsorted_moves[j];
-        unsigned int& score = unsorted_scores[j];
-
-        sorted_moves.push_back(move);
-        sorted_scores.push_back(score);
-        int i = sorted_moves.size()-1;
-        while (i != -1) {
-            i--;
-            if (sorted_scores[i] < score) {
-                sorted_moves[i+1] = sorted_moves[i];
-                sorted_scores[i+1] = sorted_scores[i];
-            }
-            else break;
-        }
-        sorted_moves[i+1] = move;
-        sorted_scores[i+1] = score;
-    }
-
-    return sorted_moves;
-}

@@ -6,6 +6,7 @@
 #include "bits.h"
 #include "types.h"
 #include "hash.h"
+#include "nnue.h"
 
 using namespace std;
 
@@ -27,8 +28,7 @@ class Pos {
 	Clock m_clock = 1;
 	Clock repetitions_index = 0;
 	int nullMovesMade = 0;
-
-
+	NNUE* nnue = nullptr;
 
 	vector<Move> move_log;
 	vector<BB> hashkey_log;
@@ -62,11 +62,17 @@ class Pos {
 		hashkey ^= z_squares[c == WHITE ? 1 : 0][p][s];
 		getPieceMask(c, p) |= getBB(s);
 		mailboxes[c][s] = p;
+
+		if (nnue != nullptr) 
+			nnue->set_piece(lsb(getPieceMask(turn, KING)), lsb(getPieceMask(notturn, KING)), c, s, p);
 	}
 	inline void removePiece(Color c, Square s, Piece p) {
 		hashkey ^= z_squares[c == WHITE ? 1 : 0][p][s];
 		getPieceMask(c, p) &= ~getBB(s);
 		mailboxes[c][s] = PIECENONE;
+
+		if (nnue != nullptr) 
+			nnue->rem_piece(lsb(getPieceMask(turn, KING)), lsb(getPieceMask(notturn, KING)), c, s, p);
 	}
 
 	BB getAtkMask(Color c);
@@ -76,6 +82,7 @@ class Pos {
 	bool oneRepetition(int root);
 	bool insufficientMaterial();
 	bool isGameOver();
+	int getResult();
 
 	inline BB getOcc(Color c) { return getPieceMask(c, PAWN) | getPieceMask(c, KNIGHT) |getPieceMask(c, BISHOP) |getPieceMask(c, ROOK) |getPieceMask(c, KING) |getPieceMask(c, QUEEN); }
 	inline BB getOcc() { return getOcc(WHITE) | getOcc(BLACK); }
@@ -85,6 +92,8 @@ class Pos {
 	void makeNullMove();
 	void undoNullMove();
 };
+
+
 
 void print(Pos& p, bool meta = false);
 
