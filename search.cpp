@@ -6,6 +6,7 @@
 #include "movegen.h"
 #include "hash.h"
 #include "eval.h"
+#include "order.h"
 #include <iostream>
 #include <iomanip>
 #include <thread>
@@ -30,9 +31,9 @@ BB perft(Pos &p, Depth depth, bool divide) {
 
 	for (Move move : moves) {
 
-		p.makeMove(move);
+		p.do_move(move);
 		BB n = perft(p, depth-1, false);
-		p.undoMove();
+		p.undo_move();
 
 		if (divide) cout<<getSAN(move)<<" "<<to_string(n)<<endl;
 		count += n;
@@ -73,122 +74,118 @@ void perftTest() {
 
 }
 
-Eval search(Pos &p, Depth depth, SearchInfo* searchInfo) {
-	ThreadInfo threadInfo(p);
-	return search(p, depth, -INF, INF, threadInfo, searchInfo);
-}
+Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si) {
 
-Eval search(Pos &p, Depth depth, Eval alpha, Eval beta, ThreadInfo& threadInfo, SearchInfo* searchInfo)
-{
+	if (!ti.searching) return 0;
+	ti.nodes++;
 
-	if (!threadInfo.searching) return 0;
-	threadInfo.nodes++;
-
-	if (p.hm_clock >= 4) {
-		if (p.hm_clock == 50) return 0;
-		if (p.insufficientMaterial()) return 0;
-		if (p.oneRepetition(threadInfo.root_ply)) return 0;
-		if (p.threeRepetitions()) return 0;
+	if (pos.hm_clock >= 4) {
+		if (pos.hm_clock == 50) return 0;
+		if (pos.insufficient_material()) return 0;
+		if (pos.one_repetition(ti.root_ply)) return 0;
+		if (pos.three_repetitions()) return 0;
 	}
 
-	if (depth <= 0) return qsearch(p, alpha, beta, threadInfo, searchInfo);
+	if (depth <= 0) return qsearch(pos, alpha, beta, &ti, &si);
 
+	
 	if (alpha >= MINMATE && alpha != INF) {
 		alpha++;
 		if (alpha >= beta) return beta-1;
 	}
 
 	bool found = false;
-	TTEntry* entry = (searchInfo != nullptr && searchInfo->tt != nullptr) ? searchInfo->tt->probe(p.hashkey, found) : nullptr;
-	Move entry_move = found ? entry->move : MOVENONE;
+	TTEntry* entry = si.tt.probe(pos.hashkey, found);
+	Move entry_move = found ? entry->get_move() : MOVE_NONE;
+	found = false;
 
 	if (found) {
-		if (entry->eval >= MINMATE && entry->eval > alpha) {
-			alpha = entry->eval;
+		if (entry->get_eval() >= MINMATE && entry->get_eval() > alpha) {
+			alpha = entry->get_eval();
 			if (alpha >= beta) return beta;
 		}
 		
-		if (entry->depth >= depth) {
-			if (entry->bound == EXACT) return entry->eval;
-			else if (entry->bound == UB && entry->eval < beta) beta = entry->eval;
-			else if (entry->bound == LB && entry->eval > alpha) alpha = entry->eval;
+		if (entry->get_depth() >= depth) {
+			if (entry->get_bound() == EXACT) return entry->get_eval();
+			else if (entry->get_bound() == UB && entry->get_eval() < beta) beta = entry->get_eval();
+			else if (entry->get_bound() == LB && entry->get_eval() > alpha) alpha = entry->get_eval();
 			if (alpha >= beta) return beta;
 		}
 	}
 
-	vector<Move> moves = getLegalMoves(p);
+	vector<Move> moves = getLegalMoves(pos);
 
 	if (moves.size() == 0) {
-		if (p.isInCheck()) return -INF;
+		if (pos.in_check()) return -INF;
 		else return 0;
 	}
 	
-	moves = order(searchInfo, p, moves, found ? entry_move : MOVENONE);
+	int interesting = 0;
+	moves = order(moves, pos, ti, si, interesting);
 
 	Eval besteval = -INF;
 	Move bestmove = moves[0];
 
-
 	for (int i = 0; i < moves.size(); i++) {
-		Move &move = moves[i];
-		p.makeMove(move);
-		
-		Eval eval = -search(p, REDUCTION(depth, i, found), -beta, -max(alpha, besteval), threadInfo, searchInfo);
+		Move& move = moves[i];
 
-		p.undoMove();
+		if (pos.m_clock == ti.root_ply){
+			cout << "current move: " << getSAN(move) << endl;
+		}
+
+		pos.do_move(move);
+		
+		Eval eval = -search(pos, depth - (i >= interesting ? depth / 3 + 1 : 1), -beta, -max(alpha, besteval), ti, si);
+		
+		pos.undo_move();
 		
 		if (eval > besteval) {
-			if (!threadInfo.searching) return 0;
+			if (!ti.searching) return 0;
 
 			besteval = eval;
 			bestmove = move;
 			
 			if (besteval >= beta) {
-				if (searchInfo != nullptr) {
-					Move& prev_move = p.move_log.back();
-					searchInfo->cm_hueristic[p.getPieceAt(p.notturn, getTo(prev_move))][getTo(prev_move)] = move;
-					searchInfo->hist_hueristic[p.getPieceAt(p.turn, getFrom(move))][getTo(move)]++;
-				}
+				si.add_failhigh(pos, bestmove);
 				break;
 			}
 		}
 	}
 
-	if (!threadInfo.searching) return 0;
+	if (!ti.searching) return 0;
 	
 	if (besteval > MINMATE) besteval--;
 
-	if (searchInfo != nullptr && searchInfo->tt != nullptr) {
-		if (besteval <= alpha) 	  entry->save(p.hashkey, besteval, UB   , depth, bestmove, searchInfo->tt->gen);
-		else if (besteval < beta) entry->save(p.hashkey, besteval, EXACT, depth, bestmove, searchInfo->tt->gen);
-		else if (besteval == INF) entry->save(p.hashkey, besteval, EXACT, depth, bestmove, searchInfo->tt->gen);
-		else 					  entry->save(p.hashkey, besteval, LB   , depth, bestmove, searchInfo->tt->gen);
-	}
+	if (besteval <= alpha) 	  entry->save(pos.hashkey, besteval, UB   , depth, bestmove, si.tt.gen);
+	else if (besteval < beta) entry->save(pos.hashkey, besteval, EXACT, depth, bestmove, si.tt.gen);
+	else if (besteval == INF) entry->save(pos.hashkey, besteval, EXACT, depth, bestmove, si.tt.gen);
+	else 					  entry->save(pos.hashkey, besteval, LB   , depth, bestmove, si.tt.gen);
 
 	return besteval;
 }
 
-Eval qsearch(Pos &p, Eval alpha, Eval beta, ThreadInfo& threadInfo, SearchInfo* searchInfo)
-{
-	if (!threadInfo.searching) return 0;
-	threadInfo.nodes++;
+Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo* ti, SearchInfo* si) {
+	if (ti) {
+		if (!ti->searching) return 0;
+		ti->nodes++;
+	}
 
-    Eval stand_pat = evalPos(p, alpha, beta);
+    Eval stand_pat = evalPos(pos, alpha, beta);
     if (stand_pat >= beta) return beta;
     if (alpha < stand_pat) alpha = stand_pat;
 
-    vector<Move> moves = getLegalMoves(p);
+    vector<Move> moves = getLegalMoves(pos);
 
 	if (moves.size() == 0) {
-		if (p.isInCheck()) return -INF;
+		if (pos.in_check()) return -INF;
 		else return 0;
 	}
     
-    for (Move& m : moves) {
-        if (isCapture(m) || isPromotion(m)) {
-            p.makeMove(m);
-            alpha = max(alpha, (Eval)-qsearch(p, -beta, -alpha, threadInfo, searchInfo));
-            p.undoMove();
+    for (Move& move : moves) {
+        if (is_capture(move) || is_promotion(move) || pos.causes_check(move)) {
+            pos.do_move(move);
+            alpha = max(alpha, (Eval)-qsearch(pos, -beta, -alpha, ti, si));
+            pos.undo_move();
             if (alpha >= beta) {
                 return beta;
             }
@@ -196,67 +193,4 @@ Eval qsearch(Pos &p, Eval alpha, Eval beta, ThreadInfo& threadInfo, SearchInfo* 
     }
 	
     return alpha;
-}
-
-inline unsigned int mvvlva(Piece attacker, Piece victim) {
-    static const unsigned int table[6][6] = { //attacker, victim
-        {6000, 20220, 20250, 20400, 20800, 26900},
-        {4770,  6000, 20020, 20170, 20570, 26670},
-        {4750,  4970,  6000, 20150, 20550, 26650},
-        {4600,  4820,  4850,  6000, 20400, 26500},
-        {4200,  4420,  4450,  4600,  6010, 26100},
-        {3100,  3320,  3350,  3500,  3900, 26000},
-    };
-    return table[attacker][victim];
-}
-
-vector<Move> order(SearchInfo* searchInfo, Pos& pos, vector<Move> unsorted_moves, Move entry_move) {
-    Move prev_move = (pos.move_log.size() ? pos.move_log.back() : MOVENONE);
-    Move cm = (searchInfo != nullptr && pos.move_log.size()) ? searchInfo->cm_hueristic[pos.getPieceAt(pos.notturn, getTo(prev_move))][getTo(prev_move)] : MOVENONE;
-
-    vector<unsigned int> unsorted_scores;
-    unsorted_scores.reserve(unsorted_moves.size());
-    for (Move& move : unsorted_moves) {
-        unsigned int score = 0;
-        if (move == entry_move) score = -1;
-        else {
-			if (move == cm) score += 10000;
-            Piece fromPiece = pos.getPieceAt(pos.turn, getFrom(move));
-            if (isCapture(move)) {
-                if (!isEp(move)) score += mvvlva(fromPiece, pos.getPieceAt(pos.notturn, getTo(move)));
-                else score += mvvlva(fromPiece, PAWN);
-            }
-            if (isPromotion(move)) score += mat_points[getPromotionType(move)]*12;
-            if (fromPiece >= KNIGHT && pos.causesCheck(move)) score += 10000 + fromPiece;
-			score += searchInfo->hist_hueristic[fromPiece][getTo(move)];
-        }
-        unsorted_scores.push_back(score);
-    }
-
-
-    vector<Move> sorted_moves;
-    vector<unsigned int> sorted_scores;
-    sorted_moves.reserve(unsorted_moves.size());
-    sorted_scores.reserve(unsorted_moves.size());
-
-    for (int j = 0; j < unsorted_moves.size(); j++) {
-        Move& move = unsorted_moves[j];
-        unsigned int& score = unsorted_scores[j];
-
-        sorted_moves.push_back(move);
-        sorted_scores.push_back(score);
-        int i = sorted_moves.size()-1;
-        while (i != -1) {
-            i--;
-            if (sorted_scores[i] < score) {
-                sorted_moves[i+1] = sorted_moves[i];
-                sorted_scores[i+1] = sorted_scores[i];
-            }
-            else break;
-        }
-        sorted_moves[i+1] = move;
-        sorted_scores[i+1] = score;
-    }
-
-    return sorted_moves;
 }

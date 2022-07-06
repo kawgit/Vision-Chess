@@ -31,7 +31,7 @@ BB getAnswer(int r, int c, BB blockerboard, int d_offset) {
             int _c = c + directions[d][0]*m;
             int _s = rc(_r, _c);
             if (_r >= 0 && _r <= 7 && _c >= 0 && _c <= 7) {
-                answer |= getBB(_s);
+                answer |= get_BB(_s);
                 if (bitAt(blockerboard, _s)) break;
             }
             else break;
@@ -52,8 +52,8 @@ void initMoveGen(int seed) {
                     int _r = r + directions[d][1]*m;
                     int _c = c + directions[d][0]*m;
                     if (_r >= 0 && _r <= 7 && _c >= 0 && _c <= 7) {
-                        rays[s][d] |= getBB(rc(_r, _c));
-                        if (m == 1) king_atks[s] |= getBB(rc(_r, _c));
+                        rays[s][d] |= get_BB(rc(_r, _c));
+                        if (m == 1) king_atks[s] |= get_BB(rc(_r, _c));
                     }
                 }
             }
@@ -63,8 +63,8 @@ void initMoveGen(int seed) {
     for (int s = 0; s < 64; s++) {
         rook_atks[s] = rays[s][NORTH] | rays[s][EAST] | rays[s][SOUTH] | rays[s][WEST];
         bishop_atks[s] = rays[s][NORTHEAST] | rays[s][SOUTHEAST] | rays[s][SOUTHWEST] | rays[s][NORTHWEST];
-        pawn_atks[WHITE][s] = (rays[s][NORTHEAST] | rays[s][NORTHWEST]) & king_atks[s];
-        pawn_atks[BLACK][s] = (rays[s][SOUTHEAST] | rays[s][SOUTHWEST]) & king_atks[s];
+        getPawnAtk(WHITE, s) = (rays[s][NORTHEAST] | rays[s][NORTHWEST]) & king_atks[s];
+        getPawnAtk(BLACK, s) = (rays[s][SOUTHEAST] | rays[s][SOUTHWEST]) & king_atks[s];
     }
 
     int knight_directions[8][2] = {{1, 2},{2, 1},{2, -1},{1, -2},{-1, -2},{-2, -1},{-2, 1},{-1, 2}};
@@ -76,7 +76,7 @@ void initMoveGen(int seed) {
                 int _c = c + knight_directions[d][0];
 
                 if (_r >= 0 && _r <= 7 && _c >= 0 && _c <= 7) 
-                    knight_atks[s] |= getBB(rc(_r, _c));
+                    knight_atks[s] |= get_BB(rc(_r, _c));
             }
         }
     }
@@ -86,10 +86,10 @@ void initMoveGen(int seed) {
     for (int r = 0; r < 8; r++) {
         for (int c = 0; c < 8; c++) {
             BB exclude = 0ULL;
-            if (c != 0) exclude |= getColMask(0);
-            if (c != 7) exclude |= getColMask(7);
-            if (r != 0) exclude |= getRowMask(0);
-            if (r != 7) exclude |= getRowMask(7);
+            if (c != 0) exclude |= get_file_mask(0);
+            if (c != 7) exclude |= get_file_mask(7);
+            if (r != 0) exclude |= get_rank_mask(0);
+            if (r != 7) exclude |= get_rank_mask(7);
 
             exclude = 0ULL;
             int s = rc(r, c);
@@ -109,7 +109,7 @@ void initMoveGen(int seed) {
                 BB save = rook_blockermasks[s];
                 rook_blockerboards[s].push_back(rook_blockermasks[s]);
                 for (int i = 0; i < count; i++) {
-                    if (!bitAt(bits, i)) rook_blockerboards[s][bits] &= ~getBB(poplsb(save));
+                    if (!bitAt(bits, i)) rook_blockerboards[s][bits] &= ~get_BB(poplsb(save));
                     else poplsb(save);
                 }
             }
@@ -121,7 +121,7 @@ void initMoveGen(int seed) {
                 BB save = bishop_blockermasks[s];
                 bishop_blockerboards[s].push_back(bishop_blockermasks[s]);
                 for (int i = 0; i < count; i++) {
-                    if (!bitAt(bits, i)) bishop_blockerboards[s][bits] &= ~getBB(poplsb(save));
+                    if (!bitAt(bits, i)) bishop_blockerboards[s][bits] &= ~get_BB(poplsb(save));
                     else poplsb(save);
                 }
             }
@@ -137,7 +137,7 @@ void initMoveGen(int seed) {
 
             bool found = false;
             while (!found) {
-                bishop_magics[s] = randBB();
+                bishop_magics[s] = rand_BB();
                 found = true;
 
                 for (BB blockerboard : bishop_blockerboards[s]) {
@@ -156,7 +156,7 @@ void initMoveGen(int seed) {
 
             found = false;
             while (!found) {
-                rook_magics[s] = randBB();
+                rook_magics[s] = rand_BB();
                 found = true;
 
                 for (BB blockerboard : rook_blockerboards[s]) {
@@ -176,34 +176,27 @@ void initMoveGen(int seed) {
     }
 }
 
-BB getPawnAtk(Color c, Square s) { return pawn_atks[c][s]; }
-BB getKnightAtk(Square s) { return knight_atks[s]; }
-BB getRookAtk(Square s, BB occupied) { return rook_table[s][(rook_magics[s]*(occupied & rook_blockermasks[s]))>>ROOK_SHIFT]; }
-BB getBishopAtk(Square s, BB occupied) { return bishop_table[s][(bishop_magics[s]*(occupied & bishop_blockermasks[s]))>>BISHOP_SHIFT]; }
-BB getQueenAtk(Square s, BB occupied) { return getRookAtk(s, occupied) | getBishopAtk(s, occupied); }
-BB getKingAtk(Square s) { return king_atks[s]; }
-
 PosInfo::PosInfo(Pos &p) {
     Color turn = p.turn;
 
-    turn_occ = p.getOcc(turn);
-    notturn_occ = p.getOcc(p.notturn);
+    turn_occ = p.get_occ(turn);
+    notturn_occ = p.get_occ(p.notturn);
     occ = turn_occ | notturn_occ;
 
-    int ksq = lsb(p.getPieceMask(turn, KING));
+    int ksq = lsb(p.pieces(turn, KING));
 
 
-    if (getPawnAtk(turn, ksq) & p.getPieceMask(p.notturn, PAWN)) {
+    if (getPawnAtk(turn, ksq) & p.pieces(p.notturn, PAWN)) {
         checks++;
-        check_blocking_squares &= getPawnAtk(turn, ksq) & p.getPieceMask(p.notturn, PAWN);
+        check_blocking_squares &= getPawnAtk(turn, ksq) & p.pieces(p.notturn, PAWN);
         isPawnCheck = true;
     }
-    else if (getKnightAtk(ksq) & p.getPieceMask(p.notturn, KNIGHT)) {
+    else if (getKnightAtk(ksq) & p.pieces(p.notturn, KNIGHT)) {
         checks++;
-        check_blocking_squares &= getKnightAtk(ksq) & p.getPieceMask(p.notturn, KNIGHT);
+        check_blocking_squares &= getKnightAtk(ksq) & p.pieces(p.notturn, KNIGHT);
     }
 
-    BB bishop_sliders = p.getPieceMask(p.notturn, BISHOP) | p.getPieceMask(p.notturn, QUEEN);
+    BB bishop_sliders = p.pieces(p.notturn, BISHOP) | p.pieces(p.notturn, QUEEN);
     BB total_bishop_rays = getBishopAtk(ksq, occ);
     BB bishop_checkers = bishop_sliders & total_bishop_rays;
     BB notturn_bishop_rays = getBishopAtk(ksq, notturn_occ);
@@ -230,7 +223,7 @@ PosInfo::PosInfo(Pos &p) {
         }
     }
 
-    BB rook_sliders = p.getPieceMask(p.notturn, ROOK) | p.getPieceMask(p.notturn, QUEEN);
+    BB rook_sliders = p.pieces(p.notturn, ROOK) | p.pieces(p.notturn, QUEEN);
     BB total_rook_rays = getRookAtk(ksq, occ);
     BB rook_checkers = rook_sliders & total_rook_rays;
     BB notturn_rook_rays = getRookAtk(ksq, notturn_occ);
@@ -258,21 +251,21 @@ PosInfo::PosInfo(Pos &p) {
     }
 
     //EN PASSANT CASE
-    if (p.ep != SQUARENONE && checks != 2) {
-        BB to_pawns = getPawnAtk(p.notturn, p.ep) & p.getPieceMask(turn, PAWN);
+    if (p.ep != SQUARE_NONE && checks != 2) {
+        BB to_pawns = getPawnAtk(p.notturn, p.ep) & p.pieces(turn, PAWN);
         while (to_pawns) {
             int from = poplsb(to_pawns);
-            BB post = (occ | getBB(p.ep)) & (~getBB(from)) & (~getBB(p.ep - (turn == WHITE ? 8 : -8)));
+            BB post = (occ | get_BB(p.ep)) & (~get_BB(from)) & (~get_BB(p.ep - (turn == WHITE ? 8 : -8)));
             if ((checks == 1 && !isPawnCheck) || (getBishopAtk(ksq, post) & bishop_sliders) || (getRookAtk(ksq, post) & rook_sliders)) {
-                if (pinned_mask & getBB(from))
-                    moveable_squares[from] &= ~getBB(p.ep);
+                if (pinned_mask & get_BB(from))
+                    moveable_squares[from] &= ~get_BB(p.ep);
                 else {
-                    moveable_squares[from] = ~getBB(p.ep);
-                    pinned_mask |= getBB(from);
+                    moveable_squares[from] = ~get_BB(p.ep);
+                    pinned_mask |= get_BB(from);
                 }
             }
             else {
-                moveable_squares[from] |= getBB(p.ep);
+                moveable_squares[from] |= get_BB(p.ep);
             }
         }
     }
@@ -284,10 +277,10 @@ inline void PosInfo::add_check(BB block_squares) {
 }
 inline void PosInfo::add_pin(int square, BB moveable_squares_) {
     moveable_squares[square] = moveable_squares_;
-    pinned_mask |= getBB(square);
+    pinned_mask |= get_BB(square);
 }
 inline bool PosInfo::is_moveable(int from, int to) {
-    return ((!(pinned_mask & getBB(from))) || (moveable_squares[from] & getBB(to))) && (check_blocking_squares & getBB(to)); 
+    return ((!(pinned_mask & get_BB(from))) || (moveable_squares[from] & get_BB(to))) && (check_blocking_squares & get_BB(to)); 
 }
 
 vector<Move> getLegalMoves(Pos& p) {
@@ -313,15 +306,15 @@ inline void addPawnMovesFromMask(vector<Move> &moves, PosInfo &posInfo, BB &mask
         int to = poplsb(mask);
         int from = to - transform;
         if (posInfo.is_moveable(from, to))
-            moves.push_back(constructMove(from, to, flags));
+            moves.push_back(make_move(from, to, flags));
     }
 }
 inline void addPawnEpMovesFromMask(vector<Move> &moves, PosInfo &posInfo, BB &mask, int transform) {
     while (mask) {
         int to = poplsb(mask);
         int from = to - transform;
-        if (posInfo.moveable_squares[from] & getBB(to))
-            moves.push_back(constructMove(from, to, EP));
+        if (posInfo.moveable_squares[from] & get_BB(to))
+            moves.push_back(make_move(from, to, EP));
     }
 }
 inline void addPawnPromotionMovesFromMask(vector<Move> &moves, PosInfo &posInfo, BB &mask, int transform, MoveFlag flags) {
@@ -330,14 +323,14 @@ inline void addPawnPromotionMovesFromMask(vector<Move> &moves, PosInfo &posInfo,
         int from = to - transform;
         if (posInfo.is_moveable(from, to))
             for (MoveFlag prom_flag = N_PROM; prom_flag <= Q_PROM; prom_flag++)
-                moves.push_back(constructMove(from, to, flags | prom_flag));
+                moves.push_back(make_move(from, to, flags | prom_flag));
     }
 }
 
 void addPawnMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
-    if (!p.getPieceMask(p.turn, PAWN)) return;
+    if (!p.pieces(p.turn, PAWN)) return;
 
-    BB pawns = p.getPieceMask(p.turn, PAWN);
+    BB pawns = p.pieces(p.turn, PAWN);
 
     BB p1;
     BB p2;
@@ -360,23 +353,23 @@ void addPawnMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
         lc_t = 7;
 
         p1 = (pawns << 8) & ~posInfo.occ;
-        p2 = ((p1 & getRowMask(2)) << 8) & ~posInfo.occ;
-        rc = ((pawns & ~getColMask(7)) << 9);
-        lc = ((pawns & ~getColMask(0)) << 7);
-        if (p.ep != SQUARENONE) {
-            rc_ep = rc & getBB(p.ep);
-            lc_ep = lc & getBB(p.ep);
+        p2 = ((p1 & get_rank_mask(2)) << 8) & ~posInfo.occ;
+        rc = ((pawns & ~get_file_mask(7)) << 9);
+        lc = ((pawns & ~get_file_mask(0)) << 7);
+        if (p.ep != SQUARE_NONE) {
+            rc_ep = rc & get_BB(p.ep);
+            lc_ep = lc & get_BB(p.ep);
         }
         rc &= posInfo.notturn_occ;
         lc &= posInfo.notturn_occ;
 
-        p_p1 = p1 & getRowMask(7);
-        p_rc = rc & getRowMask(7);
-        p_lc = lc & getRowMask(7);
+        p_p1 = p1 & get_rank_mask(7);
+        p_rc = rc & get_rank_mask(7);
+        p_lc = lc & get_rank_mask(7);
 
-        p1 &= ~getRowMask(7);
-        rc &= ~getRowMask(7);
-        lc &= ~getRowMask(7);
+        p1 &= ~get_rank_mask(7);
+        rc &= ~get_rank_mask(7);
+        lc &= ~get_rank_mask(7);
     }
     else {
         p1_t = -8;
@@ -384,23 +377,23 @@ void addPawnMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
         lc_t = -7;
 
         p1 = (pawns >> 8) & ~posInfo.occ;
-        p2 = ((p1 & getRowMask(5)) >> 8) & ~posInfo.occ;
-        rc = ((pawns & ~getColMask(0)) >> 9);
-        lc = ((pawns & ~getColMask(7)) >> 7);
-        if (p.ep != SQUARENONE) {
-            rc_ep = rc & getBB(p.ep);
-            lc_ep = lc & getBB(p.ep);
+        p2 = ((p1 & get_rank_mask(5)) >> 8) & ~posInfo.occ;
+        rc = ((pawns & ~get_file_mask(0)) >> 9);
+        lc = ((pawns & ~get_file_mask(7)) >> 7);
+        if (p.ep != SQUARE_NONE) {
+            rc_ep = rc & get_BB(p.ep);
+            lc_ep = lc & get_BB(p.ep);
         }
         rc &= posInfo.notturn_occ;
         lc &= posInfo.notturn_occ;
         
-        p_p1 = p1 & getRowMask(0);
-        p_rc = rc & getRowMask(0);
-        p_lc = lc & getRowMask(0);
+        p_p1 = p1 & get_rank_mask(0);
+        p_rc = rc & get_rank_mask(0);
+        p_lc = lc & get_rank_mask(0);
 
-        p1 &= ~getRowMask(0);
-        rc &= ~getRowMask(0);
-        lc &= ~getRowMask(0);
+        p1 &= ~get_rank_mask(0);
+        rc &= ~get_rank_mask(0);
+        lc &= ~get_rank_mask(0);
     }
 
     addPawnMovesFromMask(moves, posInfo, p1, p1_t, QUIET);
@@ -415,7 +408,7 @@ void addPawnMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
     addPawnPromotionMovesFromMask(moves, posInfo, p_lc, lc_t, CAPTURE);
 }
 void addKnightMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
-    BB knights = p.getPieceMask(p.turn, KNIGHT);
+    BB knights = p.pieces(p.turn, KNIGHT);
 
     while (knights) {
         int from = poplsb(knights);
@@ -424,16 +417,16 @@ void addKnightMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
         BB qui = atk & ~cap;
         while (cap) {
             int to = poplsb(cap);
-            if (posInfo.is_moveable(from, to)) moves.push_back(constructMove(from, to, CAPTURE));
+            if (posInfo.is_moveable(from, to)) moves.push_back(make_move(from, to, CAPTURE));
         }
         while (qui) {
             int to = poplsb(qui);
-            if (posInfo.is_moveable(from, to)) moves.push_back(constructMove(from, to, QUIET));
+            if (posInfo.is_moveable(from, to)) moves.push_back(make_move(from, to, QUIET));
         }
     }
 }
 void addBishopMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
-    BB bishop = p.getPieceMask(p.turn, BISHOP);
+    BB bishop = p.pieces(p.turn, BISHOP);
 
     while (bishop) {
         int from = poplsb(bishop);
@@ -442,16 +435,16 @@ void addBishopMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
         BB qui = atk & ~cap;
         while (cap) {
             int to = poplsb(cap);
-            if (posInfo.is_moveable(from, to)) moves.push_back(constructMove(from, to, CAPTURE));
+            if (posInfo.is_moveable(from, to)) moves.push_back(make_move(from, to, CAPTURE));
         }
         while (qui) {
             int to = poplsb(qui);
-            if (posInfo.is_moveable(from, to)) moves.push_back(constructMove(from, to, QUIET));
+            if (posInfo.is_moveable(from, to)) moves.push_back(make_move(from, to, QUIET));
         }
     }
 }
 void addRookMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
-    BB rooks = p.getPieceMask(p.turn, ROOK);
+    BB rooks = p.pieces(p.turn, ROOK);
 
     while (rooks) {
         int from = poplsb(rooks);
@@ -460,16 +453,16 @@ void addRookMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
         BB qui = atk & ~cap;
         while (cap) {
             int to = poplsb(cap);
-            if (posInfo.is_moveable(from, to)) moves.push_back(constructMove(from, to, CAPTURE));
+            if (posInfo.is_moveable(from, to)) moves.push_back(make_move(from, to, CAPTURE));
         }
         while (qui) {
             int to = poplsb(qui);
-            if (posInfo.is_moveable(from, to)) moves.push_back(constructMove(from, to, QUIET));
+            if (posInfo.is_moveable(from, to)) moves.push_back(make_move(from, to, QUIET));
         }
     }
 }
 void addQueenMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
-    BB queens = p.getPieceMask(p.turn, QUEEN);
+    BB queens = p.pieces(p.turn, QUEEN);
 
     while (queens) {
         int from = poplsb(queens);
@@ -478,21 +471,21 @@ void addQueenMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
         BB qui = atk & ~cap;
         while (cap) {
             int to = poplsb(cap);
-            if (posInfo.is_moveable(from, to)) moves.push_back(constructMove(from, to, CAPTURE));
+            if (posInfo.is_moveable(from, to)) moves.push_back(make_move(from, to, CAPTURE));
         }
         while (qui) {
             int to = poplsb(qui);
-            if (posInfo.is_moveable(from, to)) moves.push_back(constructMove(from, to, QUIET));
+            if (posInfo.is_moveable(from, to)) moves.push_back(make_move(from, to, QUIET));
         }
     }
 }
 void addKingMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
-    int ksq = lsb(p.getPieceMask(p.turn, KING));
+    int ksq = lsb(p.pieces(p.turn, KING));
     BB atk = getKingAtk(ksq) & ~posInfo.turn_occ;
 
     if (atk == 0) return;
 
-    BB notturn_atk = p.getAtkMask(getOppositeColor(p.turn));
+    BB notturn_atk = p.getAtkMask(opp(p.turn));
 
     atk &= ~notturn_atk;
 
@@ -501,35 +494,35 @@ void addKingMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
 
     while (cap) {
         int to = poplsb(cap);
-        moves.push_back(constructMove(ksq, to, CAPTURE));
+        moves.push_back(make_move(ksq, to, CAPTURE));
     }
     while (qui) {
         int to = poplsb(qui);
-        moves.push_back(constructMove(ksq, to, QUIET));
+        moves.push_back(make_move(ksq, to, QUIET));
     }
 
     //CASTLING
 
-    const static BB WKS_CLEARANCE = getBB(F1) | getBB(G1);
-    const static BB WQS_CLEARANCE = getBB(B1) | getBB(C1) | getBB(D1);
+    const static BB WKS_CLEARANCE = get_BB(F1) | get_BB(G1);
+    const static BB WQS_CLEARANCE = get_BB(B1) | get_BB(C1) | get_BB(D1);
 
-    const static BB BKS_CLEARANCE = getBB(F8) | getBB(G8);
-    const static BB BQS_CLEARANCE = getBB(B8) | getBB(C8) | getBB(D8);
+    const static BB BKS_CLEARANCE = get_BB(F8) | get_BB(G8);
+    const static BB BQS_CLEARANCE = get_BB(B8) | get_BB(C8) | get_BB(D8);
 
-    const static BB WKS_SAFE = getBB(F1) | getBB(G1);
-    const static BB WQS_SAFE = getBB(C1) | getBB(D1);
+    const static BB WKS_SAFE = get_BB(F1) | get_BB(G1);
+    const static BB WQS_SAFE = get_BB(C1) | get_BB(D1);
 
-    const static BB BKS_SAFE = getBB(F8) | getBB(G8);
-    const static BB BQS_SAFE = getBB(C8) | getBB(D8);
+    const static BB BKS_SAFE = get_BB(F8) | get_BB(G8);
+    const static BB BQS_SAFE = get_BB(C8) | get_BB(D8);
 
     if (posInfo.checks == 0 && p.cr) {
         if (p.turn == WHITE && (p.cr &  0b0011)) {
-            if (getWK(p.cr) && !(posInfo.occ & WKS_CLEARANCE) && !(notturn_atk & WKS_SAFE)) moves.push_back(constructMove(ksq, G1, KINGCASTLE));
-            if (getWQ(p.cr) && !(posInfo.occ & WQS_CLEARANCE) && !(notturn_atk & WQS_SAFE)) moves.push_back(constructMove(ksq, C1, QUEENCASTLE));
+            if (getWK(p.cr) && !(posInfo.occ & WKS_CLEARANCE) && !(notturn_atk & WKS_SAFE)) moves.push_back(make_move(ksq, G1, KING_CASTLE));
+            if (getWQ(p.cr) && !(posInfo.occ & WQS_CLEARANCE) && !(notturn_atk & WQS_SAFE)) moves.push_back(make_move(ksq, C1, QUEEN_CASTLE));
         }
         else if (p.turn == BLACK && (p.cr &  0b1100)){
-            if (getBK(p.cr) && !(posInfo.occ & BKS_CLEARANCE) && !(notturn_atk & BKS_SAFE)) moves.push_back(constructMove(ksq, G8, KINGCASTLE));
-            if (getBQ(p.cr) && !(posInfo.occ & BQS_CLEARANCE) && !(notturn_atk & BQS_SAFE)) moves.push_back(constructMove(ksq, C8, QUEENCASTLE));
+            if (getBK(p.cr) && !(posInfo.occ & BKS_CLEARANCE) && !(notturn_atk & BKS_SAFE)) moves.push_back(make_move(ksq, G8, KING_CASTLE));
+            if (getBQ(p.cr) && !(posInfo.occ & BQS_CLEARANCE) && !(notturn_atk & BQS_SAFE)) moves.push_back(make_move(ksq, C8, QUEEN_CASTLE));
         }
     }
 }

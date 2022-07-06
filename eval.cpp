@@ -4,7 +4,6 @@
 #include "pos.h"
 #include "bits.h"
 #include "movegen.h"
-#include "nnue.h"
 #include "search.h"
 #include <iostream>
 #include <vector>
@@ -107,83 +106,35 @@ Eval evalPos(Pos& p, Eval lb, Eval ub) {
 
     if (mat < lb - 100 || mat > ub + 100) return mat;
 
-	if (p.nnue != nullptr) return p.nnue->evaluate(p.turn);
-
     Eval map = 0;
 
     for (int pt = PAWN; pt < KING; pt++) {
 
-        {
-            BB pieces = p.getPieceMask(p.turn, pt);
-            while (pieces) {
-                int sq = poplsb(pieces);
-                map += piece_eval_maps[pt][p.turn == WHITE ? sqMapTrans(sq) : sq];
-            }
+        BB our_pieces = p.pieces(p.turn, pt);
+        while (our_pieces) {
+            int sq = poplsb(our_pieces);
+            map += piece_eval_maps[pt - PAWN][p.turn == WHITE ? sqMapTrans(sq) : sq];
         }
 
-        {
-            BB pieces = p.getPieceMask(p.notturn, pt);
-            while (pieces) {
-                int sq = poplsb(pieces);
-                map -= piece_eval_maps[pt][p.notturn == WHITE ? sqMapTrans(sq) : sq];
-            }
+        BB their_pieces = p.pieces(p.notturn, pt);
+        while (their_pieces) {
+            int sq = poplsb(their_pieces);
+            map -= piece_eval_maps[pt - PAWN][p.notturn == WHITE ? sqMapTrans(sq) : sq];
         }
     }
-
-    map += king_eval_map[totalmat < 1500][lsb(p.getPieceMask(p.turn, KING))] - king_eval_map[totalmat < 1500][lsb(p.getPieceMask(p.notturn, KING))];
-
-    //PAWN EVALUATION
-    Eval pawnEval = evalPawns(p, p.turn) - evalPawns(p, p.notturn);
-
-    //KING SAFETY
-    Eval kingSafety = evalKingSafety(p, p.turn) - evalKingSafety(p, p.notturn);
-
-    //OUTPOST = GOOD
-
-    return mat + map + pawnEval + kingSafety;
+    
+    return mat + map;
 }
 
 Eval evalMat(Pos& p, Color c) {
     return (
-        bitcount(p.pieces[c][PAWN]) * mat_points[PAWN] +
-        bitcount(p.pieces[c][KNIGHT]) * mat_points[KNIGHT] +
-        bitcount(p.pieces[c][BISHOP]) * mat_points[BISHOP] +
-        bitcount(p.pieces[c][ROOK]) * mat_points[ROOK] +
-        bitcount(p.pieces[c][QUEEN]) * mat_points[QUEEN]
+        bitcount(p.pieces(c, PAWN)) * mat_points[PAWN - PAWN] +
+        bitcount(p.pieces(c, KNIGHT)) * mat_points[KNIGHT - PAWN] +
+        bitcount(p.pieces(c, BISHOP)) * mat_points[BISHOP - PAWN] +
+        bitcount(p.pieces(c, ROOK)) * mat_points[ROOK - PAWN] +
+        bitcount(p.pieces(c, QUEEN)) * mat_points[QUEEN - PAWN]
     );
 }
-
-Eval evalPawns(Pos& p, Color c) {
-	Eval eval = 0;
-
-    //double pawns = bad
-    for (int i = 0; i < 8; i++) {
-        BB pawns = p.getPieceMask(c, PAWN) & getColMask(i);
-        if (pawns) eval -= (bitcount(pawns) - 1) * 40;
-	}
-
-    //supported pawns = good
-	BB pawns = p.getPieceMask(c, PAWN);
-	if (pawns) eval += (bitcount(((pawns & ~getColMask(7)) << 9) & pawns) + bitcount(((pawns & ~getColMask(0)) << 7) & pawns)) * 5;
-
-    //isolated pawns = bad
-    //passed pawns = good
-
-	return eval;
-}
-
-Eval evalKingSafety(Pos& p, Color c) {
-	Eval eval = 0;
-	Square ksq = lsb(p.getPieceMask(c, KING));
-	eval += bitcount(getKingAtk(ksq) & p.getPieceMask(c, PAWN)) * 15;
-	BB occ = p.getOcc(c);
-	eval -= bitcount(getBishopAtk(ksq, occ) & ~occ) * 12;
-	eval -= bitcount(getColMask(ksq%8) & getRookAtk(ksq, p.getOcc(c))) * 10;
-	return eval;
-}
-
-
-
 
 
 

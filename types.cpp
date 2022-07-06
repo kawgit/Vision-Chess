@@ -7,7 +7,7 @@ using namespace std;
 
 string getSAN(Move m) {
     const static string piece_notations[] = {"p", "n", "b", "r", "q", "k"};
-    return sqToNot(getFrom(m)) + sqToNot(getTo(m)) + (isPromotion(m) ? piece_notations[getPromotionType(m)] : "");
+    return square_to_string(get_from(m)) + square_to_string(get_to(m)) + (is_promotion(m) ? piece_notations[get_promotion_type(m)] : "");
 }
 
 string to_string(vector<Move> moves) {

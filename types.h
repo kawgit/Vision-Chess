@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdlib>
 #include <stdint.h>
 #include <string>
 #include <iostream>
@@ -13,18 +14,23 @@ typedef int16_t Eval;
 const Eval INF = 32767;
 const Eval MINMATE = INF - 128;
 
-inline string evalToString(Eval& eval) {
-    return (abs(eval) >= MINMATE ? ((eval > 0 ? "mate " : "mate -") + to_string(INF-abs(eval) + 1)) : ("cp " + to_string(eval)));
+typedef uint32_t Score;
+const Score SCORE_MAX = (1ULL << 32) - 1;
+
+inline string eval_to_string(Eval eval) {
+    return (abs(eval) >= MINMATE ? ((eval > 0 ? "mate " : "mate -") + to_string(INF-abs(eval))) : ("cp " + to_string(eval)));
 }
 
 typedef int8_t Depth;
-
 const Depth DEPTHMAX = 127;
 
 typedef uint8_t Clock;
-
-//SQUARE
 typedef uint8_t Square;
+typedef uint8_t File;
+typedef uint8_t Rank;
+
+enum Files : File { FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H, EP_NONE};
+enum Ranks : Rank { RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8};
 
 enum Squares : Square {
     A1, B1, C1, D1, E1, F1, G1, H1,
@@ -35,53 +41,50 @@ enum Squares : Square {
     A6, B6, C6, D6, E6, F6, G6, H6,
     A7, B7, C7, D7, E7, F7, G7, H7,
     A8, B8, C8, D8, E8, F8, G8, H8,
-    SQUARENONE = 255
+    SQUARE_NONE = 255
 };
 
-inline string sqToNot(Square s) {
-    if (s == SQUARENONE) return "-";
+inline string square_to_string(Square s) {
+    if (s == SQUARE_NONE) return "-";
     string r = "";
     r += (s%8 + 'a');
     r += (s/8 + '1');
     return r;
 }
 
-inline Square notToSq(string notation) {
+inline Square string_to_square(string notation) {
     return rc(notation[1]-'1', notation[0]-'a');
 }
 
-//COLOR
-typedef bool Color;
-enum Colors : Color {BLACK, WHITE};
-inline Color getOppositeColor(Color c) { return c == WHITE ? BLACK : WHITE; }
+typedef uint8_t Color;
+enum Colors : Color {COLOR_NONE, BLACK, WHITE};
+inline Color opp(Color c) { return c == WHITE ? BLACK : WHITE; }
 
-//PIECE
 typedef uint8_t Piece;
-enum Pieces : Piece {PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, PIECENONE};
+enum Pieces : Piece {PIECE_NONE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING};
 
-//MOVE
 typedef uint16_t Move;
 typedef uint8_t MoveFlag;
 
-enum Moves : Move {MOVENONE = 0xFFFF};
+enum Moves : Move {MOVE_NONE = 0, MOVE_NULL = 0xFFFF};
 
-inline Move constructMove(Move from, Move to, MoveFlag flags) {
+inline Move make_move(Move from, Move to, MoveFlag flags) {
     return (flags << 12) | (from << 6) | to;
 }
 
-enum MoveFlags : MoveFlag {QUIET=0, DOUBLE_PAWN_PUSH, KINGCASTLE, QUEENCASTLE, CAPTURE, EP, N_PROM=8, B_PROM, R_PROM, Q_PROM, N_PROM_CAPTURE, B_PROM_CAPTURE, R_PROM_CAPTURE, Q_PROM_CAPTURE};
+enum MoveFlags : MoveFlag {QUIET=0, DOUBLE_PAWN_PUSH, KING_CASTLE, QUEEN_CASTLE, CAPTURE, EP, N_PROM=8, B_PROM, R_PROM, Q_PROM, N_PROM_CAPTURE, B_PROM_CAPTURE, R_PROM_CAPTURE, Q_PROM_CAPTURE};
 
-inline Square getTo(Move m) { return m & 0b111111; }
-inline Square getFrom(Move m) { return (m >> 6) & 0b111111; }
-inline MoveFlag getFlags(Move m) { return m >> 12; }
+inline Square get_to(Move m) { return m & 0b111111; }
+inline Square get_from(Move m) { return (m >> 6) & 0b111111; }
+inline MoveFlag get_flags(Move m) { return m >> 12; }
 
-inline bool isDoublePawnPush(Move m) { return getFlags(m) == DOUBLE_PAWN_PUSH; }
-inline bool isKingCastle(Move m) { return getFlags(m) == KINGCASTLE; }
-inline bool isQueenCastle(Move m) { return getFlags(m) == QUEENCASTLE; }
-inline bool isCapture(Move m) { return getFlags(m) & CAPTURE; }
-inline bool isEp(Move m) { return getFlags(m) == EP; }
-inline bool isPromotion(Move m) { return getFlags(m) & N_PROM; }
-inline Piece getPromotionType(Move m) { return (getFlags(m) & 0b0011) + KNIGHT; }
+inline bool is_double_pawn_push(Move m) { return get_flags(m) == DOUBLE_PAWN_PUSH; }
+inline bool is_king_castle(Move m) { return get_flags(m) == KING_CASTLE; }
+inline bool is_queen_castle(Move m) { return get_flags(m) == QUEEN_CASTLE; }
+inline bool is_capture(Move m) { return get_flags(m) & CAPTURE; }
+inline bool is_ep(Move m) { return get_flags(m) == EP; }
+inline bool is_promotion(Move m) { return get_flags(m) & N_PROM; }
+inline Piece get_promotion_type(Move m) { return (get_flags(m) & 0b0011) + KNIGHT; }
 
 string getSAN(Move m);
 

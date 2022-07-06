@@ -3,38 +3,16 @@
 #include "tt.h"
 #include "search.h"
 
-void TTEntry::save(BB _hashkey, Eval _eval, Bound _bound, Depth _depth, Move _move, Gen _gen) {
-	if ( _gen > gen ||
-		(bound != EXACT && (_bound == EXACT || depth < _depth)) ||
-		(bound == EXACT && (_bound == EXACT && depth < _depth))) {
-		hashkey32 = _hashkey>>32;
-		eval = _eval;
-		bound = _bound;
-		depth = _depth;
-		move = _move;
-		gen = _gen;
-	}
-}
-
-void TTEntry::forcesave(BB _hashkey, Eval _eval, Bound _bound, Depth _depth, Move _move, Gen _gen) {
-	hashkey32 = _hashkey>>32;
-	eval = _eval;
-	bound = _bound;
-	depth = _depth;
-	move = _move;
-	gen = _gen;
-}
-
 TTEntry* TT::probe(BB hashkey, bool& found) {
 	TTEntry* entry = &table[hashkey & HASHMASK];
-	found = entry->hashkey32 == hashkey>>32;
+	found = entry->matches(hashkey);
 	return entry;
 }
 
 void TT::clear() {
 	gen = 0;
 	for (int i = 0; i < TABLESIZE; i++) {
-		table[i].forcesave(0, 0, LB, 0, 0, 0);
+		table[i].set_zero();
 	}
 }
 
@@ -48,12 +26,12 @@ vector<Move> TT::getPV(Pos p) {
 void TT::addPV(Pos& p, vector<Move>& pv) {
 	bool found = false;
 	TTEntry* entry = probe(p.hashkey, found);
-	Move move = entry->move;
-	Bound bound = entry->bound;
+	Move move = entry->get_move();
+	Bound bound = entry->get_bound();
 	if (found && bound == EXACT) {
-		p.makeMove(move);
+		p.do_move(move);
 		pv.push_back(move);
-		if (!p.isGameOver()) addPV(p, pv);
-		p.undoMove();
+		if (!p.is_over()) addPV(p, pv);
+		p.undo_move();
 	}
 }

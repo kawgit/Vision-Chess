@@ -1,0 +1,645 @@
+make.exe all --print-data-base --no-builtin-variables --no-builtin-rules --question
+# GNU Make 3.81
+# Copyright (C) 2006  Free Software Foundation, Inc.
+# This is free software; see the source for copying conditions.
+# There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
+# PARTICULAR PURPOSE.
+
+# This program built for i386-pc-mingw32
+ 
+
+# Make data base, printed on Tue Jul 05 23:50:25 2022
+
+# Variables
+
+# automatic
+<D = $(patsubst %/,%,$(dir $<))
+# automatic
+?F = $(notdir $?)
+# makefile
+MAKEFLAGS = Rrqp
+# environment
+VSCODE_LOG_NATIVE = false
+# automatic
+?D = $(patsubst %/,%,$(dir $?))
+# automatic
+@D = $(patsubst %/,%,$(dir $@))
+# environment
+HOMEDRIVE = C:
+# automatic
+@F = $(notdir $@)
+# automatic
+^D = $(patsubst %/,%,$(dir $^))
+# makefile
+CURDIR := c:/Users/Kbana/OneDrive/Documents/GitHub/VisionChess
+# default
+SHELL := sh.exe
+# environment
+NVCUDASAMPLES11_2_ROOT = C:\ProgramData\NVIDIA Corporation\CUDA Samples\v11.2
+# environment
+WINDIR = C:\WINDOWS
+# environment
+VSCODE_NLS_CONFIG = {"locale":"en-us","availableLanguages":{},"_languagePackSupport":true}
+# environment
+VBOX_MSI_INSTALL_PATH = C:\Program Files\Oracle\VirtualBox\
+# environment
+ONEDRIVE = C:\Users\Kbana\OneDrive
+# environment
+PATHEXT = .COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.PY;.PYW
+# makefile (from `makefile', line 1)
+MAKEFILE_LIST :=  makefile
+# environment
+TMP 
+ = C:\Users\Kbana\AppData\Local\Temp
+# environment
+VSCODE_VERBOSE_LOGGING = true
+# environment
+PROGRAMW6432 = C:\Program Files
+# environment
+PROGRAMDATA = C:\ProgramData
+# environment
+VSCODE_IPC_HOOK_EXTHOST = \\.\pipe\vscode-ipc-930aadaf-1278-4452-8032-cdb807584bd8-sock
+# environment
+VSCODE_CWD = C:\Users\Kbana\AppData\Local\Programs\Microsoft VS Code
+# environment
+PATH = C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.2\bin;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.2\libnvvp;C:\Users\Kbana\AppData\Local\Programs\Python\Python39\Scripts\;C:\Users\Kbana\AppData\Local\Programs\Python\Python39\;C:\Program Files\Common Files\Oracle\Java\javapath;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Users\Kbana\EnvPaths\Python\Python39;C:\Users\Kbana\EnvPaths\Python\Python39\python.exe;C:\Users\Kbana\EnvPaths\MinGW\bin;C:\Users\Kbana\EnvPaths\MinGW\bin\g++.exe;C:\Program Files\Java\jdk-16.0.2\bin;C:\Users\Kbana\.dotnet\tools;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\Open;C:\Users\Kbana\AppData\Local\Programs\Microsoft VS Code\bin;C:\Program Files\nodejs\bin;C:\Users\Kbana\AppData\Local\Microsoft\WindowsApps;C:\Program Files\dotnet\;C:\Program Files (x86)\GnuWin32\bin;C:\Users\Kbana\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.9_qbz5n2kfra8p0\LocalCache\local-packages\Python39\Scripts;D:\Program Files\;C:\Program Files\nodejs\node.exe;C:\Program Files\nodejs\;C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR;C:\Program Files\NVIDIA Corporation\Nsight Compute 2020.3.0\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\Git\cmd;C:\Program Files\Git\cmd;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;D:\ChessCom\LLVM\bin;D:\ChessCom\CMake\bin;C:\Users\Kbana\EnvPaths\mingw32\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\Open;C:\Users\Kbana\AppData\Local\Programs\Microsoft VS Code\bin;C:\Program Files\nodejs\bin;C:\Users\Kbana\AppData\Local\Microsoft\WindowsApps;C:\Users\Kbana\.dotnet\tools;C:\Anaconda3\Library\bin;C:\Users\Kbana\AppData\Local\GitHubDesktop\bin;C:\Program Files\nodejs\node.exe;C:\Users\Kbana\AppData\Roaming\npm;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.6\bin;C:\Program Files\Git\cmd;
+# environment
+COMMONPROGRAMW6432 = C:\Program Files\Common Files
+# environment
+PROCESSOR_ARCHITECTURE = x86
+# environment
+USERPROFILE = C:\Users\Kbana
+# environment
+CHOCOLATEYINSTALL = C:\ProgramData\chocolatey
+# environment
+ALLUSERSPROFILE = C:\ProgramData
+# environment
+VSCODE_LOG_STACK = false
+# environment
+NUMBER_OF_PROCESSORS = 16
+# environment
+ELECTRON_RUN_AS_NODE = 1
+# default
+.FEATURES := target-specific order-only second-expansion else-if archives
+# environment
+NVTOOLSEXT_PATH = C:\Program Files\NVIDIA Corporation\NvToolsExt\
+# automatic
+%F = $(notdir $%)
+# environment
+CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_13324_ULHMQBZOUMRTSKKQ
+# environment
+VSCODE_PIPE_LOGGING = true
+# environment
+COMPUTERNAME = DESKTOP-BO6FLAM
+# environment
+PROGRAMFILES = C:\Program Files (x86)
+# environment
+CUDA_PATH_V11_2 = C:\Program Files\NVIDIA GPU 
+ Computing Toolkit\CUDA\v11.2
+# environment
+DRIVERDATA = C:\Windows\System32\Drivers\DriverData
+# environment
+NVCUDASAMPLES_ROOT = C:\ProgramData\NVIDIA Corporation\CUDA Samples\v11.2
+# environment
+ORIGINAL_XDG_CURRENT_DESKTOP = undefined
+# environment
+USERNAME = Kbana
+# environment
+PUBLIC = C:\Users\Public
+# environment
+VSCODE_AMD_ENTRYPOINT = vs/workbench/api/node/extensionHostProcess
+# environment
+VSCODE_CODE_CACHE_PATH = C:\Users\Kbana\AppData\Roaming\Code\CachedData\30d9c6cd9483b2cc586687151bcbcd635f373630
+# environment
+APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = 1
+# environment
+COMMONPROGRAMFILES = C:\Program Files (x86)\Common Files
+# environment
+LOGONSERVER = \\DESKTOP-BO6FLAM
+# environment
+ONEDRIVECONSUMER = C:\Users\Kbana\OneDrive
+# environment
+VSCODE_HANDLES_UNCAUGHT_ERRORS = true
+# environment
+USERDOMAIN = DESKTOP-BO6FLAM
+# default
+MAKE = $(MAKE_COMMAND)
+# default
+MAKECMDGOALS := all
+# environment
+JAVA_HOME = C:\Program Files\Java\jdk-16.0.2
+# default
+MAKE_VERSION := 3.81
+# makefile
+.DEFAULT_GOAL 
+ := all
+# environment
+PROGRAMFILES(X86) = C:\Program Files (x86)
+# automatic
+%D = $(patsubst %/,%,$(dir $%))
+# environment
+LOCALAPPDATA = C:\Users\Kbana\AppData\Local
+# environment
+PSMODULEPATH = C:\Program Files\WindowsPowerShell\Modules;C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\platform\PowerShell
+# default
+MAKE_COMMAND := make.exe
+# environment
+PROCESSOR_ARCHITEW6432 = AMD64
+# default
+.VARIABLES := 
+# automatic
+*F = $(notdir $*)
+# environm 
+ent
+PROCESSOR_IDENTIFIER = Intel64 Family 6 Model 165 Stepping 5, GenuineIntel
+# environment
+OS = Windows_NT
+# environment
+VSCODE_IPC_HOOK = \\.\pipe\69d51b56b7a5c87759434d809f7112f9-1.68.1-main-sock
+# environment
+HOMEPATH = \Users\Kbana
+# environment
+COMMONPROGRAMFILES(X86) = C:\Program Files (x86)\Common Files
+# environment
+PROMPT = $P$G
+# environment
+MFLAGS = -Rrqp
+# automatic
+*D = $(patsubst %/,%,$(dir $*))
+# environment
+SYSTEMROOT = C:\WINDOWS
+# automatic
++D = $(patsubst %/,%,$(dir $+))
+# automatic
++F  
+= $(notdir $+)
+# environment
+APPDATA = C:\Users\Kbana\AppData\Roaming
+# environment
+TEMP = C:\Users\Kbana\AppData\Local\Temp
+# environment
+COMSPEC = C:\WINDOWS\system32\cmd.exe
+# default
+MAKEFILES := 
+# automatic
+<F = $(notdir $<)
+# environment
+LC_ALL = C
+# automatic
+^F = $(notdir $^)
+# environment
+CUDA_PATH = C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.2
+# default
+SUFFIXES := 
+# environment
+SYSTEMDRIVE = C:
+# environment
+SESSIONNAME = Console
+# environment
+PROCESSOR_REVISION = a505
+# environment 
+
+MAKELEVEL := 0
+# environment
+LANG = C
+# environment
+PROCESSOR_LEVEL = 6
+# environment
+VSCODE_PID = 13324
+# environment
+USERDOMAIN_ROAMINGPROFILE = DESKTOP-BO6FLAM
+# variable set hash-table stats:
+# Load=95/1024=9%, Rehash=0, Collisions=9/117=8%
+
+# Pattern-specific Variable Values
+
+# No pattern-specific variable values.
+
+# Directories
+
+# C:\Program Files\Common Files\Oracle\Java\javapath (key C:/Program Files/Common Files/Oracle/Java/javapath, mtime 1627245983): 6 files, no impossibilities.
+# D:\ChessCom\LL 
+VM\bin (key D:/ChessCom/LLVM/bin, mtime 1656338433): 109 files, no impossibilities.
+# C:\Users\Kbana\EnvPaths\Python\Python39: could not be stat'd.
+# C:\Windows\System32\WindowsPowerShell\v1.0\ (key C:/Windows/System32/WindowsPowerShell/v1.0/, mtime 1618917113): 30 files, no impossibilities.
+# C:\Windows\System32\Wbem (key C:/Windows/System32/Wbem, mtime 1655354519): 155 files, no impossibilities.
+# . (key c:/Users/Kbana/OneDrive/Documents/GitHub/VisionChess, mtime 1657058392): 44 files, no impossibilities. 
+
+# C:\Program Files\Java\jdk-16.0.2\bin (key C:/Program Files/Java/jdk-16.0.2/bin, mtime 1627245983): 123 files, no impossibilities.
+# D:\ChessCom\CMake\bin (key D:/ChessCom/CMake/bin, mtime 1656341454): 7 files, no impossibilities.
+# C:\Program Files\nodejs\ (key C:/Program Files/nodejs/, mtime 1651031009): 13 files, no impossibilities.
+# C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common (key C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common, mtime 1651960481): 10 files, no impossibilities.
+# C:\ 
+Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.2\bin (key C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.2/bin, mtime 1651960564): 45 files, no impossibilities.
+# C:\Program Files\dotnet\ (key C:/Program Files/dotnet/, mtime 1653235544): 11 files, no impossibilities.
+# C:\Users\Kbana\AppData\Local\Programs\Microsoft VS Code\bin (key C:/Users/Kbana/AppData/Local/Programs/Microsoft VS Code/bin, mtime 1656223370): 4 files, no impossibilities.
+# C:\Program Files (x86)\Google\Cloud SDK\google-cloud- 
+sdk\bin (key C:/Program Files (x86)/Google/Cloud SDK/google-cloud-sdk/bin, mtime 1656337892): 20 files, no impossibilities.
+# C:\Users\Kbana\AppData\Roaming\npm (key C:/Users/Kbana/AppData/Roaming/npm, mtime 1651031006): 2 files, no impossibilities.
+# C:\Users\Kbana\.dotnet\tools: could not be stat'd.
+# C:\Program Files\NVIDIA Corporation\Nsight Compute 2020.3.0\ (key C:/Program Files/NVIDIA Corporation/Nsight Compute 2020.3.0/, mtime 1651960418): 12 files, no impossibilities.
+# C:\Windows\System32\OpenSSH\ 
+: could not be stat'd.
+# C:\Program Files (x86)\Common Files\Oracle\Java\javapath (key C:/Program Files (x86)/Common Files/Oracle/Java/javapath, mtime 1627245140): 5 files, no impossibilities.
+# C:\Users\Kbana\EnvPaths\mingw32\bin (key C:/Users/Kbana/EnvPaths/mingw32/bin, mtime 1629302373): 58 files, no impossibilities.
+# C:\WINDOWS\System32\Open: could not be stat'd.
+# C:\Program Files\nodejs\node.exe (key C:/Program Files/nodejs/node.exe, mtime 1651025776): could not be opened.
+# C:\Windows (key C:/Window 
+s, mtime 1657040591): 125 files, no impossibilities.
+# D:\Program Files\ (key D:/Program Files/, mtime 1645919951): 19 files, no impossibilities.
+# C:\Users\Kbana\AppData\Local\Programs\Python\Python39\ (key C:/Users/Kbana/AppData/Local/Programs/Python/Python39/, mtime 1628543833): 3 files, no impossibilities.
+# C:\Users\Kbana\AppData\Local\GitHubDesktop\bin (key C:/Users/Kbana/AppData/Local/GitHubDesktop/bin, mtime 1629123073): 4 files, no impossibilities.
+# C:\Users\Kbana\AppData\Local\Packages\PythonSoft 
+wareFoundation.Python.3.9_qbz5n2kfra8p0\LocalCache\local-packages\Python39\Scripts (key C:/Users/Kbana/AppData/Local/Packages/PythonSoftwareFoundation.Python.3.9_qbz5n2kfra8p0/LocalCache/local-packages/Python39/Scripts, mtime 1651903651): 25 files, no impossibilities.
+# C:\Users\Kbana\AppData\Local\Microsoft\WindowsApps (key C:/Users/Kbana/AppData/Local/Microsoft/WindowsApps, mtime 1656615367): 30 files, no impossibilities.
+# C:\Users\Kbana\EnvPaths\MinGW\bin\g++.exe: could not be stat'd.
+# C:\Users\Kbana\A 
+ppData\Local\Programs\Python\Python39\Scripts\ (key C:/Users/Kbana/AppData/Local/Programs/Python/Python39/Scripts/, mtime 1628543833): 2 files, no impossibilities.
+# C:\Anaconda3\Library\bin: could not be stat'd.
+# C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.6\bin: could not be stat'd.
+# C:\Program Files\nodejs\bin: could not be stat'd.
+# C:\Program Files\Git\cmd (key C:/Program Files/Git/cmd, mtime 1655068793): 8 files, no impossibilities.
+# C:\Windows\system32 (key C:/Windows/system32, mtime 16 
+57040591): 3043 files, no impossibilities.
+# C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.2\libnvvp (key C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.2/libnvvp, mtime 1651960554): 14 files, no impossibilities.
+# C:\Users\Kbana\EnvPaths\Python\Python39\python.exe: could not be stat'd.
+# C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR (key C:/Program Files/NVIDIA Corporation/NVIDIA NvDLISR, mtime 1651902764): 5 files, no impossibilities.
+# C:\Users\Kbana\EnvPaths\MinGW\bin: could not be 
+ stat'd.
+# C:\Program Files (x86)\GnuWin32\bin (key C:/Program Files (x86)/GnuWin32/bin, mtime 1633381584): 5 files, no impossibilities.
+
+# 3937 files, no impossibilities in 40 directories.
+
+# Implicit Rules
+
+# No implicit rules.
+
+# Files
+
+# Not a target:
+types.h:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+movegen.h:
+#  Implicit rule search has been done.
+#  Last modified 2022-07-03 10:29:55
+#  File has been updated.
+#  Succe 
+ssfully updated.
+# variable set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/0=0%
+
+# Not a target:
+types.cpp:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+all: bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o main.exe
+#  Command-line target.
+#  Implicit rule search has been done.
+#  File does not exist.
+#  File has been updated.
+#  Needs to be updated (-q is set).
+# variable set hash-table stats:
+# Load=0/ 
+32=0%, Rehash=0, Collisions=0/2=0%
+
+# Not a target:
+movegen.cpp:
+#  Implicit rule search has been done.
+#  Last modified 2022-07-03 10:36:31
+#  File has been updated.
+#  Successfully updated.
+# variable set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/0=0%
+
+# Not a target:
+eval.h:
+#  Implicit rule search has been done.
+#  Last modified 2022-07-03 15:58:55
+#  File has been updated.
+#  Successfully updated.
+# variable set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/0=0%
+
+# Not a targe 
+t:
+bits.h:
+#  Implicit rule search has been done.
+#  Last modified 2022-07-03 10:39:22
+#  File has been updated.
+#  Successfully updated.
+# variable set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/0=0%
+
+# Not a target:
+.DEFAULT:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+eval.cpp:
+#  Implicit rule search has been done.
+#  Last modified 2022-07-05 00:16:58
+#  File has been updated.
+#  Successfully updated.
+# varia 
+ble set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/0=0%
+
+# Not a target:
+bits.cpp:
+#  Implicit rule search has been done.
+#  Last modified 2022-07-03 10:37:05
+#  File has been updated.
+#  Successfully updated.
+# variable set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/0=0%
+
+main.exe: bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o main.cpp
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  comm 
+ands to execute (from `makefile', line 4):
+	g++ -Ofast -pthread bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o main.cpp -o main.exe
+	
+
+# Not a target:
+pos.cpp:
+#  Implicit rule search has been done.
+#  Last modified 2022-07-05 10:20:11
+#  File has been updated.
+#  Successfully updated.
+# variable set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/0=0%
+
+# Not a target:
+hash.h:
+#  Implicit rule search has been done.
+#  Last modified 2022-07-02 17:42:42
+#  File has been up 
+dated.
+#  Successfully updated.
+# variable set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/0=0%
+
+# Not a target:
+order.h:
+#  Implicit rule search has been done.
+#  Last modified 2022-07-05 10:01:24
+#  File has been updated.
+#  Successfully updated.
+# variable set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/0=0%
+
+# Not a target:
+makefile:
+#  Implicit rule search has been done.
+#  Last modified 2022-07-04 23:55:31
+#  File has been updated.
+#  Successfully updated.
+# variable set hash 
+-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/0=0%
+
+# Not a target:
+hash.cpp:
+#  Implicit rule search has been done.
+#  Last modified 2022-07-03 10:36:31
+#  File has been updated.
+#  Successfully updated.
+# variable set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/0=0%
+
+# Not a target:
+main.cpp:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+timer.h:
+#  Implicit rule search has not been done.
+#  Modification ti 
+me never checked.
+#  File has not been updated.
+
+# Not a target:
+order.cpp:
+#  Implicit rule search has been done.
+#  Last modified 2022-07-05 10:40:26
+#  File has been updated.
+#  Successfully updated.
+# variable set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/0=0%
+
+# Not a target:
+search.h:
+#  Implicit rule search has been done.
+#  Last modified 2022-07-04 23:50:28
+#  File has been updated.
+#  Successfully updated.
+# variable set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/0=0%
+
+ 
+# Not a target:
+tt.h:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+pos.h:
+#  Implicit rule search has been done.
+#  Last modified 2022-07-05 10:06:32
+#  File has been updated.
+#  Successfully updated.
+# variable set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/0=0%
+
+# Not a target:
+timer.cpp:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target: 
+
+search.cpp:
+#  Implicit rule search has been done.
+#  Last modified 2022-07-05 17:59:17
+#  File has been updated.
+#  Successfully updated.
+# variable set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/0=0%
+
+# Not a target:
+tt.cpp:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+types.o: types.cpp types.h
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute ( 
+from `makefile', line 25):
+	g++ -c -Ofast types.cpp -o types.o
+	
+
+# Not a target:
+.SUFFIXES:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+movegen.o: movegen.cpp movegen.h
+#  Implicit rule search has not been done.
+#  Last modified 2022-07-05 10:23:41
+#  File has been updated.
+#  Successfully updated.
+# variable set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/0=0%
+#  commands to execute (from `makefile', line 13):
+	g++ -c -Ofast mo 
+vegen.cpp -o movegen.o
+	
+
+eval.o: eval.cpp eval.h
+#  Implicit rule search has not been done.
+#  Last modified 2022-07-05 10:23:39
+#  File has been updated.
+#  Successfully updated.
+# variable set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/0=0%
+#  commands to execute (from `makefile', line 9):
+	g++ -c -Ofast eval.cpp -o eval.o
+	
+
+bits.o: bits.cpp bits.h
+#  Implicit rule search has not been done.
+#  Last modified 2022-07-05 10:23:39
+#  File has been updated.
+#  Successfully updated.
+# variable s 
+et hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/0=0%
+#  commands to execute (from `makefile', line 7):
+	g++ -c -Ofast bits.cpp -o bits.o
+	
+
+clean:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `makefile', line 28):
+	del *.o
+	del *.exe
+	
+
+hash.o: hash.cpp hash.h
+#  Implicit rule search has not been done.
+#  Last modified 2022-07-05 10:23:40
+#  File has been updated.
+#  Successfully updated.
+# variable set  
+hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/0=0%
+#  commands to execute (from `makefile', line 11):
+	g++ -c -Ofast hash.cpp -o hash.o
+	
+
+order.o: order.cpp order.h
+#  Implicit rule search has not been done.
+#  Last modified 2022-07-05 10:40:28
+#  File has been updated.
+#  Successfully updated.
+# variable set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/0=0%
+#  commands to execute (from `makefile', line 15):
+	g++ -c -Ofast order.cpp -o order.o
+	
+
+timer.o: timer.cpp timer.h
+#  Implici 
+t rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `makefile', line 21):
+	g++ -c -Ofast timer.cpp -o timer.o
+	
+
+search.o: search.cpp search.h
+#  Implicit rule search has not been done.
+#  Implicit/static pattern stem: `'
+#  Last modified 2022-07-05 17:49:34
+#  File has been updated.
+#  Needs to be updated (-q is set).
+# automatic
+# @ := search.o
+# automatic
+# % := 
+# automatic
+# * := 
+# automatic
+# + := search.cpp search.h
+# automa 
+tic
+# | := 
+# automatic
+# < := search.cpp
+# automatic
+# ^ := search.cpp search.h
+# automatic
+# ? := search.cpp
+# variable set hash-table stats:
+# Load=8/32=25%, Rehash=0, Collisions=1/10=10%
+#  commands to execute (from `makefile', line 19):
+	g++ -c -Ofast search.cpp -o search.o -pthread
+	
+
+tt.o: tt.cpp tt.h
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `makefile', line 23):
+	g++ -c -Ofast tt.cpp -o tt.o
+	
+
+pos.o: po 
+s.cpp pos.h
+#  Implicit rule search has not been done.
+#  Last modified 2022-07-05 10:23:43
+#  File has been updated.
+#  Successfully updated.
+# variable set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/0=0%
+#  commands to execute (from `makefile', line 17):
+	g++ -c -Ofast pos.cpp -o pos.o
+	
+
+# files hash-table stats:
+# Load=37/1024=4%, Rehash=0, Collisions=3/92=3%
+# VPATH Search Paths
+
+# No `vpath' search paths.
+
+# No general (`VPATH' variable) search path.
+
+# # of strings in strcache: 1
+# # of 
+ strcache buffers: 1
+# strcache size: total = 4096 / max = 4096 / min = 4096 / avg = 4096
+# strcache free: total = 4087 / max = 4087 / min = 4087 / avg = 4087
+
+# Finished Make data base on Tue Jul 05 23:50:25 2022
+
+ 
