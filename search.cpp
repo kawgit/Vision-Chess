@@ -188,7 +188,7 @@ Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo* ti, SearchInfo* si) {
     alpha = max(alpha, stand_pat);
     if (alpha >= beta) return beta;
 
-	if (pos.move_log.size() - ti->root_ply > 30) {
+	if (pos.move_log.size() - ti->root_ply > 100) {
 		print(pos, true);
 		print(pos.move_log);
 		assert(false);
