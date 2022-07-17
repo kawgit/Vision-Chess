@@ -6,6 +6,7 @@
 #include "types.h"
 #include <thread>
 #include <atomic>
+#include <string>
 
 using namespace std;
 
@@ -17,6 +18,13 @@ class SearchInfo {
 	public:
 
 	TT tt;
+	Timestamp start = 0;
+	Timestamp max_time = 100000;
+	bool ponder;
+
+	bool is_active = false;
+	Depth max_depth = DEPTHMAX;
+	Depth last_depth_searched = 0;
 	
 	private:
 
@@ -26,9 +34,13 @@ class SearchInfo {
 
 	public:
 
+	inline bool should_break() {
+		return !is_active || (!ponder && (get_time_diff(start) > max_time || last_depth_searched >= max_depth));
+	}
+
 	inline void add_failhigh(Pos pos, Move move) {
-		get_cm(pos) = move;
-		get_hist(pos, move)++;
+		cm_hueristic[pos.mailboxes(pos.notturn, get_to(pos.last_move())) - PAWN][get_to(pos.last_move())] = move;
+		hist_hueristic[pos.mailboxes(pos.turn, get_from(move)) - PAWN][get_to(move)]++;
 		hist_score_max++;
 
 		if (hist_score_max == SCORE_MAX) { 
@@ -43,22 +55,33 @@ class SearchInfo {
 		}
 	}
 
-	inline Move& get_cm(Pos pos) {
-		return cm_hueristic[pos.mailboxes(pos.notturn, get_to(pos.last_move())) - PAWN][get_to(pos.last_move())];
+	inline Move get_cm(Pos pos) {
+		return ((pos.last_move() != MOVE_NONE) ? (cm_hueristic[pos.mailboxes(pos.notturn, get_to(pos.last_move())) - PAWN][get_to(pos.last_move())]) : MOVE_NONE);
 	}
 
-	inline Score& get_hist(Pos pos, Move move) {
+	inline Score get_hist(Pos pos, Move move) {
 		return hist_hueristic[pos.mailboxes(pos.turn, get_from(move)) - PAWN][get_to(move)];
+	}
+
+	inline void clear() {
+		for (int i = 0; i < 6; i++) {
+			for (int sq = 0; sq < 64; sq++) {
+				hist_hueristic[i][sq] = 0;
+				cm_hueristic[i][sq] = MOVE_NONE;
+			}
+		}
+		hist_score_max = 0;
+		tt.clear();
 	}
 };
 
 struct ThreadInfo {
 	int root_ply = 0;
 	int nodes = 0;
+	string id = "";
 	bool searching = true;
-	ThreadInfo(Pos& p) {
-		root_ply = p.m_clock;
-	}
+
+	ThreadInfo(Pos& p, string id_);
 };
 
 Eval search(Pos &p, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si);

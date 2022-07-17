@@ -16,6 +16,10 @@ inline unsigned int mvvlva(Piece attacker, Piece victim) {
         {4200,  4420,  4450,  4600,  6010, 26100},
         {3100,  3320,  3350,  3500,  3900, 26000},
     };
+    assert(attacker - PAWN >= 0);
+    assert(attacker - PAWN < 6);
+    assert(victim - PAWN >= 0);
+    assert(victim - PAWN < 6);
     return table[attacker - PAWN][victim - PAWN];
 }
 
@@ -40,37 +44,32 @@ bool keeps_tempo(Move& move, Pos& pos, ThreadInfo& ti) {
     return threatened_eval - cur_eval > TEMPO_MARGIN;
 }
 
-vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, SearchInfo& si, int& interesting) {
-    bool found = false;
-	TTEntry* entry = si.tt.probe(pos.hashkey, found);
-	Move entry_move = found ? entry->get_move() : MOVE_NONE;
+vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo* ti, SearchInfo* si, int& interesting) {
+    interesting = 0;
+    Move counter_move = si ? si->get_cm(pos) : MOVE_NONE;
 
-    Move counter_move = si.get_cm(pos);
+    bool found = false;
+	TTEntry* entry = si ? si->tt.probe(pos.hashkey, found) : nullptr;
+	Move entry_move = found ? entry->get_move() : MOVE_NONE;
 
     vector<Score> unsorted_scores;
     unsorted_scores.reserve(unsorted_moves.size());
+
     bool found_huer_response = false;
     for (Move& move : unsorted_moves) {
         Score score = 0;
         if (move == entry_move) { score = SCORE_MAX; found_huer_response = true; }
 		else if (move == counter_move) { score += SCORE_MAX - 100; found_huer_response = true; }
         else {
-            if (is_capture(move)) score += mvvlva(pos.last_from_piece(), is_ep(move) ? PAWN : pos.last_to_piece());
+            if (is_capture(move)) score += mvvlva(pos.mailboxes(pos.turn, get_from(move)), is_ep(move) ? PAWN : pos.mailboxes(pos.notturn, get_to(move)));
             if (is_promotion(move)) score += get_piece_eval(get_promotion_type(move))*20;
-            if (pos.causes_check(move)) score = SCORE_MAX - 1000;
+            if (pos.causes_check(move)) score += 100000;
         }
 
         if (score != 0) interesting++;
         unsorted_scores.push_back(score);
     }
-/*
-    if (false && interesting == 0) {
-        for (int i = 0; i < unsorted_moves.size(); i++) {
-            Move& move = unsorted_moves[i];
-            if (keeps_tempo(move, pos, ti)) {unsorted_scores[i] = 100; interesting++;}
-        }
-    }
-*/
+
     vector<Move> sorted_moves;
     vector<Score> sorted_scores;
     sorted_moves.reserve(unsorted_moves.size());
@@ -102,11 +101,11 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, Searc
         }
     }
     
-    if (interesting == 0) {
+    if (interesting == 0 && si) {
         int sorted_length = sorted_moves.size();
         
         for (Move& move : uninteresting) {
-            Score score = si.get_hist(pos, move);
+            Score score = si->get_hist(pos, move);
 
             sorted_moves.push_back(move);
             sorted_scores.push_back(score);
@@ -127,6 +126,7 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, Searc
     else {
         for (Move& move : uninteresting) {
             sorted_moves.push_back(move);
+            sorted_scores.push_back(0);
         }
     }
 

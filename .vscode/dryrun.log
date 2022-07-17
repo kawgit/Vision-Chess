@@ -20,6 +20,7 @@ g++ -c -Ofast tt.cpp -o tt.o
  
 g++ -c -Ofast types.cpp -o types.o
  
-g++ -Ofast -pthread bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o main.cpp -o main.exe
+g++ -c -Ofast -pthread uci.cpp -o uci.o
+g++ -Ofast -pthread bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o main.cpp -o main.exe
 make.exe: Leaving directory `c:/Users/Kbana/OneDrive/Documents/GitHub/VisionChess'
  

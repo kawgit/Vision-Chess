@@ -63,8 +63,8 @@ void initMoveGen(int seed) {
     for (int s = 0; s < 64; s++) {
         rook_atks[s] = rays[s][NORTH] | rays[s][EAST] | rays[s][SOUTH] | rays[s][WEST];
         bishop_atks[s] = rays[s][NORTHEAST] | rays[s][SOUTHEAST] | rays[s][SOUTHWEST] | rays[s][NORTHWEST];
-        getPawnAtk(WHITE, s) = (rays[s][NORTHEAST] | rays[s][NORTHWEST]) & king_atks[s];
-        getPawnAtk(BLACK, s) = (rays[s][SOUTHEAST] | rays[s][SOUTHWEST]) & king_atks[s];
+        get_pawn_atk(WHITE, s) = (rays[s][NORTHEAST] | rays[s][NORTHWEST]) & king_atks[s];
+        get_pawn_atk(BLACK, s) = (rays[s][SOUTHEAST] | rays[s][SOUTHWEST]) & king_atks[s];
     }
 
     int knight_directions[8][2] = {{1, 2},{2, 1},{2, -1},{1, -2},{-1, -2},{-2, -1},{-2, 1},{-1, 2}};
@@ -186,20 +186,20 @@ PosInfo::PosInfo(Pos &p) {
     int ksq = lsb(p.pieces(turn, KING));
 
 
-    if (getPawnAtk(turn, ksq) & p.pieces(p.notturn, PAWN)) {
+    if (get_pawn_atk(turn, ksq) & p.pieces(p.notturn, PAWN)) {
         checks++;
-        check_blocking_squares &= getPawnAtk(turn, ksq) & p.pieces(p.notturn, PAWN);
+        check_blocking_squares &= get_pawn_atk(turn, ksq) & p.pieces(p.notturn, PAWN);
         isPawnCheck = true;
     }
-    else if (getKnightAtk(ksq) & p.pieces(p.notturn, KNIGHT)) {
+    else if (get_knight_atk(ksq) & p.pieces(p.notturn, KNIGHT)) {
         checks++;
-        check_blocking_squares &= getKnightAtk(ksq) & p.pieces(p.notturn, KNIGHT);
+        check_blocking_squares &= get_knight_atk(ksq) & p.pieces(p.notturn, KNIGHT);
     }
 
     BB bishop_sliders = p.pieces(p.notturn, BISHOP) | p.pieces(p.notturn, QUEEN);
-    BB total_bishop_rays = getBishopAtk(ksq, occ);
+    BB total_bishop_rays = get_bishop_atk(ksq, occ);
     BB bishop_checkers = bishop_sliders & total_bishop_rays;
-    BB notturn_bishop_rays = getBishopAtk(ksq, notturn_occ);
+    BB notturn_bishop_rays = get_bishop_atk(ksq, notturn_occ);
     BB bishop_pinners = bishop_sliders & notturn_bishop_rays & ~bishop_checkers;
     if (bishop_checkers) {
         for (int d = NORTHEAST; d <= NORTHWEST; d+=2) {
@@ -224,9 +224,9 @@ PosInfo::PosInfo(Pos &p) {
     }
 
     BB rook_sliders = p.pieces(p.notturn, ROOK) | p.pieces(p.notturn, QUEEN);
-    BB total_rook_rays = getRookAtk(ksq, occ);
+    BB total_rook_rays = get_rook_atk(ksq, occ);
     BB rook_checkers = rook_sliders & total_rook_rays;
-    BB notturn_rook_rays = getRookAtk(ksq, notturn_occ);
+    BB notturn_rook_rays = get_rook_atk(ksq, notturn_occ);
     BB rook_pinners = rook_sliders & notturn_rook_rays & ~rook_checkers;
     if (rook_checkers) {
         for (int d = NORTH; d <= WEST; d+=2) {
@@ -252,11 +252,11 @@ PosInfo::PosInfo(Pos &p) {
 
     //EN PASSANT CASE
     if (p.ep != SQUARE_NONE && checks != 2) {
-        BB to_pawns = getPawnAtk(p.notturn, p.ep) & p.pieces(turn, PAWN);
+        BB to_pawns = get_pawn_atk(p.notturn, p.ep) & p.pieces(turn, PAWN);
         while (to_pawns) {
             int from = poplsb(to_pawns);
             BB post = (occ | get_BB(p.ep)) & (~get_BB(from)) & (~get_BB(p.ep - (turn == WHITE ? 8 : -8)));
-            if ((checks == 1 && !isPawnCheck) || (getBishopAtk(ksq, post) & bishop_sliders) || (getRookAtk(ksq, post) & rook_sliders)) {
+            if ((checks == 1 && !isPawnCheck) || (get_bishop_atk(ksq, post) & bishop_sliders) || (get_rook_atk(ksq, post) & rook_sliders)) {
                 if (pinned_mask & get_BB(from))
                     moveable_squares[from] &= ~get_BB(p.ep);
                 else {
@@ -412,7 +412,7 @@ void addKnightMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
 
     while (knights) {
         int from = poplsb(knights);
-        BB atk = getKnightAtk(from) & ~posInfo.turn_occ;
+        BB atk = get_knight_atk(from) & ~posInfo.turn_occ;
         BB cap = atk & posInfo.notturn_occ;
         BB qui = atk & ~cap;
         while (cap) {
@@ -430,7 +430,7 @@ void addBishopMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
 
     while (bishop) {
         int from = poplsb(bishop);
-        BB atk = getBishopAtk(from, posInfo.occ) & ~posInfo.turn_occ;
+        BB atk = get_bishop_atk(from, posInfo.occ) & ~posInfo.turn_occ;
         BB cap = atk & posInfo.notturn_occ;
         BB qui = atk & ~cap;
         while (cap) {
@@ -448,7 +448,7 @@ void addRookMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
 
     while (rooks) {
         int from = poplsb(rooks);
-        BB atk = getRookAtk(from, posInfo.occ) & ~posInfo.turn_occ;
+        BB atk = get_rook_atk(from, posInfo.occ) & ~posInfo.turn_occ;
         BB cap = atk & posInfo.notturn_occ;
         BB qui = atk & ~cap;
         while (cap) {
@@ -466,7 +466,7 @@ void addQueenMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
 
     while (queens) {
         int from = poplsb(queens);
-        BB atk = getQueenAtk(from, posInfo.occ) & ~posInfo.turn_occ;
+        BB atk = get_queen_atk(from, posInfo.occ) & ~posInfo.turn_occ;
         BB cap = atk & posInfo.notturn_occ;
         BB qui = atk & ~cap;
         while (cap) {
@@ -481,11 +481,11 @@ void addQueenMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
 }
 void addKingMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
     int ksq = lsb(p.pieces(p.turn, KING));
-    BB atk = getKingAtk(ksq) & ~posInfo.turn_occ;
+    BB atk = get_king_atk(ksq) & ~posInfo.turn_occ;
 
     if (atk == 0) return;
 
-    BB notturn_atk = p.getAtkMask(opp(p.turn));
+    BB notturn_atk = p.get_atk_mask(opp(p.turn));
 
     atk &= ~notturn_atk;
 

@@ -16,6 +16,12 @@ using namespace std;
 
 #define REDUCTION(d, i, f) ((d)-1)
 
+
+ThreadInfo::ThreadInfo(Pos& p, string id_) {
+	root_ply = p.m_clock;
+	id = id_;
+}
+
 BB perft(Pos &p, Depth depth, bool divide) {
 	if (depth == 0) return 1;
 
@@ -76,36 +82,29 @@ void perftTest() {
 
 Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si) {
 
+
 	if (!ti.searching) return 0;
 	ti.nodes++;
 
+	if (beta <= -MINMATE && beta != -INF) {
+		beta--;
+		if (alpha >= beta) return beta;
+	}
+
+	if (pos.insufficient_material()) return 0;
 	if (pos.hm_clock >= 4) {
 		if (pos.hm_clock == 50) return 0;
-		if (pos.insufficient_material()) return 0;
 		if (pos.one_repetition(ti.root_ply)) return 0;
 		if (pos.three_repetitions()) return 0;
 	}
 
 	if (depth <= 0) return qsearch(pos, alpha, beta, &ti, &si);
 
-	
-	if (alpha >= MINMATE && alpha != INF) {
-		alpha++;
-		if (alpha >= beta) return beta-1;
-	}
-
 	bool found = false;
 	TTEntry* entry = si.tt.probe(pos.hashkey, found);
-	Move entry_move = found ? entry->get_move() : MOVE_NONE;
-	found = false;
 
 	if (found) {
-		if (entry->get_eval() >= MINMATE && entry->get_eval() > alpha) {
-			alpha = entry->get_eval();
-			if (alpha >= beta) return beta;
-		}
-		
-		if (entry->get_depth() >= depth) {
+		if (entry->get_depth() >= depth || abs(entry->get_eval()) >= MINMATE) {
 			if (entry->get_bound() == EXACT) return entry->get_eval();
 			else if (entry->get_bound() == UB && entry->get_eval() < beta) beta = entry->get_eval();
 			else if (entry->get_bound() == LB && entry->get_eval() > alpha) alpha = entry->get_eval();
@@ -116,12 +115,13 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 	vector<Move> moves = getLegalMoves(pos);
 
 	if (moves.size() == 0) {
-		if (pos.in_check()) return -INF;
-		else return 0;
+		Eval eval = pos.in_check() ? -INF : 0;
+		entry->save(pos.hashkey, eval, EXACT, depth, MOVE_NONE, si.tt.gen);
+		return eval;
 	}
 	
 	int interesting = 0;
-	moves = order(moves, pos, ti, si, interesting);
+	moves = order(moves, pos, &ti, &si, interesting);
 
 	Eval besteval = -INF;
 	Move bestmove = moves[0];
@@ -129,15 +129,22 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 	for (int i = 0; i < moves.size(); i++) {
 		Move& move = moves[i];
 
-		if (pos.m_clock == ti.root_ply){
-			cout << "current move: " << getSAN(move) << endl;
-		}
+		//if (depth == si.last_depth_searched) 	 cout << setw(3) << to_string(depth-1) << "--> " << i << " a: " << to_string(max(alpha, besteval)) << " b: " << to_string(beta) << endl;
+		//if (depth == si.last_depth_searched - 1) cout << setw(3) << to_string(depth-1) << "-->   " << i << " a: " << to_string(max(alpha, besteval)) << " b: " << to_string(beta) << endl;
+		//if (depth == si.last_depth_searched - 2) cout << setw(3) << to_string(depth-1) << "-->     " << i << " a: " << to_string(max(alpha, besteval)) << " b: " << to_string(beta) << endl;
+
 
 		pos.do_move(move);
 		
-		Eval eval = -search(pos, depth - (i >= interesting ? depth / 3 + 1 : 1), -beta, -max(alpha, besteval), ti, si);
-		
+		Eval eval = -search(pos, depth - (i > interesting ? depth / 4 + 2: 1), -beta, -max(alpha, besteval), ti, si);
+
 		pos.undo_move();
+
+		if (eval > MINMATE) eval--;
+
+		//if (depth == si.last_depth_searched) 	 cout << setw(3) << to_string(depth-1) << "<-- " << i << " " << to_string(pos.move_log) << getSAN(move) << " " << to_string(eval) << " a: " << to_string(max(alpha, besteval)) << " b: " << to_string(beta) << endl;
+		//if (depth == si.last_depth_searched - 1) cout << setw(3) << to_string(depth-1) << "<--   " << i << " " << to_string(pos.move_log) << getSAN(move) << " " << to_string(eval) << " a: " << to_string(max(alpha, besteval)) << " b: " << to_string(beta) << endl;
+		//if (depth == si.last_depth_searched - 2) cout << setw(3) << to_string(depth-1) << "<--     " << i << " " << to_string(pos.move_log) << getSAN(move) << " " << to_string(eval) << " a: " << to_string(max(alpha, besteval)) << " b: " << to_string(beta) << endl;
 		
 		if (eval > besteval) {
 			if (!ti.searching) return 0;
@@ -153,13 +160,14 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 	}
 
 	if (!ti.searching) return 0;
-	
-	if (besteval > MINMATE) besteval--;
 
-	if (besteval <= alpha) 	  entry->save(pos.hashkey, besteval, UB   , depth, bestmove, si.tt.gen);
-	else if (besteval < beta) entry->save(pos.hashkey, besteval, EXACT, depth, bestmove, si.tt.gen);
-	else if (besteval == INF) entry->save(pos.hashkey, besteval, EXACT, depth, bestmove, si.tt.gen);
-	else 					  entry->save(pos.hashkey, besteval, LB   , depth, bestmove, si.tt.gen);
+	if (besteval <= alpha)		entry->save(pos.hashkey, besteval, UB   , depth, bestmove, si.tt.gen);
+	else if (abs(besteval) >= MINMATE) {
+		if (besteval > 0)		entry->save(pos.hashkey, besteval, LB   , depth, bestmove, si.tt.gen);
+		else					entry->save(pos.hashkey, besteval, UB   , depth, bestmove, si.tt.gen);
+	}
+	else if (besteval < beta)	entry->save(pos.hashkey, besteval, EXACT, depth, bestmove, si.tt.gen);
+	else						entry->save(pos.hashkey, besteval, LB   , depth, bestmove, si.tt.gen);
 
 	return besteval;
 }
@@ -170,9 +178,16 @@ Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo* ti, SearchInfo* si) {
 		ti->nodes++;
 	}
 
-    Eval stand_pat = evalPos(pos, alpha, beta);
-    if (stand_pat >= beta) return beta;
-    if (alpha < stand_pat) alpha = stand_pat;
+	if (beta <= -MINMATE && beta != -INF) {
+		beta--;
+		if (alpha >= beta) return beta;
+	}
+
+    Eval stand_pat = eval_pos(pos, alpha, beta);
+    alpha = max(alpha, stand_pat);
+    if (alpha >= beta) return beta;
+
+	if (pos.insufficient_material()) return 0;
 
     vector<Move> moves = getLegalMoves(pos);
 
@@ -180,16 +195,27 @@ Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo* ti, SearchInfo* si) {
 		if (pos.in_check()) return -INF;
 		else return 0;
 	}
+
+	int interesting = moves.size();
+	if (ti && si) moves = order(moves, pos, ti, si, interesting);
     
-    for (Move& move : moves) {
-        if (is_capture(move) || is_promotion(move) || pos.causes_check(move)) {
-            pos.do_move(move);
-            alpha = max(alpha, (Eval)-qsearch(pos, -beta, -alpha, ti, si));
-            pos.undo_move();
-            if (alpha >= beta) {
-                return beta;
-            }
-        }
+    for (int i = 0; i < interesting; i++) {
+		Move move = moves[i];
+
+		pos.do_move(move);
+		
+		Eval eval = -qsearch(pos, -beta, -alpha, ti, si);
+		
+		pos.undo_move();
+		
+		if (eval > MINMATE) eval--;
+
+		alpha = max(alpha, eval);
+
+		if (alpha >= beta) {
+			alpha = beta;
+			break;
+		}
     }
 	
     return alpha;

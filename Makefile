@@ -1,7 +1,7 @@
-all: bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o main.exe
+all: bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o main.exe
 
-main.exe: bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o main.cpp
-	g++ -Ofast -pthread bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o main.cpp -o main.exe
+main.exe: bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o main.cpp
+	g++ -Ofast -pthread bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o main.cpp -o main.exe
 
 bits.o: bits.cpp bits.h
 	g++ -c -Ofast bits.cpp -o bits.o
@@ -23,6 +23,8 @@ tt.o: tt.cpp tt.h
 	g++ -c -Ofast tt.cpp -o tt.o
 types.o: types.cpp types.h
 	g++ -c -Ofast types.cpp -o types.o
+uci.o: uci.cpp uci.h
+	g++ -c -Ofast -pthread uci.cpp -o uci.o
 
 clean:
 	del *.o

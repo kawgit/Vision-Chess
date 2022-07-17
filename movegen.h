@@ -4,6 +4,7 @@
 #include "types.h"
 #include "bits.h"
 #include <vector>
+#include <cassert>
 
 using namespace std;
 
@@ -30,12 +31,12 @@ extern BB pawn_atks[2][64];
 extern BB knight_atks[64];
 extern BB king_atks[64];
 
-inline BB& getPawnAtk(Color c, Square s) { return pawn_atks[c - BLACK][s]; }
-inline BB getKnightAtk(Square s) { return knight_atks[s]; }
-inline BB getRookAtk(Square s, BB occupied) { return rook_table[s][(rook_magics[s]*(occupied & rook_blockermasks[s]))>>ROOK_SHIFT]; }
-inline BB getBishopAtk(Square s, BB occupied) { return bishop_table[s][(bishop_magics[s]*(occupied & bishop_blockermasks[s]))>>BISHOP_SHIFT]; }
-inline BB getQueenAtk(Square s, BB occupied) { return getRookAtk(s, occupied) | getBishopAtk(s, occupied); }
-inline BB getKingAtk(Square s) { return king_atks[s]; }
+inline BB& get_pawn_atk(Color c, Square s) { assert(s < 64); return pawn_atks[c - BLACK][s]; }
+inline BB get_knight_atk(Square s) { assert(s < 64); return knight_atks[s]; }
+inline BB get_rook_atk(Square s, BB occupied) { assert(s < 64); return rook_table[s][(rook_magics[s]*(occupied & rook_blockermasks[s]))>>ROOK_SHIFT]; }
+inline BB get_bishop_atk(Square s, BB occupied) { assert(s < 64); return bishop_table[s][(bishop_magics[s]*(occupied & bishop_blockermasks[s]))>>BISHOP_SHIFT]; }
+inline BB get_queen_atk(Square s, BB occupied) { assert(s < 64); return get_rook_atk(s, occupied) | get_bishop_atk(s, occupied); }
+inline BB get_king_atk(Square s) { assert(s < 64); return king_atks[s]; }
 
 void initMoveGen(int seed = 38921083);
 

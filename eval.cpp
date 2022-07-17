@@ -7,6 +7,8 @@
 #include "search.h"
 #include <iostream>
 #include <vector>
+#include <functional>
+#include <iomanip>
 
 using namespace std;
 
@@ -79,7 +81,7 @@ Eval king_eval_map[2][64] = {
     -20,-30,-30,-40,-40,-30,-30,-20,
     -10,-20,-20,-20,-20,-20,-20,-10,
     20, 20,  0,  0,  0,  0, 20, 20,
-    20, 30, 10,  0,  0, 10, 30, 20
+    60, 50, 20,  0,  0, 20, 50, 60
     },  
 
     {
@@ -94,39 +96,133 @@ Eval king_eval_map[2][64] = {
     }
 };
 
-int sqMapTrans(int sq) {
-    return rc(7-(sq/8), sq%8);
-}
+vector<Factor> factors = {
+    Factor("material", [](Pos& pos, Color color) {
+        return eval_mat(pos, color);
+    }),
 
-Eval evalPos(Pos& p, Eval lb, Eval ub) {
-    Eval turnmat = evalMat(p, p.turn);
-    Eval notturnmat = evalMat(p, p.notturn);
-    Eval mat = turnmat - notturnmat;
-    Eval totalmat = turnmat + notturnmat;
+    Factor("maps", [](Pos& pos, Color color) {
+        Eval res = 0;
 
-    if (mat < lb - 100 || mat > ub + 100) return mat;
-
-    Eval map = 0;
-
-    for (int pt = PAWN; pt < KING; pt++) {
-
-        BB our_pieces = p.pieces(p.turn, pt);
-        while (our_pieces) {
-            int sq = poplsb(our_pieces);
-            map += piece_eval_maps[pt - PAWN][p.turn == WHITE ? sqMapTrans(sq) : sq];
+        for (int pt = PAWN; pt < KING; pt++) {
+            BB pieces = pos.pieces(color, pt);
+            while (pieces) {
+                int sq = poplsb(pieces);
+                res += piece_eval_maps[pt - PAWN][color == WHITE ? sqMapTrans(sq) : sq];
+            }
         }
 
-        BB their_pieces = p.pieces(p.notturn, pt);
-        while (their_pieces) {
-            int sq = poplsb(their_pieces);
-            map -= piece_eval_maps[pt - PAWN][p.notturn == WHITE ? sqMapTrans(sq) : sq];
+        return res;
+    }),
+    Factor("pawn_structure", [](Pos& pos, Color color) {
+
+        const static Eval w1[8] = {0, 10, 20, 30, 70, 90, 120, 900};
+        const static Eval w2[8] = {0, 40, 50, 60, 90, 120, 230, 900};
+        const static Eval w3[8] = {0, 40, 50, 60, 90, 120, 340, 900};
+
+        Eval res = 0;
+
+        res -= bitcount(pos.isolated_pawns(color)) * 10;
+        res -= bitcount(pos.doubled_pawns(color)) * 10;
+        res -= bitcount(pos.blocked_pawns(color)) * 10;
+
+        res += bitcount(pos.supported_pawns(color)) * 10;
+        
+        BB passed_pawns = pos.passed_pawns(color);
+
+        if (passed_pawns) {
+
+            BB supported_passed_pawns = passed_pawns & pos.supported_pawns(color);
+
+            BB double_passed_pawns = passed_pawns & (files_of(passed_pawns) & files_of(shift<WEST>(passed_pawns)));
+
+            while (passed_pawns) {
+                Square sq = poplsb(passed_pawns);
+                res += w1[rel_rank_of(color, sq)];
+            }
+
+            while (supported_passed_pawns) {
+                Square sq = poplsb(supported_passed_pawns);
+                res += w2[rel_rank_of(color, sq)];
+            }
+
+            while (double_passed_pawns) {
+                Square sq = poplsb(double_passed_pawns);
+                res += w3[rel_rank_of(color, sq)];
+            }
         }
+
+        return res;
+    }),
+
+    Factor("space", [](Pos& pos, Color color) {
+        Eval res = 0;
+
+        res += bitcount(pos.get_atk_mask(color) & ~pos.pieces(color, PAWN)) * 4;
+
+        return res;
+    }),
+
+    Factor("king_safety", [](Pos& pos, Color color) {
+        Eval res = 0;
+
+        BB ksq_bb = pos.pieces(color, KING);
+        
+        int ksq = lsb(ksq_bb);
+
+        BB pawns = pos.pieces(color, PAWN);
+        BB surroundings = get_king_atk(ksq);
+
+        res += bitcount(get_file_mask(ksq % 8) & pawns) * 20;
+        res += bitcount(files_of(surroundings) & pawns) * 10;
+        res += bitcount(files_of(surroundings) & pos.supported_pawns(color)) * 20;
+        res += bitcount(surroundings & pawns & pos.get_atk_mask(color)) * 10;
+
+        res -= bitcount(surroundings & pos.get_atk_mask(opp(color))) * 30;
+
+        return res;
+    }),
+
+
+/*
+    Factor("square_color_strength", [](Pos& pos, Color color) {
+        Eval res = 0;
+        constexpr BB COLOR1_BB = 0xAAAAAAAAAAAAAAAA;
+        constexpr BB COLOR2_BB = ~COLOR1_BB;
+
+        if ((pos.pieces(color, BISHOP) & COLOR1_BB) && !(pos.pieces(opp(color), BISHOP) & COLOR1_BB)) {
+            res -= pos.isolated_pawns() * 10;
+            res -= pos.doubled_pawns() * 10;
+            res -= pos.blocked_pawns() * 10;
+
+            res += pos.supported_pawns() * 10;
+            
+            res += pos.passed_pawns() * 30;
+            res += pos.double_passed_pawns() * 120;
+        }
+
+        return res;
+    }),
+*/
+};
+
+Eval eval_pos(Pos& pos, Eval lb, Eval ub, bool debug) {
+    Eval eval = 0;
+
+    if (debug) print(pos, true);
+
+    for (Factor factor : factors) {
+        Eval ours = factor.func(pos, pos.turn);
+        Eval theirs = factor.func(pos, pos.notturn);
+        eval += ours;
+        eval -= theirs;
+        if (debug) cout << "factor: " << setw(15) << factor.name << " = (" << setw(8) << to_string(ours) << ") - (" << setw(8) << to_string(theirs) << ") = " << setw(8) << to_string(ours - theirs) << endl;
     }
-    
-    return mat + map;
+
+    return eval;
 }
 
-Eval evalMat(Pos& p, Color c) {
+Eval eval_mat(Pos& p, Color c) {
     return (
         bitcount(p.pieces(c, PAWN)) * mat_points[PAWN - PAWN] +
         bitcount(p.pieces(c, KNIGHT)) * mat_points[KNIGHT - PAWN] +

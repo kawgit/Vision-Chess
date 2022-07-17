@@ -26,7 +26,7 @@ struct TTEntry {
 	inline Bound get_bound() { return (Bound)((s1 >> 48) & 0b11); }
 	inline uint32_t get_hashkey32() { return s2; }
 
-	inline void set_eval(BB eval)   { s1 &=            0xFFFFULL; s1 |= (eval & 0xFFFF); }
+	inline void set_eval(BB eval)   { s1 &=           ~0xFFFFULL; s1 |= (eval & 0xFFFF); }
 	inline void set_move(BB move)   { s1 &=       ~0xFFFF0000ULL; s1 |= (move & 0xFFFF) << 16; }
 	inline void set_depth(BB depth) { s1 &=     ~0xFF00000000ULL; s1 |= (depth & 0xFF) << 32; }
 	inline void set_gen(BB gen)     { s1 &=   ~0xFF0000000000ULL; s1 |= (gen & 0xFF) << 40; }
@@ -36,7 +36,8 @@ struct TTEntry {
 	inline bool matches(BB hashkey) { return get_hashkey32() == (hashkey >> 32); }
 
 	inline void save(BB hashkey, Eval eval, Bound bound, Depth depth, Move move, Gen gen) {
-		if ( gen > get_gen() ||
+		if ( get_gen() + 1 > gen ||
+			(get_gen() > gen && get_depth() < depth + 3) ||
 			(get_bound() != EXACT && (bound == EXACT || get_depth() < depth)) ||
 			(get_bound() == EXACT && (bound == EXACT && get_depth() < depth))) {
 			forcesave(hashkey, eval, bound, depth, move, gen);
@@ -71,6 +72,7 @@ class TT {
 	void clear();
 	vector<Move> getPV(Pos p);
 	void addPV(Pos& p, vector<Move>& pv);
+	int hashfull();
 
 	Gen gen = 0;
 	vector<TTEntry> table;

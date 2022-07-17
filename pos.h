@@ -69,21 +69,25 @@ class Pos {
 	}
 
 	inline Piece& mailboxes(Color c, Square s) { 
+		assert(s < 64);
 		return mailboxes_[c - BLACK][s]; 
 	}
 	
 	inline Color color_at(Square s) { 
+		assert(s < 64);
 		return mailboxes(WHITE, s) != PIECE_NONE ? WHITE : 
 			  (mailboxes(BLACK, s) != PIECE_NONE ? BLACK : COLOR_NONE); 
 	}
 
 	inline void setPiece(Color c, Square s, Piece p) { 
+		assert(s < 64);
 		hashkey ^= z_squares(c, p, s);
 		pieces(c, p) |= get_BB(s);
 		mailboxes(c, s) = p;
 	}
 
 	inline void removePiece(Color c, Square s, Piece p) {
+		assert(s < 64);
 		hashkey ^= z_squares(c, p, s);
 		pieces(c, p) &= ~get_BB(s);
 		mailboxes(c, s) = PIECE_NONE;
@@ -103,22 +107,22 @@ class Pos {
 	}
 
 	inline Square last_from() {
-		assert(last_move() != MOVE_NULL);
+		assert(last_move() != MOVE_NULL && last_move() != MOVE_NONE);
 		return get_from(last_move());
 	}
 
 	inline Square last_to() {
-		assert(last_move() != MOVE_NULL);
+		assert(last_move() != MOVE_NULL && last_move() != MOVE_NONE);
 		return get_to(last_move());
 	}
 
 	inline Piece last_to_piece() {
-		assert(last_move() != MOVE_NULL);
+		assert(last_move() != MOVE_NULL && last_move() != MOVE_NONE);
 		return to_piece_log.back();
 	}
 
 	inline Piece last_from_piece() {
-		assert(last_move() != MOVE_NULL);
+		assert(last_move() != MOVE_NULL && last_move() != MOVE_NONE);
 		return mailboxes(turn, last_to());
 	}
 
@@ -133,7 +137,7 @@ class Pos {
 	void do_null_move();
 	void undo_null_move();
 	
-	BB getAtkMask(Color c);
+	BB get_atk_mask(Color c);
 	bool in_check();
 	bool three_repetitions();
 	bool one_repetition(int root);
@@ -141,6 +145,14 @@ class Pos {
 	bool is_over();
 
 	bool causes_check(Move move);
+
+	BB isolated_pawns(Color color);
+	BB doubled_pawns(Color color);
+	BB blocked_pawns(Color color);
+	BB supported_pawns(Color color);
+	BB passed_pawns(Color color);
+	BB double_passed_pawns(Color color);
+
 };
 
 

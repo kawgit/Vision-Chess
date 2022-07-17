@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdlib>
+#include <stdlib.h>
 #include <stdint.h>
 #include <string>
 #include <iostream>
@@ -29,8 +29,39 @@ typedef uint8_t Square;
 typedef uint8_t File;
 typedef uint8_t Rank;
 
+typedef uint8_t Color;
+enum Colors : Color {COLOR_NONE, BLACK, WHITE};
+inline Color opp(Color c) { return c == WHITE ? BLACK : WHITE; }
+
+typedef uint8_t Piece;
+enum Pieces : Piece {PIECE_NONE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING};
+
 enum Files : File { FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H, EP_NONE};
 enum Ranks : Rank { RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8};
+
+inline BB files_of(BB a) {
+    BB res = 0;
+    while (a) {
+        res |= get_file_mask(poplsb(a) % 8);
+    }
+    return res;
+}
+
+inline Rank rank_of(Square sq) {
+    return sq / 8;
+}
+
+inline File file_of(Square sq) {
+    return sq % 8;
+}
+
+inline Rank rel_rank(Color color, Rank rank) {
+    return color == WHITE ? rank : 7 - rank;
+}
+
+inline Rank rel_rank_of(Color color, Square sq) {
+    return rel_rank(color, rank_of(sq));
+}
 
 enum Squares : Square {
     A1, B1, C1, D1, E1, F1, G1, H1,
@@ -56,12 +87,6 @@ inline Square string_to_square(string notation) {
     return rc(notation[1]-'1', notation[0]-'a');
 }
 
-typedef uint8_t Color;
-enum Colors : Color {COLOR_NONE, BLACK, WHITE};
-inline Color opp(Color c) { return c == WHITE ? BLACK : WHITE; }
-
-typedef uint8_t Piece;
-enum Pieces : Piece {PIECE_NONE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING};
 
 typedef uint16_t Move;
 typedef uint8_t MoveFlag;
@@ -105,3 +130,21 @@ inline bool getBQ(CR& cr) { return cr & BQS_F; };
 //DIRECTIONS
 
 enum RAY_DIRECTIONS : uint8_t {NORTH, NORTHEAST, EAST, SOUTHEAST, SOUTH, SOUTHWEST, WEST, NORTHWEST};
+
+template <RAY_DIRECTIONS S> BB shift(BB a);
+
+template<> inline BB shift<NORTH>(BB a) {
+    return a << 8;
+}
+
+template<> inline BB shift<SOUTH>(BB a) {
+    return a >> 8;
+}
+
+template<> inline BB shift<EAST>(BB a) {
+    return (a & ~get_file_mask(7)) << 1;
+}
+
+template<> inline BB shift<WEST>(BB a) {
+    return (a & ~get_file_mask(0)) >> 1;
+}
