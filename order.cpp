@@ -44,7 +44,7 @@ bool keeps_tempo(Move& move, Pos& pos, ThreadInfo& ti) {
     return threatened_eval - cur_eval > TEMPO_MARGIN;
 }
 
-vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo* ti, SearchInfo* si, int& interesting) {
+vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo* ti, SearchInfo* si, int& interesting, bool for_qsearch) {
     interesting = 0;
     Move counter_move = si ? si->get_cm(pos) : MOVE_NONE;
 
@@ -58,12 +58,13 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo* ti, Searc
     bool found_huer_response = false;
     for (Move& move : unsorted_moves) {
         Score score = 0;
-        if (move == entry_move) { score = SCORE_MAX; found_huer_response = true; }
-		else if (move == counter_move) { score += SCORE_MAX - 100; found_huer_response = true; }
-        else {
-            if (is_capture(move)) score += mvvlva(pos.mailboxes(pos.turn, get_from(move)), is_ep(move) ? PAWN : pos.mailboxes(pos.notturn, get_to(move)));
-            if (is_promotion(move)) score += get_piece_eval(get_promotion_type(move))*20;
-            if (pos.causes_check(move)) score += 100000;
+        if (is_capture(move)) score += mvvlva(pos.mailboxes(pos.turn, get_from(move)), is_ep(move) ? PAWN : pos.mailboxes(pos.notturn, get_to(move)));
+        if (is_promotion(move)) score += get_piece_eval(get_promotion_type(move))*20;
+        if (pos.causes_check(move)) score += 100000;
+
+        if (score != 0 || !for_qsearch) {
+            if (move == entry_move) score = SCORE_MAX;
+            else if (move == counter_move) score = SCORE_MAX - 100;
         }
 
         if (score != 0) interesting++;

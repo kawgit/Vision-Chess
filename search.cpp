@@ -18,7 +18,7 @@ using namespace std;
 
 
 ThreadInfo::ThreadInfo(Pos& p, string id_) {
-	root_ply = p.m_clock;
+	root_ply = p.move_log.size();
 	id = id_;
 }
 
@@ -178,6 +178,7 @@ Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo* ti, SearchInfo* si) {
 		ti->nodes++;
 	}
 
+
 	if (beta <= -MINMATE && beta != -INF) {
 		beta--;
 		if (alpha >= beta) return beta;
@@ -186,6 +187,12 @@ Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo* ti, SearchInfo* si) {
     Eval stand_pat = eval_pos(pos, alpha, beta);
     alpha = max(alpha, stand_pat);
     if (alpha >= beta) return beta;
+
+	if (pos.move_log.size() - ti->root_ply > 30) {
+		print(pos, true);
+		print(pos.move_log);
+		assert(false);
+	}
 
 	if (pos.insufficient_material()) return 0;
 
@@ -197,7 +204,7 @@ Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo* ti, SearchInfo* si) {
 	}
 
 	int interesting = moves.size();
-	if (ti && si) moves = order(moves, pos, ti, si, interesting);
+	if (ti && si) moves = order(moves, pos, ti, si, interesting, true);
     
     for (int i = 0; i < interesting; i++) {
 		Move move = moves[i];

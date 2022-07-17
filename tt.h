@@ -61,7 +61,7 @@ struct TTEntry {
 };
 
 class TT {
-	const static int HASHLENGTH = 25 ;
+	const static int HASHLENGTH = 20 ;
 	const static BB TABLESIZE = (1ULL<<HASHLENGTH);
 	const static BB HASHMASK = TABLESIZE-1;
 	const static int tableSizeInMb = TABLESIZE*sizeof(TTEntry)/0x100000;

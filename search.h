@@ -38,7 +38,7 @@ class SearchInfo {
 		return !is_active || (!ponder && (get_time_diff(start) > max_time || last_depth_searched >= max_depth));
 	}
 
-	inline void add_failhigh(Pos pos, Move move) {
+	inline void add_failhigh(Pos& pos, Move move) {
 		cm_hueristic[pos.mailboxes(pos.notturn, get_to(pos.last_move())) - PAWN][get_to(pos.last_move())] = move;
 		hist_hueristic[pos.mailboxes(pos.turn, get_from(move)) - PAWN][get_to(move)]++;
 		hist_score_max++;
@@ -55,11 +55,11 @@ class SearchInfo {
 		}
 	}
 
-	inline Move get_cm(Pos pos) {
+	inline Move get_cm(Pos& pos) {
 		return ((pos.last_move() != MOVE_NONE) ? (cm_hueristic[pos.mailboxes(pos.notturn, get_to(pos.last_move())) - PAWN][get_to(pos.last_move())]) : MOVE_NONE);
 	}
 
-	inline Score get_hist(Pos pos, Move move) {
+	inline Score get_hist(Pos& pos, Move move) {
 		return hist_hueristic[pos.mailboxes(pos.turn, get_from(move)) - PAWN][get_to(move)];
 	}
 

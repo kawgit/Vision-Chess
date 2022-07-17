@@ -60,5 +60,5 @@ inline BB rand_BB() {
 }
 
 inline float randf(float lb, float ub) {
-	return lb + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(ub-lb)));
+	return lb + (float)rand() / (float)RAND_MAX * (float)(ub-lb);
 }

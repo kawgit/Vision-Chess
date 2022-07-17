@@ -16,6 +16,7 @@
 
 #ifdef _WIN32
 #include <Windows.h>
+#define sleep(t) Sleep(t * 1000)
 #else
 #include <unistd.h>
 #endif
@@ -146,7 +147,7 @@ void uci_search() {
         }
 
         //print_uci_info(uci_root_pos, uci_root_si, uci_root_tis);
-        Sleep(10);
+        sleep(.01);
     }
     
     //cout << "stopped" << endl;
