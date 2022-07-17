@@ -27,5 +27,5 @@ uci.o: uci.cpp uci.h
 	clang++ -c -Ofast -pthread uci.cpp -o uci.o
 
 clean:
-	rm *.o
-	rm *.exe
+	del *.o
+	del *.exe

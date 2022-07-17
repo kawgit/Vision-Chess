@@ -1,26 +1,5 @@
-make.exe --dry-run --always-make --keep-going --print-directory
-make.exe: Entering directory `c:/Users/Kbana/OneDrive/Documents/GitHub/VisionChess'
-g++ -c -Ofast bits.cpp -o bits.o
- 
-g++ -c -Ofast eval.cpp -o eval.o
- 
-g++ -c -Ofast hash.cpp -o hash.o
- 
-g++ -c -Ofast movegen.cpp -o movegen.o
- 
-g++ -c -Ofast order.cpp -o order.o
- 
-g++ -c -Ofast pos.cpp -o pos.o
- 
-g++ -c -Ofast search.cpp -o search.o -pthread
- 
-g++ -c -Ofast timer.cpp -o timer.o
- 
-g++ -c -Ofast tt.cpp -o tt.o
- 
-g++ -c -Ofast types.cpp -o types.o
- 
-g++ -c -Ofast -pthread uci.cpp -o uci.o
-g++ -Ofast -pthread bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o main.cpp -o main.exe
-make.exe: Leaving directory `c:/Users/Kbana/OneDrive/Documents/GitHub/VisionChess'
+make.exe --dry-run --keep-going --print-directory
+make.exe: Entering directory `c:/Users/Kbana/OneDrive/Documents/GitHub/Vision'
+make.exe: Nothing to be done for `all'.
+make.exe: Leaving directory `c:/Users/Kbana/OneDrive/Documents/GitHub/Vision'
  

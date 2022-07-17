@@ -162,10 +162,6 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 	if (!ti.searching) return 0;
 
 	if (besteval <= alpha)		entry->save(pos.hashkey, besteval, UB   , depth, bestmove, si.tt.gen);
-	else if (abs(besteval) >= MINMATE) {
-		if (besteval > 0)		entry->save(pos.hashkey, besteval, LB   , depth, bestmove, si.tt.gen);
-		else					entry->save(pos.hashkey, besteval, UB   , depth, bestmove, si.tt.gen);
-	}
 	else if (besteval < beta)	entry->save(pos.hashkey, besteval, EXACT, depth, bestmove, si.tt.gen);
 	else						entry->save(pos.hashkey, besteval, LB   , depth, bestmove, si.tt.gen);
 
