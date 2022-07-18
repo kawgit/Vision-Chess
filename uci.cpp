@@ -14,7 +14,16 @@
 #include <mutex>
 #include <iostream>
 #include <cstdlib>
+
+#ifndef _WIN32
 #include <unistd.h>
+#define sleep(ms) usleep(ms * 1000)
+#endif
+#ifdef _WIN32
+#include <Windows.h>
+#define sleep(ms) Sleep(ms)
+#endif
+
 
 using namespace std;
 
@@ -140,7 +149,7 @@ void uci_search() {
         }
 
         //print_uci_info(uci_root_pos, uci_root_si, uci_root_tis);
-        usleep(.01 * 1000000);
+        sleep(10);
     }
     
     //cout << "stopped" << endl;
