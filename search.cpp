@@ -104,7 +104,7 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 	TTEntry* entry = si.tt.probe(pos.hashkey, found);
 
 	if (found) {
-		if (entry->get_depth() >= depth || abs(entry->get_eval()) >= MINMATE) {
+		if (entry->get_depth() >= depth) { //abs(entry->get_eval()) >= MINMATE
 			if (entry->get_bound() == EXACT) return entry->get_eval();
 			else if (entry->get_bound() == UB && entry->get_eval() < beta) beta = entry->get_eval();
 			else if (entry->get_bound() == LB && entry->get_eval() > alpha) alpha = entry->get_eval();
