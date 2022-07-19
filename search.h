@@ -29,7 +29,7 @@ class SearchInfo {
 
 	TT tt;
 	Timestamp start = 0;
-	Timestamp max_time = 100000;
+	Timestamp max_time = -1;
 	bool ponder;
 
 	bool is_active = false;

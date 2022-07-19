@@ -242,9 +242,8 @@ void uci() {
             getline(cin, line);
             istringstream iss(line);
 
-            Depth depth = DEPTHMAX;
-            Timestamp wtime = 3000000;
-            Timestamp btime = 3000000;
+            Timestamp wtime = 922337203684775807;
+            Timestamp btime = 922337203684775807;
             Timestamp winc =  0;
             Timestamp binc =  0;
             uci_root_si.ponder = false;
@@ -271,16 +270,17 @@ void uci() {
                 }
                 else if (token == "depth") {
                     iss >> token;
-                    depth = stoi(token);
+                    uci_root_si.max_depth = stoi(token);
                 }
                 else if (token == "infinite") {
-                    depth = DEPTHMAX;
+                    uci_root_si.max_depth = DEPTHMAX;
                     uci_root_si.max_time = 922337203684775807;
                 }
             }
 
-            uci_root_si.max_time = (uci_root_pos.turn == WHITE ? (wtime / 30 + winc) : (btime / 30 + binc));
-            uci_root_si.max_depth = depth;
+            if (uci_root_si.max_time == -1) {
+                uci_root_si.max_time = (uci_root_pos.turn == WHITE ? (wtime / 30 + winc) : (btime / 30 + binc));
+            }
 
             thread(&uci_search).detach();
         }
