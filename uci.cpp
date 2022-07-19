@@ -279,7 +279,7 @@ void uci() {
             }
 
             if (uci_root_si.max_time == -1) {
-                uci_root_si.max_time = (uci_root_pos.turn == WHITE ? min((wtime + winc) / 10, wtime/2) : min((btime + binc) / 10, btime/2));
+                uci_root_si.max_time = (uci_root_pos.turn == WHITE ? min(winc + wtime / 5, wtime/2) : min(binc + btime / 5, btime/2));
             }
 
             thread(&uci_search).detach();
