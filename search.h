@@ -11,7 +11,14 @@
 
 using namespace std;
 
-#define sleep(ms) usleep(ms * 1000);
+#ifndef _WIN32
+#include <unistd.h>
+#define sleep(ms) usleep(ms * 1000)
+#endif
+#ifdef _WIN32
+#include <Windows.h>
+#define sleep(ms) Sleep(ms)
+#endif
 
 BB perft(Pos &p, Depth depth, bool divide = false);
 
