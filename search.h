@@ -7,8 +7,11 @@
 #include <thread>
 #include <atomic>
 #include <string>
+#include <unistd.h>
 
 using namespace std;
+
+#define sleep(ms) usleep(ms * 1000);
 
 BB perft(Pos &p, Depth depth, bool divide = false);
 
@@ -77,7 +80,7 @@ class SearchInfo {
 
 struct ThreadInfo {
 	int root_ply = 0;
-	int nodes = 0;
+	uint64_t nodes = 0;
 	string id = "";
 	bool searching = true;
 
@@ -87,3 +90,5 @@ struct ThreadInfo {
 Eval search(Pos &p, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si);
 
 Eval qsearch(Pos &p, Eval alpha, Eval beta, ThreadInfo* ti = nullptr, SearchInfo* si = nullptr);
+
+void timer(ThreadInfo* ti, Timestamp max_time);

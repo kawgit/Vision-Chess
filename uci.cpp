@@ -140,7 +140,7 @@ void uci_search() {
         }
 
         //print_uci_info(uci_root_pos, uci_root_si, uci_root_tis);
-        usleep(.01 * 1000000);
+        sleep(10);
     }
     
     //cout << "stopped" << endl;

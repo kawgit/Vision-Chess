@@ -20,3 +20,18 @@ add_executable(Vision
     types.cpp
     uci.cpp
     )
+
+add_executable(unit_tests 
+    unit_tests.cpp
+    bits.cpp
+    eval.cpp 
+    hash.cpp
+    movegen.cpp
+    order.cpp
+    pos.cpp
+    search.cpp
+    timer.cpp
+    tt.cpp
+    types.cpp
+    uci.cpp
+    )

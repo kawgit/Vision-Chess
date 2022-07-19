@@ -223,3 +223,11 @@ Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo* ti, SearchInfo* si) {
 	
     return alpha;
 }
+
+void timer(ThreadInfo* ti, Timestamp max_time) {
+	Timestamp start = get_current_ms();
+	while (get_time_diff(start) < max_time && ti->searching) {
+		sleep(10);
+	}
+	ti->searching = false;
+}
