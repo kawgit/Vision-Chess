@@ -7,6 +7,7 @@
 #include <map>
 #include <string>
 #include <cassert>
+#include <fstream>
 
 using namespace std;
 
@@ -443,12 +444,20 @@ bool Pos::do_move(string SAN) {
 	return true;
 }
 
+bool Pos::is_draw() {
+	return three_repetitions()
+		|| hm_clock == 50
+		|| insufficient_material()
+		|| (!getLegalMoves(*this).size() && !in_check());
+}
+
+bool Pos::is_mate() {
+	return !getLegalMoves(*this).size() && in_check();
+}
+
+
 bool Pos::is_over() {
-	if (three_repetitions()) return true;
-	if (hm_clock == 50) return true;
-	if (!getLegalMoves(*this).size()) return true;
-	if (insufficient_material()) return true;
-	return false;
+	return is_draw() || is_mate();
 }
 
 bool Pos::one_repetition(int root) {
@@ -571,4 +580,41 @@ BB Pos::passed_pawns(Color color) {
 
 BB Pos::double_passed_pawns(Color color) {
 	return 0;
+}
+
+void Pos::save(string path) {
+	ofstream fs(path);
+	if (!fs) {
+		cout << "could not open file: " << path << endl;
+		return;
+	}
+
+	vector<Move> move_log_copy = move_log;
+
+	while (move_log.size()) {
+		undo_move();
+	}
+
+	fs << "[FEN \"" + getFen(*this) + "\"]\n";
+	fs << "\n";
+
+	for (int i = 0; i < move_log_copy.size(); i++) {
+		if (i != 0) {
+			if (in_check()) {
+				fs << "+";
+			}
+			fs << " ";
+		}
+		do_move(move_log_copy[i]);
+		if (i % 2 == 0) {
+			fs << to_string(i / 2 + 1) + ".";
+		}
+		fs << getSAN(move_log_copy[i]);
+	}
+
+	if (is_mate()) {
+		fs << "#";
+	}
+
+	fs.close();
 }

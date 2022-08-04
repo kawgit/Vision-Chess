@@ -36,8 +36,7 @@ struct TTEntry {
 	inline bool matches(BB hashkey) { return get_hashkey32() == (hashkey >> 32); }
 
 	inline void save(BB hashkey, Eval eval, Bound bound, Depth depth, Move move, Gen gen) {
-		if ( get_gen() + 1 > gen ||
-			(get_gen() > gen && get_depth() < depth + 3) ||
+		if ( get_gen() < gen ||
 			(get_bound() != EXACT && (bound == EXACT || get_depth() < depth)) ||
 			(get_bound() == EXACT && (bound == EXACT && get_depth() < depth))) {
 			forcesave(hashkey, eval, bound, depth, move, gen);
@@ -61,7 +60,7 @@ struct TTEntry {
 };
 
 class TT {
-	const static int HASHLENGTH = 25 ;
+	const static int HASHLENGTH = 16 ;
 	const static BB TABLESIZE = (1ULL<<HASHLENGTH);
 	const static BB HASHMASK = TABLESIZE-1;
 	const static int tableSizeInMb = TABLESIZE*sizeof(TTEntry)/0x100000;

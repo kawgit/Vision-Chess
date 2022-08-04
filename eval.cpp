@@ -12,9 +12,9 @@
 
 using namespace std;
 
-Eval mat_points[6] = {100, 320, 330, 500, 900, 20000};
+vector<float> piece_eval = {100, 100, 100, 100, 100, 100};
 
-Eval piece_eval_maps[5][64] = {
+vector<vector<float>> piece_eval_maps = {
 
     { //pawn
         0,  0,  0,  0,  0,  0,  0,  0,
@@ -72,7 +72,7 @@ Eval piece_eval_maps[5][64] = {
     }
 };
 
-Eval king_eval_map[2][64] = {
+vector<vector<float>> king_eval_map = {
     {
     -30,-40,-40,-50,-50,-40,-40,-30,
     -30,-40,-40,-50,-50,-40,-40,-30,
@@ -101,6 +101,7 @@ vector<Factor> factors = {
         return eval_mat(pos, color);
     }),
 
+/*
     Factor("maps", [](Pos& pos, Color color) {
         Eval res = 0;
 
@@ -154,7 +155,7 @@ vector<Factor> factors = {
 
         return res;
     }),
-
+*/
     Factor("space", [](Pos& pos, Color color) {
         Eval res = 0;
 
@@ -162,7 +163,7 @@ vector<Factor> factors = {
 
         return res;
     }),
-
+/*
     Factor("king_safety", [](Pos& pos, Color color) {
         Eval res = 0;
 
@@ -182,28 +183,8 @@ vector<Factor> factors = {
 
         return res;
     }),
-
-
-/*
-    Factor("square_color_strength", [](Pos& pos, Color color) {
-        Eval res = 0;
-        constexpr BB COLOR1_BB = 0xAAAAAAAAAAAAAAAA;
-        constexpr BB COLOR2_BB = ~COLOR1_BB;
-
-        if ((pos.pieces(color, BISHOP) & COLOR1_BB) && !(pos.pieces(opp(color), BISHOP) & COLOR1_BB)) {
-            res -= pos.isolated_pawns() * 10;
-            res -= pos.doubled_pawns() * 10;
-            res -= pos.blocked_pawns() * 10;
-
-            res += pos.supported_pawns() * 10;
-            
-            res += pos.passed_pawns() * 30;
-            res += pos.double_passed_pawns() * 120;
-        }
-
-        return res;
-    }),
 */
+
 };
 
 Eval eval_pos(Pos& pos, Eval lb, Eval ub, bool debug) {
@@ -224,11 +205,11 @@ Eval eval_pos(Pos& pos, Eval lb, Eval ub, bool debug) {
 
 Eval eval_mat(Pos& p, Color c) {
     return (
-        bitcount(p.pieces(c, PAWN)) * mat_points[PAWN - PAWN] +
-        bitcount(p.pieces(c, KNIGHT)) * mat_points[KNIGHT - PAWN] +
-        bitcount(p.pieces(c, BISHOP)) * mat_points[BISHOP - PAWN] +
-        bitcount(p.pieces(c, ROOK)) * mat_points[ROOK - PAWN] +
-        bitcount(p.pieces(c, QUEEN)) * mat_points[QUEEN - PAWN]
+        bitcount(p.pieces(c, PAWN)) * piece_eval[PAWN - PAWN] +
+        bitcount(p.pieces(c, KNIGHT)) * piece_eval[KNIGHT - PAWN] +
+        bitcount(p.pieces(c, BISHOP)) * piece_eval[BISHOP - PAWN] +
+        bitcount(p.pieces(c, ROOK)) * piece_eval[ROOK - PAWN] +
+        bitcount(p.pieces(c, QUEEN)) * piece_eval[QUEEN - PAWN]
     );
 }
 

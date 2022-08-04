@@ -23,6 +23,7 @@ inline unsigned int mvvlva(Piece attacker, Piece victim) {
     return table[attacker - PAWN][victim - PAWN];
 }
 
+/*
 bool keeps_tempo(Move& move, Pos& pos, ThreadInfo& ti) {
     Eval cur_eval = qsearch(pos, -INF, INF, nullptr, nullptr);
     
@@ -43,6 +44,7 @@ bool keeps_tempo(Move& move, Pos& pos, ThreadInfo& ti) {
 
     return threatened_eval - cur_eval > TEMPO_MARGIN;
 }
+*/
 
 vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo* ti, SearchInfo* si, int& interesting, bool for_qsearch) {
     interesting = 0;

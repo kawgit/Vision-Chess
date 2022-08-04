@@ -7,7 +7,6 @@
 #include <thread>
 #include <atomic>
 #include <string>
-#include <unistd.h>
 
 using namespace std;
 
@@ -99,3 +98,5 @@ Eval search(Pos &p, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, SearchIn
 Eval qsearch(Pos &p, Eval alpha, Eval beta, ThreadInfo* ti = nullptr, SearchInfo* si = nullptr);
 
 void timer(ThreadInfo* ti, Timestamp max_time);
+
+Move get_best_move(Pos pos, Timestamp time);

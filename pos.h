@@ -142,6 +142,8 @@ class Pos {
 	bool three_repetitions();
 	bool one_repetition(int root);
 	bool insufficient_material();
+	bool is_draw();
+	bool is_mate();
 	bool is_over();
 
 	bool causes_check(Move move);
@@ -153,6 +155,7 @@ class Pos {
 	BB passed_pawns(Color color);
 	BB double_passed_pawns(Color color);
 
+	void save(string path);
 };
 
 

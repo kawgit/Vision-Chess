@@ -1,7 +1,13 @@
-all: bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o main.exe
+all: bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o main.exe unit_tests.exe tuner.exe
 
 main.exe: bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o main.cpp
 	clang++ -Ofast -pthread bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o main.cpp -o main.exe
+
+unit_tests.exe: bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o unit_tests.cpp
+	clang++ -Ofast -pthread bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o unit_tests.cpp -o unit_tests.exe
+
+tuner.exe: bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o tuner.cpp
+	clang++ -Ofast -pthread bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o tuner.cpp -o tuner.exe
 
 bits.o: bits.cpp bits.h
 	clang++ -c -Ofast bits.cpp -o bits.o

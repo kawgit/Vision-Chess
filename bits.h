@@ -2,6 +2,9 @@
 
 #include <cstdlib>
 #include <stdint.h>
+#include <vector>
+
+using namespace std;
 
 typedef uint64_t BB;
 
@@ -62,3 +65,7 @@ inline BB rand_BB() {
 inline float randf(float lb, float ub) {
 	return lb + (float)rand() / (float)RAND_MAX * (float)(ub-lb);
 }
+
+vector<float> serialize_bb(BB bb);
+
+void add_serialized_bb(vector<float>& vec, BB bb);

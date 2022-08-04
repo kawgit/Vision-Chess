@@ -15,6 +15,15 @@
 #include <iostream>
 #include <cstdlib>
 
+#ifndef _WIN32
+#include <unistd.h>
+#define sleep(ms) usleep(ms * 1000)
+#endif
+#ifdef _WIN32
+#include <Windows.h>
+#define sleep(ms) Sleep(ms)
+#endif
+
 
 using namespace std;
 
@@ -143,7 +152,6 @@ void uci_search() {
         sleep(10);
     }
     
-    //cout << "stopped" << endl;
     uci_stop();
 
     vector<Move> pv = uci_root_si.tt.getPV(uci_root_pos);
@@ -242,8 +250,9 @@ void uci() {
             getline(cin, line);
             istringstream iss(line);
 
-            Timestamp wtime = 922337203684775807;
-            Timestamp btime = 922337203684775807;
+            Depth depth = DEPTHMAX;
+            Timestamp wtime = 922337203684775807LL;
+            Timestamp btime = 922337203684775807LL;
             Timestamp winc =  0;
             Timestamp binc =  0;
             uci_root_si.ponder = false;
@@ -270,17 +279,16 @@ void uci() {
                 }
                 else if (token == "depth") {
                     iss >> token;
-                    uci_root_si.max_depth = stoi(token);
+                    depth = stoi(token);
                 }
                 else if (token == "infinite") {
-                    uci_root_si.max_depth = DEPTHMAX;
+                    depth = DEPTHMAX;
                     uci_root_si.max_time = 922337203684775807;
                 }
             }
 
-            if (uci_root_si.max_time == -1) {
-                uci_root_si.max_time = (uci_root_pos.turn == WHITE ? min(winc + wtime / 5, wtime/2) : min(binc + btime / 5, btime/2));
-            }
+            uci_root_si.max_time = (uci_root_pos.turn == WHITE ? min((wtime / 30 + winc), wtime / 2) : min((btime / 30 + binc), btime / 2));
+            uci_root_si.max_depth = depth;
 
             thread(&uci_search).detach();
         }

@@ -103,13 +103,11 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 	bool found = false;
 	TTEntry* entry = si.tt.probe(pos.hashkey, found);
 
-	if (found) {
-		if (entry->get_depth() >= depth) { //abs(entry->get_eval()) >= MINMATE
-			if (entry->get_bound() == EXACT) return entry->get_eval();
-			else if (entry->get_bound() == UB && entry->get_eval() < beta) beta = entry->get_eval();
-			else if (entry->get_bound() == LB && entry->get_eval() > alpha) alpha = entry->get_eval();
-			if (alpha >= beta) return beta;
-		}
+	if (found && entry->get_depth() >= depth && entry->get_gen() == si.tt.gen) {
+		if (entry->get_bound() == EXACT) return entry->get_eval();
+		else if (entry->get_bound() == UB && entry->get_eval() < beta) beta = entry->get_eval();
+		else if (entry->get_bound() == LB && entry->get_eval() > alpha) alpha = entry->get_eval();
+		if (alpha >= beta) return beta;
 	}
 
 	vector<Move> moves = getLegalMoves(pos);
@@ -129,11 +127,6 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 	for (int i = 0; i < moves.size(); i++) {
 		Move& move = moves[i];
 
-		//if (depth == si.last_depth_searched) 	 cout << setw(3) << to_string(depth-1) << "--> " << i << " a: " << to_string(max(alpha, besteval)) << " b: " << to_string(beta) << endl;
-		//if (depth == si.last_depth_searched - 1) cout << setw(3) << to_string(depth-1) << "-->   " << i << " a: " << to_string(max(alpha, besteval)) << " b: " << to_string(beta) << endl;
-		//if (depth == si.last_depth_searched - 2) cout << setw(3) << to_string(depth-1) << "-->     " << i << " a: " << to_string(max(alpha, besteval)) << " b: " << to_string(beta) << endl;
-
-
 		pos.do_move(move);
 		
 		Eval eval = -search(pos, depth - (i > interesting ? depth / 8 + 2: 1), -beta, -max(alpha, besteval), ti, si);
@@ -142,10 +135,6 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 
 		if (eval > MINMATE) eval--;
 
-		//if (depth == si.last_depth_searched) 	 cout << setw(3) << to_string(depth-1) << "<-- " << i << " " << to_string(pos.move_log) << getSAN(move) << " " << to_string(eval) << " a: " << to_string(max(alpha, besteval)) << " b: " << to_string(beta) << endl;
-		//if (depth == si.last_depth_searched - 1) cout << setw(3) << to_string(depth-1) << "<--   " << i << " " << to_string(pos.move_log) << getSAN(move) << " " << to_string(eval) << " a: " << to_string(max(alpha, besteval)) << " b: " << to_string(beta) << endl;
-		//if (depth == si.last_depth_searched - 2) cout << setw(3) << to_string(depth-1) << "<--     " << i << " " << to_string(pos.move_log) << getSAN(move) << " " << to_string(eval) << " a: " << to_string(max(alpha, besteval)) << " b: " << to_string(beta) << endl;
-		
 		if (eval > besteval) {
 			if (!ti.searching) return 0;
 
@@ -230,4 +219,27 @@ void timer(ThreadInfo* ti, Timestamp max_time) {
 		sleep(10);
 	}
 	ti->searching = false;
+}
+
+Move get_best_move(Pos pos, Timestamp time) {
+	SearchInfo si;
+	ThreadInfo ti(pos, "0");
+
+	si.tt.gen++;
+	search(pos, 1, -INF, INF, ti, si);
+
+	ThreadInfo* ti_ptr = &ti;
+	thread timer_thread(&timer, ref(ti_ptr), ref(time));
+
+	for (Depth depth = 2; depth < 127 && ti.searching; depth++) {
+		search(pos, depth, -INF, INF, ti, si);
+	}
+
+	timer_thread.join();
+
+	bool found = false;
+	TTEntry* entry = si.tt.probe(pos.hashkey, found);
+	assert(found);
+
+	return entry->get_move();
 }
