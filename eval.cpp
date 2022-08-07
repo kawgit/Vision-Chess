@@ -12,7 +12,7 @@
 
 using namespace std;
 
-vector<float> piece_eval = {100, 100, 100, 100, 100, 100};
+vector<float> piece_eval = {100, 300, 320, 500, 900, 100};
 
 vector<vector<float>> piece_eval_maps = {
 
@@ -101,7 +101,6 @@ vector<Factor> factors = {
         return eval_mat(pos, color);
     }),
 
-/*
     Factor("maps", [](Pos& pos, Color color) {
         Eval res = 0;
 
@@ -155,7 +154,7 @@ vector<Factor> factors = {
 
         return res;
     }),
-*/
+
     Factor("space", [](Pos& pos, Color color) {
         Eval res = 0;
 
@@ -163,7 +162,7 @@ vector<Factor> factors = {
 
         return res;
     }),
-/*
+
     Factor("king_safety", [](Pos& pos, Color color) {
         Eval res = 0;
 
@@ -183,7 +182,6 @@ vector<Factor> factors = {
 
         return res;
     }),
-*/
 
 };
 
