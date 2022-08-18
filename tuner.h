@@ -36,7 +36,6 @@ class Configuration {
     void print();
 
     
-    vector<Tunable> tunables;
-    friend class Configuration;
     private:
+    vector<Tunable> tunables;
 };

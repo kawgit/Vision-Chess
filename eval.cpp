@@ -12,7 +12,7 @@
 
 using namespace std;
 
-vector<float> piece_eval = {100, 100, 100, 100, 100, 100};
+vector<float> piece_eval = {100, 300, 320, 500, 900, 100};
 
 vector<vector<float>> piece_eval_maps = {
 
