@@ -148,3 +148,5 @@ template<> inline BB shift<EAST>(BB a) {
 template<> inline BB shift<WEST>(BB a) {
     return (a & ~get_file_mask(0)) >> 1;
 }
+
+enum GENERATION_TYPE : uint8_t {LEGAL, LOUD};

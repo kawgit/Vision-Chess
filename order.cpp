@@ -23,29 +23,6 @@ inline unsigned int mvvlva(Piece attacker, Piece victim) {
     return table[attacker - PAWN][victim - PAWN];
 }
 
-/*
-bool keeps_tempo(Move& move, Pos& pos, ThreadInfo& ti) {
-    Eval cur_eval = qsearch(pos, -INF, INF, nullptr, nullptr);
-    
-    pos.do_move(move);
-
-    if (pos.in_check()) { 
-        pos.undo_move();
-        return true;
-    }
-
-    pos.do_null_move();
-    
-    Eval threatened_eval = qsearch(pos, -INF, INF, nullptr, nullptr);
-    
-    pos.undo_null_move();
-
-    pos.undo_move();
-
-    return threatened_eval - cur_eval > TEMPO_MARGIN;
-}
-*/
-
 vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo* ti, SearchInfo* si, int& interesting, bool for_qsearch) {
     interesting = 0;
     Move counter_move = si ? si->get_cm(pos) : MOVE_NONE;

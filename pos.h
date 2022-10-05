@@ -42,6 +42,8 @@ class Pos {
 	
 
 	Pos(string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+
+	vector<Move> generate();
 	
 	inline void switch_cr(CR_Index i) {
 		hashkey ^= z_cr(i);

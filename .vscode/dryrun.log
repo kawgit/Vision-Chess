@@ -1,6 +1,18 @@
-make.exe --dry-run --keep-going --print-directory
+make.exe --dry-run --always-make --keep-going --print-directory
 make.exe: Entering directory `c:/Users/Kbana/OneDrive/Documents/GitHub/Vision'
-make.exe: Nothing to be done for `all'.
- 
+clang++ -c -Ofast bits.cpp -o bits.o
+clang++ -c -Ofast eval.cpp -o eval.o
+clang++ -c -Ofast hash.cpp -o hash.o
+clang++ -c -Ofast movegen.cpp -o movegen.o
+clang++ -c -Ofast order.cpp -o order.o
+clang++ -c -Ofast pos.cpp -o pos.o
+clang++ -c -Ofast search.cpp -o search.o -pthread
+clang++ -c -Ofast timer.cpp -o timer.o
+clang++ -c -Ofast tt.cpp -o tt.o
+clang++ -c -Ofast types.cpp -o types.o
+clang++ -c -Ofast -pthread uci.cpp -o uci.o
+clang++ -Ofast -pthread bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o main.cpp -o main.exe
+clang++ -Ofast -pthread bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o unit_tests.cpp -o unit_tests.exe
+clang++ -Ofast -pthread bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o tuner.cpp -o tuner.exe
 make.exe: Leaving directory `c:/Users/Kbana/OneDrive/Documents/GitHub/Vision'
  

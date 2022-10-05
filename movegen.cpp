@@ -283,7 +283,8 @@ inline bool PosInfo::is_moveable(int from, int to) {
     return ((!(pinned_mask & get_BB(from))) || (moveable_squares[from] & get_BB(to))) && (check_blocking_squares & get_BB(to)); 
 }
 
-vector<Move> getLegalMoves(Pos& p) {
+template <GENERATION_TYPE generation_type> vector<Move> Pos::generate();
+vector<Move> Pos::generate<LEGAL>() {
     PosInfo posInfo(p);
     
     vector<Move> moves;
@@ -309,6 +310,7 @@ inline void addPawnMovesFromMask(vector<Move> &moves, PosInfo &posInfo, BB &mask
             moves.push_back(make_move(from, to, flags));
     }
 }
+
 inline void addPawnEpMovesFromMask(vector<Move> &moves, PosInfo &posInfo, BB &mask, int transform) {
     while (mask) {
         int to = poplsb(mask);
@@ -317,6 +319,7 @@ inline void addPawnEpMovesFromMask(vector<Move> &moves, PosInfo &posInfo, BB &ma
             moves.push_back(make_move(from, to, EP));
     }
 }
+
 inline void addPawnPromotionMovesFromMask(vector<Move> &moves, PosInfo &posInfo, BB &mask, int transform, MoveFlag flags) {
     while (mask) {
         int to = poplsb(mask);
@@ -407,6 +410,7 @@ void addPawnMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
     addPawnPromotionMovesFromMask(moves, posInfo, p_rc, rc_t, CAPTURE);
     addPawnPromotionMovesFromMask(moves, posInfo, p_lc, lc_t, CAPTURE);
 }
+
 void addKnightMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
     BB knights = p.pieces(p.turn, KNIGHT);
 
@@ -425,6 +429,7 @@ void addKnightMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
         }
     }
 }
+
 void addBishopMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
     BB bishop = p.pieces(p.turn, BISHOP);
 
@@ -443,6 +448,7 @@ void addBishopMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
         }
     }
 }
+
 void addRookMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
     BB rooks = p.pieces(p.turn, ROOK);
 
@@ -461,6 +467,7 @@ void addRookMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
         }
     }
 }
+
 void addQueenMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
     BB queens = p.pieces(p.turn, QUEEN);
 
@@ -479,6 +486,7 @@ void addQueenMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
         }
     }
 }
+
 void addKingMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo) {
     int ksq = lsb(p.pieces(p.turn, KING));
     BB atk = get_king_atk(ksq) & ~posInfo.turn_occ;
