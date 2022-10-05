@@ -59,15 +59,15 @@ void Configuration::apply() {
 
 void Configuration::mutate(float radius, float mutation_chance) {
     if (mutation_chance == -1) {
-        Tunable& tunable = tunables[(int)randf(0, tunables.size())];
+        Tunable& tunable = tunables[floor(randf(0, tunables.size()))];
         tunable.weight += randf(-radius, radius);
-        tunable.weight = max(0, min(tunable.weight, 1));
+        tunable.weight = max((float)0, min(tunable.weight, (float)1));
     } 
     else {
         for (Tunable& tunable : tunables) {
             if (randf(0, 1) < mutation_chance) {
                 tunable.weight += randf(-radius, radius);
-                tunable.weight = max(0, min(tunable.weight, 1));
+                tunable.weight = max((float)0, min(tunable.weight, (float)1));
             }
         }
     }
@@ -79,7 +79,11 @@ void Configuration::save(string path) {
         cout << "Cannot open file " << path << endl;
         return;
     }
-    fs.write((char*)(&tunables[0]), sizeof(Tunable) * list_of_tunables.size());
+
+    for (int i = 0; i < list_of_tunables.size(); i++) {
+        fs.write((char*)&tunables[i].weight, sizeof(float));
+    }
+
     fs.close();
 }
 
@@ -89,7 +93,11 @@ void Configuration::load(string path) {
         cout << "Cannot open file " << path << endl;
         return;
     }
-    fs.read((char*)(&tunables[0]), sizeof(Tunable) * list_of_tunables.size());
+    
+    for (int i = 0; i < list_of_tunables.size(); i++) {
+        assert(fs.read(reinterpret_cast<char*>(&tunables[i].weight), sizeof(float)));
+    }
+
     fs.close();
 }
 
@@ -113,18 +121,16 @@ int main() {
     Color champ_color = WHITE;
     for (int i = 0; i < 1000; i++) {
         Configuration chall(champ);
-        chall.mutate(.3, -1);
+        chall.mutate(.9, -1);
         champ.print();
         chall.print();
         Pos pos;
         while (!pos.is_over()) {
             if (pos.turn == champ_color) {
                 champ.apply();
-                assert(get_piece_eval(KNIGHT) == (Eval)champ.tunables[0].value());
             }
             else {
                 chall.apply();
-                assert(get_piece_eval(KNIGHT) == (Eval)chall.tunables[0].value());
             }
             pos.do_move(get_best_move(pos, 50));
         }
