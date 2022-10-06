@@ -12,6 +12,10 @@
 
 using namespace std;
 
+const vector<const float> connectivity_victim_weights = {50, 35, 30, 10, 4, 0};
+
+const vector<const float> connectivity_weights = {};
+
 vector<float> piece_eval = {100, 300, 320, 500, 900, 100};
 
 vector<vector<float>> piece_eval_maps = {
@@ -114,6 +118,7 @@ vector<Factor> factors = {
 
         return res;
     }),
+
     Factor("pawn_structure", [](Pos& pos, Color color) {
 
         const static Eval w1[8] = {0, 10, 20, 30, 70, 90, 120, 900};
@@ -179,6 +184,26 @@ vector<Factor> factors = {
         res += bitcount(surroundings & pawns & pos.get_atk_mask(color)) * 10;
 
         res -= bitcount(surroundings & pos.get_atk_mask(opp(color))) * 30;
+
+        return res;
+    }),
+
+    Factor("connectivity", [](Pos& pos, Color color) {
+        Eval res = 0;
+
+        for (Piece victim_type = PAWN; victim_type <= KNIGHT; victim_type++) {
+            
+            BB victims = pos.pieces(color, victim_type);
+            while (victims) {
+                Square victim_square = poplsb(victims);
+                
+                
+
+                for (Piece defender_type = PAWN; defender_type < KING; defender_type++) {
+                    defender_type
+                }
+            }
+        }
 
         return res;
     }),

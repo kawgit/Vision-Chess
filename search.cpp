@@ -129,7 +129,7 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 
 		pos.do_move(move);
 		
-		Eval eval = -search(pos, depth - (i > interesting ? depth / 4 + 2: 1), -beta, -max(alpha, besteval), ti, si);
+		Eval eval = -search(pos, depth - (i > interesting ? depth / 8 + 2: 1), -beta, -max(alpha, besteval), ti, si);
 
 		pos.undo_move();
 
