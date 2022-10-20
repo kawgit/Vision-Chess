@@ -4,7 +4,7 @@
 
 using namespace std;
 
-extern vector<float> piece_eval;
+extern Eval piece_eval[];
 
 inline Eval get_piece_eval(Piece p) {
     return piece_eval[p - PAWN];

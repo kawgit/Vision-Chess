@@ -12,11 +12,11 @@
 
 using namespace std;
 
-const vector<const float> connectivity_victim_weights = {50, 35, 30, 10, 4, 0};
+// const vector<const float> connectivity_victim_weights = {50, 35, 30, 10, 4, 0};
 
-const vector<const float> connectivity_weights = {};
+// const vector<const float> connectivity_weights = {};
 
-vector<float> piece_eval = {100, 300, 320, 500, 900, 100};
+Eval piece_eval[] = {100, 300, 320, 500, 900, 100};
 
 vector<vector<float>> piece_eval_maps = {
 
@@ -188,6 +188,7 @@ vector<Factor> factors = {
         return res;
     }),
 
+/*
     Factor("connectivity", [](Pos& pos, Color color) {
         Eval res = 0;
 
@@ -206,7 +207,7 @@ vector<Factor> factors = {
         }
 
         return res;
-    }),
+    }),*/
 
 };
 
