@@ -29,9 +29,9 @@ BB perft(Pos &p, Depth depth, bool divide) {
 	if (divide) start = get_current_ms();
 
 	BB count = 0;
-	vector<Move> moves = getLegalMoves(p);
+	vector<Move> moves = get_legal_moves(p);
 
-	if (depth == 1 && !divide) return moves.size();
+	//if (depth == 1 && !divide) return moves.size();
 
 	if (divide) cout<<moves.size()<<endl;
 
@@ -110,7 +110,7 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 		if (alpha >= beta) return beta;
 	}
 
-	vector<Move> moves = getLegalMoves(pos);
+	vector<Move> moves = get_legal_moves(pos);
 
 	if (moves.size() == 0) {
 		Eval eval = pos.in_check() ? -INF : 0;
@@ -181,7 +181,7 @@ Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo* ti, SearchInfo* si) {
 
 	if (pos.insufficient_material()) return 0;
 
-    vector<Move> moves = getLegalMoves(pos);
+    vector<Move> moves = get_legal_moves(pos);
 
 	if (moves.size() == 0) {
 		if (pos.in_check()) return -INF;

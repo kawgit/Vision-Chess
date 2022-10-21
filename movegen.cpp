@@ -283,7 +283,7 @@ inline bool PosInfo::is_moveable(int from, int to) {
     return ((!(pinned_mask & get_BB(from))) || (moveable_squares[from] & get_BB(to))) && (check_blocking_squares & get_BB(to)); 
 }
 
-vector<Move> getLegalMoves(Pos& p) {
+vector<Move> get_legal_moves(Pos& p) {
     PosInfo posInfo(p);
     
     vector<Move> moves;

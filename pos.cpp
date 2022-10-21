@@ -434,7 +434,7 @@ bool Pos::three_repetitions() {
 }
 
 bool Pos::do_move(string SAN) {
-	vector<Move> moves = getLegalMoves(*this);
+	vector<Move> moves = get_legal_moves(*this);
 	Move move = MOVE_NONE;
 	for (Move m : moves) {
 		if (getSAN(m) == SAN) move = m;
@@ -448,11 +448,11 @@ bool Pos::is_draw() {
 	return three_repetitions()
 		|| hm_clock == 50
 		|| insufficient_material()
-		|| (!getLegalMoves(*this).size() && !in_check());
+		|| (!get_legal_moves(*this).size() && !in_check());
 }
 
 bool Pos::is_mate() {
-	return !getLegalMoves(*this).size() && in_check();
+	return !get_legal_moves(*this).size() && in_check();
 }
 
 

@@ -156,7 +156,7 @@ void uci_search() {
 
     vector<Move> pv = uci_root_si.tt.getPV(uci_root_pos);
 
-    vector<Move> moves = getLegalMoves(uci_root_pos);
+    vector<Move> moves = get_legal_moves(uci_root_pos);
 
     print_mutex.lock();
     cout << "bestmove " + (pv.size() > 0 ? getSAN(pv[0]) : (moves.size() ? getSAN(moves[0]) : "(none)")) + (pv.size() > 1 ? " ponder " + getSAN(pv[1]) : "") << endl;

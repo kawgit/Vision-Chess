@@ -57,7 +57,7 @@ struct PosInfo { //pins and checks
     bool is_moveable(int from, int to);
 };
 
-vector<Move> getLegalMoves(Pos& p);
+vector<Move> get_legal_moves(Pos& p);
 
 void addPawnMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo);
 void addKnightMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo);
