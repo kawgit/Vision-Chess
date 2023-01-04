@@ -14,8 +14,8 @@ typedef int16_t Eval;
 const Eval INF = 32767;
 const Eval MINMATE = INF - 128;
 
-typedef uint32_t Score;
-const Score SCORE_MAX = (1ULL << 32) - 1;
+typedef int Score;
+const Score SCORE_MAX = (1ULL << 31) - 1;
 
 inline string eval_to_string(Eval eval) {
     return (abs(eval) >= MINMATE ? ((eval > 0 ? "mate " : "mate -") + to_string(INF-abs(eval))) : ("cp " + to_string(eval)));

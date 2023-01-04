@@ -69,3 +69,5 @@ inline float randf(float lb, float ub) {
 vector<float> serialize_bb(BB bb);
 
 void add_serialized_bb(vector<float>& vec, BB bb);
+
+void add_bb_to_cum(char* cum, BB bb, char coeff);

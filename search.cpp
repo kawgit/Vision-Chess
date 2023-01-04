@@ -33,7 +33,7 @@ BB perft(Pos &p, Depth depth, bool divide) {
 
 	//if (depth == 1 && !divide) return moves.size();
 
-	if (divide) cout<<moves.size()<<endl;
+	if (divide) cout << moves.size() << endl;
 
 	for (Move move : moves) {
 
@@ -41,12 +41,12 @@ BB perft(Pos &p, Depth depth, bool divide) {
 		BB n = perft(p, depth-1, false);
 		p.undo_move();
 
-		if (divide) cout<<getSAN(move)<<" "<<to_string(n)<<endl;
+		if (divide) cout << getSAN(move) << " " << to_string(n) << endl;
 		count += n;
 	}
 
-	if (divide) cout<<"total: "<<to_string(count)<<endl;
-	if (divide) cout<<"time: "<<to_string(get_time_diff(start))<<"ms"<<endl;
+	if (divide) cout << "total: " << to_string(count) << endl;
+	if (divide) cout << "time: " << to_string(get_time_diff(start)) <<" ms" << endl;
 
 	return count;
 }
@@ -75,7 +75,11 @@ void perftTest() {
 		Pos p(fens[i]);
 		Timestamp start = get_current_ms();
 		BB count = perft(p, 5, false);
-		cout<<(count == counts[i] ? "pass " : "fail ")<<"time: "<<std::setw (6)<<to_string(get_time_diff(start))<<"ms "<<"nps: "<<std::setw (8)<<to_string(count*1000/get_time_diff(start))<<" fen: "<<fens[i]<<endl;
+		cout << (count == counts[i] ? "pass " : "fail ") 
+			<< "time: " << std::setw (6) << to_string(get_time_diff(start)) << "ms " 
+			<< "nps: " <<std::setw (8) << to_string(count*1000/get_time_diff(start)) 
+			<< " fen: " << fens[i] 
+			<< endl;
 	}
 
 }
@@ -128,9 +132,13 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 		Move& move = moves[i];
 
 		pos.do_move(move);
-		
-		Eval eval = -search(pos, depth - (i > interesting ? depth / 8 + 2: 1), -beta, -max(alpha, besteval), ti, si);
 
+#ifndef AGGR_PRUNE
+		Eval eval = -search(pos, depth - (i > interesting ? 2 : 1), -beta, -max(alpha, besteval), ti, si);
+#endif
+#ifdef AGGR_PRUNE
+		Eval eval = -search(pos, depth - (i > interesting ? depth / 8 + 2 : 1), -beta, -max(alpha, besteval), ti, si);
+#endif
 		pos.undo_move();
 
 		if (eval > MINMATE) eval--;
@@ -163,7 +171,6 @@ Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo* ti, SearchInfo* si) {
 		ti->nodes++;
 	}
 
-
 	if (beta <= -MINMATE && beta != -INF) {
 		beta--;
 		if (alpha >= beta) return beta;
@@ -173,13 +180,13 @@ Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo* ti, SearchInfo* si) {
     alpha = max(alpha, stand_pat);
     if (alpha >= beta) return beta;
 
-	if (pos.move_log.size() - ti->root_ply > 100) {
-		print(pos, true);
-		print(pos.move_log);
-		assert(false);
-	}
-
 	if (pos.insufficient_material()) return 0;
+	// ONLY IF MOVES INCLUDE CHECKS
+	if (pos.hm_clock >= 4) {
+		if (pos.hm_clock == 50) return 0;
+		if (ti && pos.one_repetition(ti->root_ply)) return 0;
+		if (pos.three_repetitions()) return 0;
+	}
 
     vector<Move> moves = get_legal_moves(pos);
 
@@ -190,6 +197,7 @@ Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo* ti, SearchInfo* si) {
 
 	int interesting = moves.size();
 	if (ti && si) moves = order(moves, pos, ti, si, interesting, true);
+	else assert(false);
     
     for (int i = 0; i < interesting; i++) {
 		Move move = moves[i];

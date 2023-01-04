@@ -137,7 +137,16 @@ class Pos {
 	void do_null_move();
 	void undo_null_move();
 	
-	BB get_atk_mask(Color c);
+	int get_control_value(Color color, Square square);
+
+	BB get_atk_mask(Color color);
+	BB get_pawn_atk_mask(Color color);
+	BB get_knight_atk_mask(Color color);
+	BB get_bishop_atk_mask(Color color);
+	BB get_rook_atk_mask(Color color);
+	BB get_queen_atk_mask(Color color);
+	BB get_king_atk_mask(Color color);
+
 	bool in_check();
 	bool three_repetitions();
 	bool one_repetition(int root);

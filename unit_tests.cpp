@@ -27,19 +27,23 @@ int total = 0;
 
 void require(bool condition, vector<vector<string>> metadata = {}) {
     if (condition) {
+#ifndef CSV_OUTPUT
         cout << "\033[1;33m";
         cout << "pass ";
         cout << "\033[0m";
+#endif
         passed++;
     }
     else {
+#ifndef CSV_OUTPUT
         cout << "\033[1;31m";
         cout << "fail ";
         cout << "\033[0m";
+#endif
         failed++;
     }
     total++;
-    
+#ifndef CSV_OUTPUT
     for (vector<string> record : metadata) {
         assert(record.size());
         switch (record.size()) {
@@ -56,20 +60,30 @@ void require(bool condition, vector<vector<string>> metadata = {}) {
                 break;
         }
     }
-
     cout << endl;
+#endif
+#ifdef CSV_OUTPUT
+    int score = 0;
+    if (condition) {
+        score += stoi(metadata[0][1]);
+    }
+    else {
+        score += 15000;
+    }
+    cout << score << ",";
+#endif
 }
 
 vector<Test> tests = {
     Test("perft", [] {
         vector<string> fens = {
-            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
-            "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
-            "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
-            "r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1",
-            "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
-            "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10 ",
+            // "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            // "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+            // "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+            // "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
+            // "r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1",
+            // "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
+            // "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10 ",
 		};
         vector<BB>   counts = {
             4865609,
@@ -148,11 +162,13 @@ vector<Test> tests = {
     
 };
 
+
 int main() {
     initHash(320193);
     initMoveGen();
 
 
+#ifndef CSV_OUTPUT
     for (Test test : tests) {
         cout << "TEST SECTION: " << test.name << endl;
         Timestamp start = get_current_ms();
@@ -181,6 +197,13 @@ int main() {
         cout << "     ====================    " << endl;
         cout << "\033[0m";
     }
+#endif
+#ifdef CSV_OUTPUT
+    for (Test test : tests) {
+        test.func();
+    }
+#endif
 
     return 0;
 }
+

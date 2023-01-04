@@ -368,45 +368,91 @@ string getFen(Pos& p) {
 	return fen;
 }
 
-BB Pos::get_atk_mask(Color c) {
+int Pos::get_control_value(Color color, Square square) {
+	int res = 0;
+	BB occ = get_occ();
+	res += bitcount(get_pawn_atk(opp(color), square) & pieces(color, PAWN))
+		 - bitcount(get_pawn_atk(color, square) & pieces(opp(color), PAWN));
+	res += bitcount(get_knight_atk(square) & pieces(color, KNIGHT))
+		 - bitcount(get_knight_atk(square) & pieces(opp(color), KNIGHT));
+	res += bitcount(get_bishop_atk(square, occ) & (pieces(color, BISHOP) | pieces(color, QUEEN)))
+		 - bitcount(get_bishop_atk(square, occ) & (pieces(opp(color), BISHOP) | pieces(opp(color), QUEEN)));
+	res += bitcount(get_rook_atk(square, occ) & (pieces(color, ROOK) | pieces(color, QUEEN)))
+		 - bitcount(get_rook_atk(square, occ) & (pieces(opp(color), ROOK) | pieces(opp(color), QUEEN)));
+	return res;
+}
+
+BB Pos::get_atk_mask(Color color) {
 	BB mask = 0ULL;
 
-    if (c == WHITE) {
-        mask |= shift<NORTH>(shift<WEST>(pieces(c, PAWN)) | shift<EAST>(pieces(c, PAWN)));
-	}
-    else {
-        mask |= shift<SOUTH>(shift<WEST>(pieces(c, PAWN)) | shift<EAST>(pieces(c, PAWN)));
-	}
-
-    BB knights = pieces(c, KNIGHT);
-    while (knights) {
-        int from = poplsb(knights);
-        mask |= get_knight_atk(from);
-    }
-
-    BB nonking_occ = get_occ() & ~pieces(opp(c), KING);
-
-    BB bishops = pieces(c, BISHOP);
-    while (bishops) {
-        int from = poplsb(bishops);
-        mask |= get_bishop_atk(from, nonking_occ);
-    }
-
-    BB rooks = pieces(c, ROOK);
-    while (rooks) {
-        int from = poplsb(rooks);
-        mask |= get_rook_atk(from, nonking_occ);
-    }
-
-    BB queens = pieces(c, QUEEN);
-    while (queens) {
-        int from = poplsb(queens);
-        mask |= get_queen_atk(from, nonking_occ);
-    }
-
-    mask |= get_king_atk(lsb(pieces(c, KING)));
+    mask |= get_pawn_atk_mask(color);
+    mask |= get_knight_atk_mask(color);
+    mask |= get_bishop_atk_mask(color);
+    mask |= get_rook_atk_mask(color);
+    mask |= get_queen_atk_mask(color);
+    mask |= get_king_atk_mask(color);
 
     return mask;
+}
+
+BB Pos::get_pawn_atk_mask(Color color) {
+	BB mask = 0;
+	if (color == WHITE) {
+		mask |= shift<NORTH>(shift<WEST>(pieces(color, PAWN)) | shift<EAST>(pieces(color, PAWN)));
+	}
+	else {
+		mask |= shift<SOUTH>(shift<WEST>(pieces(color, PAWN)) | shift<EAST>(pieces(color, PAWN)));
+	}
+	return mask;
+}
+
+BB Pos::get_knight_atk_mask(Color color) {
+	BB mask = 0;
+	BB knights = pieces(color, KNIGHT);
+	while (knights) {
+		int from = poplsb(knights);
+		mask |= get_knight_atk(from);
+	}
+	return mask;
+}
+
+BB Pos::get_bishop_atk_mask(Color color) {
+	BB mask = 0;
+	BB nonking_occ = get_occ() & ~pieces(opp(color), KING);
+	BB bishops = pieces(color, BISHOP);
+	while (bishops) {
+		int from = poplsb(bishops);
+		mask |= get_bishop_atk(from, nonking_occ);
+	}
+	return mask;
+}
+
+BB Pos::get_rook_atk_mask(Color color) {
+	BB mask = 0;
+	BB nonking_occ = get_occ() & ~pieces(opp(color), KING);
+	BB rooks = pieces(color, ROOK);
+	while (rooks) {
+		int from = poplsb(rooks);
+		mask |= get_rook_atk(from, nonking_occ);
+	}
+	return mask;
+}
+
+BB Pos::get_queen_atk_mask(Color color) {
+	BB mask = 0;
+	BB nonking_occ = get_occ() & ~pieces(opp(color), KING);
+	BB queens = pieces(color, QUEEN);
+	while (queens) {
+		int from = poplsb(queens);
+		mask |= get_queen_atk(from, nonking_occ);
+	}
+	return mask;
+}
+
+BB Pos::get_king_atk_mask(Color color) {
+	BB mask = 0;
+	mask |= get_king_atk(lsb(pieces(color, KING)));
+	return mask;
 }
 
 bool Pos::in_check() {

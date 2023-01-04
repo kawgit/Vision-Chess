@@ -16,86 +16,86 @@ using namespace std;
 
 // const vector<const float> connectivity_weights = {};
 
-Eval piece_eval[] = {100, 300, 320, 500, 900, 100};
+vector<float> piece_eval = {100, 300, 320, 500, 900, 100};
 
 vector<vector<float>> piece_eval_maps = {
 
     { //pawn
-        0,  0,  0,  0,  0,  0,  0,  0,
-        50, 50, 50, 50, 50, 50, 50, 50,
+         0,  0,  0,  0,  0,  0,  0,  0,
+        20, 20, 20, 20, 20, 20, 20, 20,
         10, 10, 20, 30, 30, 20, 10, 10,
-        5,  5, 10, 25, 25, 10,  5,  5,
-        0,  0,  0, 20, 20,  0,  0,  0,
-        5, -5,-10,  0,  0,-10, -5,  5,
-        5, 10, 10,-30,-30, 10, 10,  5,
-        0,  0,  0,  0,  0,  0,  0,  0
+         5,  5, 10, 20, 20, 10,  5,  5,
+         0,  0,  0, 10, 10,  0,  0,  0,
+         0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,-10,-10,  0,  0,  0,
+         0,  0,  0,  0,  0,  0,  0,  0
     },
 
     { //knight
-        -50,-40,-30,-30,-30,-30,-40,-50,
-        -40,-20,  0,  0,  0,  0,-20,-40,
-        -30,  0, 10, 15, 15, 10,  0,-30,
-        -30,  5, 15, 20, 20, 15,  5,-30,
-        -30,  0, 15, 20, 20, 15,  0,-30,
-        -30,  5, 10, 15, 15, 10,  5,-30,
-        -40,-20,  0,  5,  5,  0,-20,-40,
-        -50,-40,-30,-30,-30,-30,-40,-50,
+        -50,-40,-20,-20,-20,-20,-20, -50,
+        -40,-20,  0,  0,  0,  0,-20, -40,
+        -30,  0, 10, 15, 15, 10,  0, -30,
+        -30,  0, 15, 20, 20, 15,  0, -30,
+        -30,  0, 15, 20, 20, 15,  0, -30,
+        -30,  0, 10, 15, 15, 10,  0, -30,
+        -40,-20,  0,  5,  5,  0,-20, -40,
+        -50,-40,-20,-20,-20,-20,-20, -50,
     },
 
     { //bishop
-        -20,-10,-10,-10,-10,-10,-10,-20,
-        -10,  0,  0,  0,  0,  0,  0,-10,
-        -10,  0,  5, 10, 10,  5,  0,-10,
-        -10,  5,  5, 10, 10,  5,  5,-10,
-        -10,  0, 10, 10, 10, 10,  0,-10,
-        -10, 10, 10, 10, 10, 10, 10,-10,
-        -10,  5,  0,  0,  0,  0,  5,-10,
-        -20,-10,-10,-10,-10,-10,-10,-20,
+          0,-10,-10,-10,-10,-10,-10,  0,
+          0,  0,  0,  0,  0,  0,  0,  0,
+         10,  0,  0, 10, 10,  0,  0, 10,
+          0,  0,  0, 10, 10,  0,  0,  0,
+          0,  0, 10, 10, 10, 10,  0,  0,
+          0, 10, 10, 10, 10, 10, 10,  0,
+         10, 10,  0,  0,  0,  0, 10, 10,
+         10, 10,-10,-10,-10,-10, 10, 10,
     },
 
     { //rook
-        0,  0,  0,  0,  0,  0,  0,  0,
-        5, 15, 15, 15, 15, 15, 15,  5,
-        -5,  0,  0,  0,  0,  0,  0, -5,
-        -5,  0,  0,  0,  0,  0,  0, -5,
-        -5,  0,  0,  0,  0,  0,  0, -5,
-        -5,  0,  0,  0,  0,  0,  0, -5,
-        -5,  0,  0,  0,  0,  0,  0, -5,
-        0,  0,  0,  8,  8,  0,  0,  0
+          0,  0,  0,  0,  0,  0,  0,  0,
+          0,  0,  0,  0,  0,  0,  0,  0,
+          0,  0,  0,  0,  0,  0,  0,  0,
+          0,  0,  0,  0,  0,  0,  0,  0,
+          0,  0,  0,  0,  0,  0,  0,  0,
+          0,  0,  0,  0,  0,  0,  0,  0,
+          0,  0,  0,  0,  0,  0,  0,  0,
+        -10,  0,  0,  0,  0,  0,  0,-10,
     },
 
     { //queen
         -20,-10,-10, -5, -5,-10,-10,-20,
+          0,  0,  0,  0,  0,  0,  0,  0,
+          0,  0,  0,  0,  0,  0,  0,  0,
+          0,  0,  0,  0,  0,  0,  0,  0,
+          0,  0,  0,  0,  0,  0,  0,  0,
         -10,  0,  0,  0,  0,  0,  0,-10,
-        -10,  0,  5,  5,  5,  5,  0,-10,
-        -5,  0,  5,  5,  5,  5,  0, -5,
-        0,  0,  5,  5,  5,  5,  0, -5,
-        -10,  5,  5,  5,  5,  5,  0,-10,
-        -10,  0,  5,  0,  0,  0,  0,-10,
-        -20,-10,-10, -5, -5,-10,-10,-20
+        -10,-10,  0,  0,  0,  0,-10,-10,
+        -20,-10,-10,  0,  0,-10,-10,-20,
     }
 };
 
 vector<vector<float>> king_eval_map = {
     {
-    -30,-40,-40,-50,-50,-40,-40,-30,
-    -30,-40,-40,-50,-50,-40,-40,-30,
-    -30,-40,-40,-50,-50,-40,-40,-30,
-    -30,-40,-40,-50,-50,-40,-40,-30,
-    -20,-30,-30,-40,-40,-30,-30,-20,
-    -10,-20,-20,-20,-20,-20,-20,-10,
-    20, 20,  0,  0,  0,  0, 20, 20,
-    60, 50, 20,  0,  0, 20, 50, 60
+        -30,-40,-40,-50,-50,-40,-40,-30,
+        -30,-40,-40,-50,-50,-40,-40,-30,
+        -30,-40,-40,-50,-50,-40,-40,-30,
+        -30,-40,-40,-50,-50,-40,-40,-30,
+        -20,-30,-30,-40,-40,-30,-30,-20,
+        -10,-20,-20,-20,-20,-20,-20,-10,
+         10, 10,-10,-10,-10,-10, 10, 10,
+         20, 20, 10,  0,  0, 10, 20, 20
     },  
 
     {
         -20,-10,-10, -5, -5,-10,-10,-20,
-        -10,  0,  0,  0,  0,  0,  0,-10,
-        -10,  0,  5,  5,  5,  5,  0,-10,
-        -5,  0,  5,  5,  5,  5,  0, -5,
-        0,  0,  5,  5,  5,  5,  0, -5,
-        -10,  5,  5,  5,  5,  5,  0,-10,
-        -10,  0,  5,  0,  0,  0,  0,-10,
+        -10, -5,  0,  0,  0,  0, -5,-10,
+        -10,  0, 15, 15, 15, 15,  0,-10,
+        -5,   0, 15, 15, 15, 15,  0, -5,
+        -5,   0, 15, 15, 15, 15,  0, -5,
+        -10,  0, 15, 15, 15, 15,  0,-10,
+        -10,  0,  0,  0,  0,  0, -5,-10,
         -20,-10,-10, -5, -5,-10,-10,-20
     }
 };
@@ -115,6 +115,13 @@ vector<Factor> factors = {
                 res += piece_eval_maps[pt - PAWN][color == WHITE ? sqMapTrans(sq) : sq];
             }
         }
+
+        Square ksq = lsb(pos.pieces(color, KING));
+        bool is_endgame = !(pos.pieces(opp(color), QUEEN) ||
+            bitcount(pos.pieces(opp(color), ROOK)) >= 2 ||
+            bitcount(pos.pieces(opp(color), KNIGHT)) + bitcount(pos.pieces(opp(color), BISHOP)) + bitcount(pos.pieces(opp(color), ROOK)) >= 3);
+        
+        res += king_eval_map[is_endgame ? 1 : 0][ksq];
 
         return res;
     }),
@@ -160,36 +167,103 @@ vector<Factor> factors = {
         return res;
     }),
 
-    Factor("space", [](Pos& pos, Color color) {
+    /*Factor("control", [](Pos& pos, Color color) {
         Eval res = 0;
+        char cum[64] = {};
 
-        res += bitcount(pos.get_atk_mask(color) & ~pos.pieces(color, PAWN)) * 4;
+		add_bb_to_cum(cum, shift<NORTH>(shift<WEST>(pos.pieces(color, PAWN)) | shift<EAST>(pos.pieces(color, PAWN))), 50);
 
-        return res;
-    }),
+        {
+            BB knights = pos.pieces(color, KNIGHT);
+            while (knights) {
+                int from = poplsb(knights);
+                add_bb_to_cum(cum, get_knight_atk(from), 30);
+            }
+        }
+
+        {
+            BB occ = pos.get_occ() & ~(pos.pieces(opp(color), KING) | pos.pieces(color, BISHOP) | pos.pieces(color, QUEEN));
+            BB bishops = pos.pieces(color, BISHOP);
+            while (bishops) {
+                int from = poplsb(bishops);
+                add_bb_to_cum(cum, get_bishop_atk(from, occ), 25);
+            }
+        }
+
+        {
+            BB occ = pos.get_occ() & ~(pos.pieces(opp(color), KING) | pos.pieces(color, ROOK) | pos.pieces(color, QUEEN));
+            BB rooks = pos.pieces(color, ROOK);
+            while (rooks) {
+                int from = poplsb(rooks);
+                add_bb_to_cum(cum, get_rook_atk(from, occ), 15);
+            }
+        }
+
+        {
+            BB occ = pos.get_occ() & ~(pos.pieces(opp(color), KING) | pos.pieces(color, BISHOP) | pos.pieces(color, ROOK) | pos.pieces(color, QUEEN));
+            BB queens = pos.pieces(color, QUEEN);
+            while (queens) {
+                int from = poplsb(queens);
+                add_bb_to_cum(cum, get_queen_atk(from, occ), 10);
+            }
+        }
+
+        for (Square sq = 0; sq < 64; sq++) {
+            float val = ((float)(cum[sq]) / 10);
+            res += val*val;
+        }
+
+        return res / 40;
+    }),*/
+
+    // Factor("mobility", [](Pos& pos, Color color) {
+    //     Eval res = 0;
+
+    //     res += bitcount(pos.get_atk_mask(color) & ~pos.pieces(color, PAWN)) * 4;
+
+    //     return res;
+
+    //     // Eval res = 0;
+    //     // BB occ = pos.get_occ();
+
+    //     // for (Piece pt = BISHOP; pt <= QUEEN; pt++) {
+    //     //     BB pieces = pos.pieces(color, pt);
+    //     //     while (pieces) {
+    //     //         Square from = poplsb(pieces);
+    //     //         res += bitcount(get_piece_atk(pt, from, color, occ)) * 2;
+    //     //     }
+    //     // }
+
+    //     // return res;
+    // }),
 
     Factor("king_safety", [](Pos& pos, Color color) {
         Eval res = 0;
 
         BB ksq_bb = pos.pieces(color, KING);
-        
         int ksq = lsb(ksq_bb);
 
-        BB pawns = pos.pieces(color, PAWN);
-        BB surroundings = get_king_atk(ksq);
+        BB surr = get_king_atk(ksq);
+        //res += (8 - bitcount(surr)) * 4;
+        res += bitcount(surr & pos.pieces(color, PAWN)) * 3;
+        res += bitcount(surr & pos.pieces(color, KNIGHT)) * 1;
+        res += bitcount(surr & pos.pieces(color, BISHOP)) * 2;
+        
+        BB temp = surr;
+        while (temp) {
+            Square square = poplsb(temp);
+            if (pos.get_control_value(color, square) < 0) {
+                res -= 10;
+            }
+        }
 
-        res += bitcount(get_file_mask(ksq % 8) & pawns) * 20;
-        res += bitcount(files_of(surroundings) & pawns) * 10;
-        res += bitcount(files_of(surroundings) & pos.supported_pawns(color)) * 20;
-        res += bitcount(surroundings & pawns & pos.get_atk_mask(color)) * 10;
-
-        res -= bitcount(surroundings & pos.get_atk_mask(opp(color))) * 30;
+        res -= bitcount(pos.get_atk_mask(opp(color)) & surr) * 8;
 
         return res;
     }),
 
-/*
-    Factor("connectivity", [](Pos& pos, Color color) {
+
+    /*Factor("connectivity", [](Pos& pos, Color color) {
         Eval res = 0;
 
         for (Piece victim_type = PAWN; victim_type <= KNIGHT; victim_type++) {
@@ -197,11 +271,8 @@ vector<Factor> factors = {
             BB victims = pos.pieces(color, victim_type);
             while (victims) {
                 Square victim_square = poplsb(victims);
-                
-                
-
                 for (Piece defender_type = PAWN; defender_type < KING; defender_type++) {
-                    defender_type
+                    defender_type 
                 }
             }
         }

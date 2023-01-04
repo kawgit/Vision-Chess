@@ -1,4 +1,5 @@
 all: bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o main.exe unit_tests.exe
+objects: bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o
 
 main.exe: bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o main.cpp
 	clang++ -Ofast -pthread bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o main.cpp -o main.exe
@@ -31,4 +32,3 @@ uci.o: uci.cpp uci.h
 
 clean:
 	del *.o
-	del *.exe

@@ -40,3 +40,11 @@ void add_serialized_bb(vector<float>& vec, BB bb) {
 		vec.emplace_back(bitAt(bb, i) ? 1 : 0);
 	}
 }
+
+void add_bb_to_cum(char* cum, BB bb, char coeff) {
+	for (int i = 0; i < 64; i++) {
+		if (bitAt(bb, i)) {
+			cum[i] += coeff;
+		}
+	}
+}

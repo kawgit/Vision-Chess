@@ -4,6 +4,7 @@
 #include "bits.h"
 #include "eval.h"
 #include "tuner.h"
+#include "movegen.h"
 #include <vector>
 
 
@@ -57,19 +58,49 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo* ti, Searc
     vector<Score> unsorted_scores;
     unsorted_scores.reserve(unsorted_moves.size());
 
+    BB occ = pos.get_occ();
+    BB turn_atk = pos.get_atk_mask(pos.turn);
+    BB notturn_atk = pos.get_atk_mask(pos.notturn);
+
     bool found_huer_response = false;
     for (Move& move : unsorted_moves) {
         Score score = 0;
         if (is_capture(move)) score += mvvlva(pos.mailboxes(pos.turn, get_from(move)), is_ep(move) ? PAWN : pos.mailboxes(pos.notturn, get_to(move)));
         if (is_promotion(move)) score += get_piece_eval(get_promotion_type(move))*20;
-        if (pos.causes_check(move)) score += 100000;
+        if (pos.causes_check(move)) score += 1000000;
 
         if (score != 0 || !for_qsearch) {
-            if (move == entry_move) score = SCORE_MAX;
-            else if (move == counter_move) score = SCORE_MAX - 100;
+            if (move == entry_move) score = 10000000;
+            else if (move == counter_move) score = 10000000 - 100;
+        }
+        
+        if (score > 0) interesting++;
+
+#ifdef ORDER_EXPER
+        Square from = get_from(move);
+        Piece from_pt = pos.mailboxes(pos.turn, from);
+        BB piece_atk = get_piece_atk(from_pt, from, pos.turn, occ);
+        Square to_bb = get_BB(get_to(move));
+        if (notturn_atk & to_bb) {
+            if (turn_atk & to_bb) {
+                score += -100;
+            }
+            else {
+                score += -400 * from_pt;
+            }
         }
 
-        if (score != 0) interesting++;
+        for (Piece to_pt = PAWN; to_pt <= KING; to_pt++) {
+            BB threatened = (to_pt >= from_pt ? 
+                (piece_atk & pos.pieces(pos.notturn, to_pt))
+                : (piece_atk & pos.pieces(pos.notturn, to_pt) & ~notturn_atk));
+            if (threatened) {
+                score += (bitcount(threatened) * get_piece_eval(to_pt));
+            }
+        }
+
+#endif
+
         unsorted_scores.push_back(score);
     }
 
