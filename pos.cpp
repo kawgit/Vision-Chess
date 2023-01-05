@@ -550,12 +550,12 @@ bool Pos::causes_check(Move move) {
 	BB to_mask = get_BB(get_to(move));
 	
 	if (rook_rays & from_mask
-	 && get_rook_atk(ksq, occ & ~from_mask) & (pieces(turn, ROOK) | pieces(turn, QUEEN))) {
+	 && get_rook_atk(ksq, (occ & ~from_mask) | to_mask) & (pieces(turn, ROOK) | pieces(turn, QUEEN))) {
 		return true;
 	}
 
 	if (bishop_rays & from_mask
-	 && get_bishop_atk(ksq, occ & ~from_mask) & (pieces(turn, BISHOP) | pieces(turn, QUEEN))) {
+	 && get_bishop_atk(ksq, (occ & ~from_mask) | to_mask) & (pieces(turn, BISHOP) | pieces(turn, QUEEN))) {
 		return true;
 	}
 
