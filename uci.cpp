@@ -105,6 +105,7 @@ void worker(ThreadInfo& ti) {
         
         search(pos, depth, -INF, INF, ti, uci_root_si);
 
+        // cout << "thread " << ti.id << ":";
         print_uci_info(uci_root_pos, uci_root_si, uci_root_tis);
     }
     

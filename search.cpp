@@ -132,7 +132,7 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 		pos.do_move(move);
 
 #ifndef AGGR_PRUNE
-		Eval eval = -search(pos, depth - (i > interesting ? depth / 6 + 2 : 1), -beta, -max(alpha, besteval), ti, si);
+		Eval eval = -search(pos, depth - (i > interesting ? depth / 8 + 2 : 1), -beta, -max(alpha, besteval), ti, si);
 #endif
 #ifdef AGGR_PRUNE
 		Eval eval = -search(pos, depth - (i > interesting ? depth / 4 + 2 : 1), -beta, -max(alpha, besteval), ti, si);
