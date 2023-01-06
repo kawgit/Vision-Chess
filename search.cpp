@@ -85,8 +85,6 @@ void perftTest() {
 }
 
 Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si) {
-
-
 	if (!ti.searching) return 0;
 	ti.nodes++;
 
@@ -134,18 +132,17 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 		pos.do_move(move);
 
 #ifndef AGGR_PRUNE
-		Eval eval = -search(pos, depth - (i > interesting ? 2 : 1), -beta, -max(alpha, besteval), ti, si);
+		Eval eval = -search(pos, depth - (i > interesting ? depth / 6 + 2 : 1), -beta, -max(alpha, besteval), ti, si);
 #endif
 #ifdef AGGR_PRUNE
-		Eval eval = -search(pos, depth - (i > interesting ? depth / 8 + 2 : 1), -beta, -max(alpha, besteval), ti, si);
+		Eval eval = -search(pos, depth - (i > interesting ? depth / 4 + 2 : 1), -beta, -max(alpha, besteval), ti, si);
 #endif
+
 		pos.undo_move();
 
 		if (eval > MINMATE) eval--;
 
 		if (eval > besteval) {
-			if (!ti.searching) return 0;
-
 			besteval = eval;
 			bestmove = move;
 			

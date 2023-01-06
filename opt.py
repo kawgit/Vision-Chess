@@ -6,7 +6,6 @@ fout.write("")
 fout.close()
 
 flags = [
-    'ORDER_EXPER',
     'AGGR_PRUNE',
 ]
 
@@ -28,11 +27,11 @@ def list_of_affected_files():
     result = []
     for filename in os.listdir(os.getcwd()):
         if filename.endswith('.cpp') or filename.endswith('.h'):
-            result.append(filename)
-            # with open(filename) as file:
-            #     for line in file:
-            #         if (line.startswith("#ifdef") or line.startswith("#ifndef")) and line.strip().endswith(flag):
-            #             result.append(filename)
+            with open(filename) as file:
+                for line in file:
+                    if (line.startswith("#ifdef") or line.startswith("#ifndef")):
+                        result.append(filename)
+                        break
     return result
 
 def add_entry(stdout, enabled_flags):
@@ -54,6 +53,7 @@ def get_itr_flags(i):
     return result
 
 subprocess.run('make clean', shell=True)
+subprocess.run('make objects', shell=True)
 
 assert(len(flags) <= 32)
 
@@ -64,7 +64,7 @@ while i < 2**len(flags):
     for file in files_to_recompile:
         first_name = file.split('.')[0]
         cmd = 'clang++ -c -Ofast ' + first_name + '.cpp -o ' + first_name + '.o -D CSV_OUTPUT' + (' -D ' + " -D ".join(itr_flags) if i != 0 else '')
-        # print(cmd)
+        print("recompiling " + first_name)
         subprocess.run(cmd, shell=True)
     cmd = 'clang++ -Ofast -pthread ' + '.o '.join(cpp_first_names) + '.o ' + 'unit_tests.cpp -o unit_tests.exe -D CSV_OUTPUT' + (' -D ' + " -D ".join(itr_flags) if i != 0 else '')
     print(cmd)

@@ -120,6 +120,8 @@ vector<Test> tests = {
             {"3r3r/1k6/2p4q/p1Pp1p2/3Rp1p1/1P2P1n1/PB2Q2P/5BK1 w - - 0 27", "e2a6"},
             {"r1b1kb1r/pp1p1ppp/5n2/4p3/2Pn4/P1N1B3/1q2PPPP/R2QKBNR w KQkq - 0 9", "e3d4"},
             {"5rk1/3R4/4p1pR/8/3b4/1Pp2P1P/1n2K1P1/8 b - - 1 38", "f8c8"},
+            {"4r2k/1p5p/p2P4/5p2/8/5PK1/PP6/3R4 b - - 2 34", "h8g7"},
+            {"4r2k/1p5p/p2P4/3Q1pp1/7P/4qP2/PP1n2P1/3R3K b - h3 0 25", "e3e1"}
         };
 
         for (vector<string> test : tests) {
@@ -140,7 +142,15 @@ vector<Test> tests = {
                 search(pos, depth, -INF, INF, ti, si);
 
                 bool found;
-                if (get_time_diff(start) > min_time && getSAN(si.tt.probe(pos.hashkey, found)->get_move()) == test[1]) {
+                string move_str = getSAN(si.tt.probe(pos.hashkey, found)->get_move());
+                bool found_valid_move = false;
+                for (int i = 1; i < test.size(); i++) {
+                    if (test[i] == move_str) {
+                        found_valid_move = true;
+                    }
+                }
+
+                if (found_valid_move && get_time_diff(start) > min_time) {
                     break;
                 }
             }

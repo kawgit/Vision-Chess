@@ -76,31 +76,6 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo* ti, Searc
         
         if (score > 0) interesting++;
 
-#ifdef ORDER_EXPER
-        Square from = get_from(move);
-        Piece from_pt = pos.mailboxes(pos.turn, from);
-        BB piece_atk = get_piece_atk(from_pt, from, pos.turn, occ);
-        Square to_bb = get_BB(get_to(move));
-        if (notturn_atk & to_bb) {
-            if (turn_atk & to_bb) {
-                score += -100;
-            }
-            else {
-                score += -400 * from_pt;
-            }
-        }
-
-        for (Piece to_pt = PAWN; to_pt <= KING; to_pt++) {
-            BB threatened = (to_pt >= from_pt ? 
-                (piece_atk & pos.pieces(pos.notturn, to_pt))
-                : (piece_atk & pos.pieces(pos.notturn, to_pt) & ~notturn_atk));
-            if (threatened) {
-                score += (bitcount(threatened) * get_piece_eval(to_pt));
-            }
-        }
-
-#endif
-
         unsorted_scores.push_back(score);
     }
 
@@ -135,33 +110,9 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo* ti, Searc
         }
     }
     
-    if (interesting == 0 && si) {
-        int sorted_length = sorted_moves.size();
-        
-        for (Move& move : uninteresting) {
-            Score score = si->get_hist(pos, move);
-
-            sorted_moves.push_back(move);
-            sorted_scores.push_back(score);
-
-            int i = sorted_moves.size()-1;
-            while (i != sorted_length-1) {
-                i--;
-                if (sorted_scores[i] < score) {
-                    sorted_moves[i+1] = sorted_moves[i];
-                    sorted_scores[i+1] = sorted_scores[i];
-                }
-                else break;
-            }
-            sorted_moves[i+1] = move;
-            sorted_scores[i+1] = score;
-        }
-    }
-    else {
-        for (Move& move : uninteresting) {
-            sorted_moves.push_back(move);
-            sorted_scores.push_back(0);
-        }
+    for (Move& move : uninteresting) {
+        sorted_moves.push_back(move);
+        sorted_scores.push_back(0);
     }
 
     return sorted_moves;
