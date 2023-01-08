@@ -6,7 +6,7 @@ fout.write("")
 fout.close()
 
 flags = [
-    'ORDER_EVASION',
+    'NO_QSEARCH_EVASION',
 ]
 
 cpp_first_names = [

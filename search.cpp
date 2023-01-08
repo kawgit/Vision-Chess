@@ -183,7 +183,7 @@ Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si) {
 		if (pos.three_repetitions()) return 0;
 	}
 
-#ifdef QSEARCH_EVASION
+#ifndef NO_QSEARCH_EVASION
 	if (pos.in_check()) {
 		return search(pos, 1, alpha, beta, ti, si);
 	}
