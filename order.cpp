@@ -47,12 +47,12 @@ bool keeps_tempo(Move& move, Pos& pos, ThreadInfo& ti) {
 }
 */
 
-vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo* ti, SearchInfo* si, int& interesting, bool for_qsearch) {
+vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, SearchInfo& si, int& interesting, bool for_qsearch) {
     interesting = 0;
-    Move counter_move = si ? si->get_cm(pos) : MOVE_NONE;
+    Move counter_move = si.get_cm(pos);
 
     bool found = false;
-	TTEntry* entry = si ? si->tt.probe(pos.hashkey, found) : nullptr;
+	TTEntry* entry = si.tt.probe(pos.hashkey, found);
 	Move entry_move = found ? entry->get_move() : MOVE_NONE;
 
     vector<Score> unsorted_scores;
@@ -69,7 +69,7 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo* ti, Searc
         if (is_promotion(move)) score += get_piece_eval(get_promotion_type(move))*20;
         if (pos.causes_check(move)) score += 1000000;
 
-        if (score != 0 || !for_qsearch) {
+        if (!for_qsearch || score != 0) {
             if (move == entry_move) score = 10000000;
             else if (move == counter_move) score = 10000000 - 100;
         }

@@ -6,7 +6,7 @@ fout.write("")
 fout.close()
 
 flags = [
-    'AGGR_PRUNE',
+    'ORDER_EVASION',
 ]
 
 cpp_first_names = [

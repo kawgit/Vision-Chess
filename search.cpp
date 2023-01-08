@@ -100,7 +100,7 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 		if (pos.three_repetitions()) return 0;
 	}
 
-	if (depth <= 0) return qsearch(pos, alpha, beta, &ti, &si);
+	if (depth <= 0) return qsearch(pos, alpha, beta, ti, si);
 
 	bool found = false;
 	TTEntry* entry = si.tt.probe(pos.hashkey, found);
@@ -121,7 +121,7 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 	}
 	
 	int interesting = 0;
-	moves = order(moves, pos, &ti, &si, interesting);
+	moves = order(moves, pos, ti, si, interesting);
 
 	Eval besteval = -INF;
 	Move bestmove = moves[0];
@@ -162,11 +162,9 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 	return besteval;
 }
 
-Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo* ti, SearchInfo* si) {
-	if (ti) {
-		if (!ti->searching) return 0;
-		ti->nodes++;
-	}
+Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si) {
+	if (!ti.searching) return 0;
+	ti.nodes++;
 
 	if (beta <= -MINMATE && beta != -INF) {
 		beta--;
@@ -181,9 +179,15 @@ Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo* ti, SearchInfo* si) {
 	// ONLY IF MOVES INCLUDE CHECKS
 	if (pos.hm_clock >= 4) {
 		if (pos.hm_clock == 50) return 0;
-		if (ti && pos.one_repetition(ti->root_ply)) return 0;
+		if (pos.one_repetition(ti.root_ply)) return 0;
 		if (pos.three_repetitions()) return 0;
 	}
+
+#ifdef QSEARCH_EVASION
+	if (pos.in_check()) {
+		return search(pos, 1, alpha, beta, ti, si);
+	}
+#endif
 
     vector<Move> moves = get_legal_moves(pos);
 
@@ -193,8 +197,7 @@ Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo* ti, SearchInfo* si) {
 	}
 
 	int interesting = moves.size();
-	if (ti && si) moves = order(moves, pos, ti, si, interesting, true);
-	else assert(false);
+	moves = order(moves, pos, ti, si, interesting, true);
     
     for (int i = 0; i < interesting; i++) {
 		Move move = moves[i];

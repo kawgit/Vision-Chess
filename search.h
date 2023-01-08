@@ -95,7 +95,7 @@ struct ThreadInfo {
 
 Eval search(Pos &p, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si);
 
-Eval qsearch(Pos &p, Eval alpha, Eval beta, ThreadInfo* ti = nullptr, SearchInfo* si = nullptr);
+Eval qsearch(Pos &p, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si);
 
 void timer(ThreadInfo* ti, Timestamp max_time);
 
