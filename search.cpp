@@ -7,6 +7,7 @@
 #include "hash.h"
 #include "eval.h"
 #include "order.h"
+#include "uci.h"
 #include <iostream>
 #include <iomanip>
 #include <thread>
@@ -36,7 +37,6 @@ BB perft(Pos &p, Depth depth, bool divide) {
 	if (divide) cout << moves.size() << endl;
 
 	for (Move move : moves) {
-
 		p.do_move(move);
 		BB n = perft(p, depth-1, false);
 		p.undo_move();
@@ -221,33 +221,114 @@ Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si) {
     return alpha;
 }
 
-void timer(ThreadInfo* ti, Timestamp max_time) {
-	Timestamp start = get_current_ms();
-	while (get_time_diff(start) < max_time && ti->searching) {
-		sleep(10);
-	}
-	ti->searching = false;
+mutex print_mutex;
+void SearchInfo::launch(bool verbose) {
+	stop();
+	tis.clear();
+	clear();
+
+    is_active = true;
+    start_time = get_current_ms();
+	last_depth_searched = 0;
+    
+    for (int i = 0; i < num_threads; i++) {
+        tis.emplace_back(root_pos, "threadname_" + to_string(i));
+    }
+
+	vector<thread> threads;
+    for (int i = 0; i < num_threads; i++) {
+        threads.emplace_back(&SearchInfo::worker, this, ref(tis[i]), ref(verbose));
+    }
+
+    while (true) {
+        if (!is_active
+            || (!ponder && get_time_diff(start_time) > max_time)) {
+            break;
+        }
+
+        sleep(10);
+    }
+    
+    stop();
+	print();
+
+    vector<Move> pv = tt.getPV(root_pos);
+    vector<Move> moves = get_legal_moves(root_pos);
+    print_mutex.lock();
+    cout << "bestmove " + (pv.size() > 0 ? getSAN(pv[0]) : (moves.size() ? getSAN(moves[0]) : "(none)")) + (pv.size() > 1 ? " ponder " + getSAN(pv[1]) : "") << endl;
+    print_mutex.unlock();
+    
+    for (thread& thr : threads) {
+        thr.join();
+    }
 }
 
-Move get_best_move(Pos pos, Timestamp time) {
-	SearchInfo si;
-	ThreadInfo ti(pos, "0");
+void SearchInfo::stop() {
+	for (ThreadInfo& ti : tis) {
+        ti.searching = false;
+    }
+    is_active = false;
+    last_depth_searched = 0;
+}
 
-	si.tt.gen++;
-	search(pos, 1, -INF, INF, ti, si);
-
-	ThreadInfo* ti_ptr = &ti;
-	thread timer_thread(&timer, ref(ti_ptr), ref(time));
-
-	for (Depth depth = 2; depth < 127 && ti.searching; depth++) {
-		search(pos, depth, -INF, INF, ti, si);
+void SearchInfo::clear() {
+	for (int i = 0; i < 6; i++) {
+		for (int sq = 0; sq < 64; sq++) {
+			hist_hueristic[i][sq] = 0;
+			cm_hueristic[i][sq] = MOVE_NONE;
+		}
 	}
+	hist_score_max = 0;
+	tt.clear();
+}
 
-	timer_thread.join();
+void SearchInfo::worker(ThreadInfo& ti, bool verbose) {
+	Pos root_copy = root_pos;
 
-	bool found = false;
-	TTEntry* entry = si.tt.probe(pos.hashkey, found);
-	assert(found);
+    while (ti.searching) {
+        depth_increment_mutex.lock();
+        Depth depth = ++last_depth_searched;
+        depth_increment_mutex.unlock();
 
-	return entry->get_move();
+        // if (depth > max_depth || depth < 0) break;
+        
+        search(root_copy, depth, -INF, INF, ti, *this);
+
+		if (verbose && ti.searching) {
+        	// cout << "thread " << ti.id << ":";
+        	print();
+		}
+    }
+}
+
+void SearchInfo::print() {
+    bool found = false;
+    TTEntry* entry = tt.probe(root_pos.hashkey, found);
+    
+    if (!found) return;
+
+    BB nodes = get_nodes();
+    Timestamp time_elapsed = get_time_diff(start_time);
+
+    string msg = "";
+    msg += "info";
+    msg += " depth " + to_string(entry->get_depth());
+    msg += " score " + eval_to_string(entry->get_eval());
+    msg += " nodes " + to_string(nodes);
+    msg += " time " + to_string(time_elapsed);
+    msg += " nps " + to_string(nodes * 1000 / (time_elapsed + 1));
+    msg += " hashfull " + to_string(tt.hashfull());
+    msg += " pv " + to_string(tt.getPV(root_pos)) + "\n";
+
+    print_mutex.lock();
+    cout << msg;
+    print_mutex.unlock();
+}
+
+void timer(bool& target, Timestamp time) {
+	Timestamp start = get_current_ms();
+	while (target && get_time_diff(start) < time) {
+		sleep(10);
+	}
+	target = false;
 }

@@ -7,6 +7,7 @@
 #include <thread>
 #include <atomic>
 #include <string>
+#include <mutex>
 
 using namespace std;
 
@@ -23,17 +24,34 @@ BB perft(Pos &p, Depth depth, bool divide = false);
 
 void perftTest();
 
+struct ThreadInfo {
+	int root_ply = 0;
+	uint64_t nodes = 0;
+	string id = "";
+	bool searching = true;
+
+	ThreadInfo(Pos& p, string id_);
+};
+
 class SearchInfo {
 	public:
 
+	// assets
+	Pos root_pos;
 	TT tt;
-	Timestamp start = 0;
-	Timestamp max_time = -1;
-	bool ponder;
+	vector<ThreadInfo> tis;
 
-	bool is_active = false;
+	// settings
+	bool ponder;
+	int num_threads = 0;
+	Timestamp max_time = -1;
 	Depth max_depth = DEPTHMAX;
 	Depth last_depth_searched = 0;
+	
+	// runtime metadata variables
+	bool is_active = false;
+	Timestamp start_time = 0;
+	mutex depth_increment_mutex;
 	
 	private:
 
@@ -43,8 +61,18 @@ class SearchInfo {
 
 	public:
 
-	inline bool should_break() {
-		return !is_active || (!ponder && (get_time_diff(start) > max_time || last_depth_searched >= max_depth));
+	void launch(bool verbose = true);
+	void stop();
+	void clear();
+	void print();
+	void worker(ThreadInfo& ti, bool verbose = true);
+
+	inline int get_nodes() {
+		BB nodes = 0;
+		for (ThreadInfo& ti : tis) {
+			nodes += ti.nodes;
+		}
+		return nodes;
 	}
 
 	inline void add_failhigh(Pos& pos, Move move) {
@@ -54,7 +82,7 @@ class SearchInfo {
 
 		if (hist_score_max == SCORE_MAX) { 
 			// this should ensure that hist_scores never overflow, 
-			// and should mostly ensure order is preserved
+			// and should mostly ensure relative values are preserved
 			for (int i = 0; i < 6; i++) {
 				for (int sq = 0; sq < 64; sq++) {
 					hist_hueristic[i][sq] /= 2;
@@ -71,32 +99,10 @@ class SearchInfo {
 	inline Score get_hist(Pos& pos, Move move) {
 		return hist_hueristic[pos.mailboxes(pos.turn, get_from(move)) - PAWN][get_to(move)];
 	}
-
-	inline void clear() {
-		for (int i = 0; i < 6; i++) {
-			for (int sq = 0; sq < 64; sq++) {
-				hist_hueristic[i][sq] = 0;
-				cm_hueristic[i][sq] = MOVE_NONE;
-			}
-		}
-		hist_score_max = 0;
-		tt.clear();
-	}
-};
-
-struct ThreadInfo {
-	int root_ply = 0;
-	uint64_t nodes = 0;
-	string id = "";
-	bool searching = true;
-
-	ThreadInfo(Pos& p, string id_);
 };
 
 Eval search(Pos &p, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si);
 
 Eval qsearch(Pos &p, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si);
 
-void timer(ThreadInfo* ti, Timestamp max_time);
-
-Move get_best_move(Pos pos, Timestamp time);
+void timer(bool& target, Timestamp time);

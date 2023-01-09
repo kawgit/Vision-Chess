@@ -43,14 +43,14 @@ vector<vector<float>> piece_eval_maps = {
     },
 
     { //bishop
-          0,-10,-10,-10,-10,-10,-10,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-         10,  0,  0, 10, 10,  0,  0, 10,
-          0,  0,  0, 10, 10,  0,  0,  0,
-          0,  0, 10, 10, 10, 10,  0,  0,
-          0, 10, 10, 10, 10, 10, 10,  0,
-         10, 10,  0,  0,  0,  0, 10, 10,
-         10, 10,-10,-10,-10,-10, 10, 10,
+         0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0,  0,  0,  0,
     },
 
     { //rook
@@ -61,18 +61,18 @@ vector<vector<float>> piece_eval_maps = {
           0,  0,  0,  0,  0,  0,  0,  0,
           0,  0,  0,  0,  0,  0,  0,  0,
           0,  0,  0,  0,  0,  0,  0,  0,
-        -10,  0,  0,  0,  0,  0,  0,-10,
+          0,  0,  0,  0,  0,  0,  0,  0,
     },
 
     { //queen
-        -20,-10,-10, -5, -5,-10,-10,-20,
           0,  0,  0,  0,  0,  0,  0,  0,
           0,  0,  0,  0,  0,  0,  0,  0,
           0,  0,  0,  0,  0,  0,  0,  0,
           0,  0,  0,  0,  0,  0,  0,  0,
-        -10,  0,  0,  0,  0,  0,  0,-10,
-        -10,-10,  0,  0,  0,  0,-10,-10,
-        -20,-10,-10,  0,  0,-10,-10,-20,
+          0,  0,  0,  0,  0,  0,  0,  0,
+          0,  0,  0,  0,  0,  0,  0,  0,
+          0,  0,  0,  0,  0,  0,  0,  0,
+          0,  0,  0,  0,  0,  0,  0,  0,
     }
 };
 
@@ -95,7 +95,7 @@ vector<vector<float>> king_eval_map = {
         -5,   0, 15, 15, 15, 15,  0, -5,
         -5,   0, 15, 15, 15, 15,  0, -5,
         -10,  0, 15, 15, 15, 15,  0,-10,
-        -10,  0,  0,  0,  0,  0, -5,-10,
+        -10, -5,  0,  0,  0,  0, -5,-10,
         -20,-10,-10, -5, -5,-10,-10,-20
     }
 };
@@ -121,7 +121,7 @@ vector<Factor> factors = {
             bitcount(pos.pieces(opp(color), ROOK)) >= 2 ||
             bitcount(pos.pieces(opp(color), KNIGHT)) + bitcount(pos.pieces(opp(color), BISHOP)) + bitcount(pos.pieces(opp(color), ROOK)) >= 3);
         
-        res += king_eval_map[is_endgame ? 1 : 0][ksq];
+        res += king_eval_map[is_endgame ? 1 : 0][color == WHITE ? sqMapTrans(ksq) : ksq];
 
         return res;
     }),
@@ -167,7 +167,7 @@ vector<Factor> factors = {
         return res;
     }),
 
-    /*Factor("control", [](Pos& pos, Color color) {
+    Factor("control", [](Pos& pos, Color color) {
         Eval res = 0;
         char cum[64] = {};
 
@@ -183,7 +183,7 @@ vector<Factor> factors = {
 
         {
             BB occ = pos.get_occ() & ~(pos.pieces(opp(color), KING) | pos.pieces(color, BISHOP) | pos.pieces(color, QUEEN));
-            BB bishops = pos.pieces(color, BISHOP);
+            BB bishops = pos.pieces(color, BISHOP) | pos.pieces(color, QUEEN);
             while (bishops) {
                 int from = poplsb(bishops);
                 add_bb_to_cum(cum, get_bishop_atk(from, occ), 25);
@@ -192,50 +192,52 @@ vector<Factor> factors = {
 
         {
             BB occ = pos.get_occ() & ~(pos.pieces(opp(color), KING) | pos.pieces(color, ROOK) | pos.pieces(color, QUEEN));
-            BB rooks = pos.pieces(color, ROOK);
+            BB rooks = pos.pieces(color, ROOK) | pos.pieces(color, QUEEN);
             while (rooks) {
                 int from = poplsb(rooks);
                 add_bb_to_cum(cum, get_rook_atk(from, occ), 15);
             }
         }
 
-        {
-            BB occ = pos.get_occ() & ~(pos.pieces(opp(color), KING) | pos.pieces(color, BISHOP) | pos.pieces(color, ROOK) | pos.pieces(color, QUEEN));
-            BB queens = pos.pieces(color, QUEEN);
-            while (queens) {
-                int from = poplsb(queens);
-                add_bb_to_cum(cum, get_queen_atk(from, occ), 10);
+        for (Square sq = 0; sq < 64; sq++) {
+            float val = ((float)(cum[sq]) / 10);
+            if (val >= 0) {
+                res += 2;
             }
         }
 
-        for (Square sq = 0; sq < 64; sq++) {
-            float val = ((float)(cum[sq]) / 10);
-            res += val*val;
+        return res;
+    }),
+
+    Factor("mobility", [](Pos& pos, Color color) {
+        Eval res = 0;
+        {
+            BB knights = pos.pieces(color, KNIGHT);
+            while (knights) {
+                int from = poplsb(knights);
+                res += bitcount(get_knight_atk(from));
+            }
         }
 
-        return res / 40;
-    }),*/
+        {
+            BB occ = pos.get_occ() & ~(pos.pieces(opp(color), KING) | pos.pieces(color, BISHOP) | pos.pieces(color, QUEEN));
+            BB bishops = pos.pieces(color, BISHOP) | pos.pieces(color, QUEEN);
+            while (bishops) {
+                int from = poplsb(bishops);
+                res += bitcount(get_bishop_atk(from, occ)) * 3;
+            }
+        }
 
-    // Factor("mobility", [](Pos& pos, Color color) {
-    //     Eval res = 0;
-
-    //     res += bitcount(pos.get_atk_mask(color) & ~pos.pieces(color, PAWN)) * 4;
-
-    //     return res;
-
-    //     // Eval res = 0;
-    //     // BB occ = pos.get_occ();
-
-    //     // for (Piece pt = BISHOP; pt <= QUEEN; pt++) {
-    //     //     BB pieces = pos.pieces(color, pt);
-    //     //     while (pieces) {
-    //     //         Square from = poplsb(pieces);
-    //     //         res += bitcount(get_piece_atk(pt, from, color, occ)) * 2;
-    //     //     }
-    //     // }
-
-    //     // return res;
-    // }),
+        {
+            BB occ = pos.get_occ() & ~(pos.pieces(opp(color), KING) | pos.pieces(color, ROOK) | pos.pieces(color, QUEEN));
+            BB rooks = pos.pieces(color, ROOK) | pos.pieces(color, QUEEN);
+            while (rooks) {
+                int from = poplsb(rooks);
+                res += bitcount(get_rook_atk(from, occ)) * 5;
+            }
+        }
+        return res;
+    }),
 
     Factor("king_safety", [](Pos& pos, Color color) {
         Eval res = 0;
@@ -245,7 +247,7 @@ vector<Factor> factors = {
 
         BB surr = get_king_atk(ksq);
         //res += (8 - bitcount(surr)) * 4;
-        res += bitcount(surr & pos.pieces(color, PAWN)) * 3;
+        res += bitcount(surr & pos.pieces(color, PAWN)) * 9;
         res += bitcount(surr & pos.pieces(color, KNIGHT)) * 1;
         res += bitcount(surr & pos.pieces(color, BISHOP)) * 2;
         

@@ -70,11 +70,11 @@ Pos::Pos(string fen) {
 
 	end:
 
-	move_log.reserve(RESERVE_SIZE);
-	hashkey_log.reserve(RESERVE_SIZE);
-	cr_log.reserve(RESERVE_SIZE);
-	to_piece_log.reserve(RESERVE_SIZE);
-	ep_log.reserve(RESERVE_SIZE);
+	move_log.reserve(LOG_RESERVE_SIZE);
+	hashkey_log.reserve(LOG_RESERVE_SIZE);
+	cr_log.reserve(LOG_RESERVE_SIZE);
+	to_piece_log.reserve(LOG_RESERVE_SIZE);
+	ep_log.reserve(LOG_RESERVE_SIZE);
 
 	return;
 }

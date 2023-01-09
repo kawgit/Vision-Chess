@@ -22,6 +22,6 @@ struct UCI_Option {
 
 void process_command(string cmd);
 
-void print_uci_info(Pos& pos, SearchInfo& si, vector<ThreadInfo>& tis);
+void print_uci_info(SearchInfo& si);
 
 void uci();

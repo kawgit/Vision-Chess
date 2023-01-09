@@ -287,7 +287,7 @@ vector<Move> get_legal_moves(Pos& p) {
     PosInfo posInfo(p);
     
     vector<Move> moves;
-    moves.reserve(Pos::RESERVE_SIZE);
+    moves.reserve(Pos::MOVES_RESERVE_SIZE);
 
     if (posInfo.checks != 2) {
         addPawnMoves(moves, p, posInfo);

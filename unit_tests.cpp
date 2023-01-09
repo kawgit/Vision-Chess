@@ -133,7 +133,7 @@ vector<Test> tests = {
             ThreadInfo ti(pos, "puzzle_thread");
             ThreadInfo* ti_ptr = &ti;
 
-            thread timer_thread(&timer, ref(ti_ptr), ref(max_time));
+            thread timer_thread(&timer, ref(ti_ptr->searching), ref(max_time));
 
             bool found_solution = false;
             Timestamp start = get_current_ms();

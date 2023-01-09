@@ -20,7 +20,8 @@ class Pos {
 	
 	public:
 
-	const static int RESERVE_SIZE = 100;
+	const static int MOVES_RESERVE_SIZE = 100;
+	const static int LOG_RESERVE_SIZE = 1000;
 	
 	Color turn = WHITE;
 	Color notturn = BLACK;

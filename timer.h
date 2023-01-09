@@ -6,7 +6,7 @@
 
 using namespace std;
 
-typedef int64_t Timestamp;
+typedef uint64_t Timestamp;
 
 Timestamp get_current_ms();
 
