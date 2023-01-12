@@ -76,8 +76,8 @@ class SearchInfo {
 	}
 
 	inline void add_failhigh(Pos& pos, Move move) {
-		cm_hueristic[pos.mailboxes(pos.notturn, get_to(pos.last_move())) - PAWN][get_to(pos.last_move())] = move;
-		hist_hueristic[pos.mailboxes(pos.turn, get_from(move)) - PAWN][get_to(move)]++;
+		cm_hueristic[pos.ref_mailbox(pos.notturn, get_to(pos.last_move())) - PAWN][get_to(pos.last_move())] = move;
+		hist_hueristic[pos.ref_mailbox(pos.turn, get_from(move)) - PAWN][get_to(move)]++;
 		hist_score_max++;
 
 		if (hist_score_max == SCORE_MAX) { 
@@ -93,11 +93,11 @@ class SearchInfo {
 	}
 
 	inline Move get_cm(Pos& pos) {
-		return ((pos.last_move() != MOVE_NONE) ? (cm_hueristic[pos.mailboxes(pos.notturn, get_to(pos.last_move())) - PAWN][get_to(pos.last_move())]) : MOVE_NONE);
+		return ((pos.last_move() != MOVE_NONE) ? (cm_hueristic[pos.ref_mailbox(pos.notturn, get_to(pos.last_move())) - PAWN][get_to(pos.last_move())]) : MOVE_NONE);
 	}
 
 	inline Score get_hist(Pos& pos, Move move) {
-		return hist_hueristic[pos.mailboxes(pos.turn, get_from(move)) - PAWN][get_to(move)];
+		return hist_hueristic[pos.ref_mailbox(pos.turn, get_from(move)) - PAWN][get_to(move)];
 	}
 };
 
@@ -106,3 +106,7 @@ Eval search(Pos &p, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, SearchIn
 Eval qsearch(Pos &p, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si);
 
 void timer(bool& target, Timestamp time);
+
+Eval sea_gain(Pos& pos, Move move);
+
+Eval static_exchange_search(Pos& pos, Square target_square, Eval alpha, Eval beta);

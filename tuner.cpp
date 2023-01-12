@@ -1,3 +1,4 @@
+/*
 #include "tuner.h"
 #include "types.h"
 #include "eval.h"
@@ -110,8 +111,8 @@ void Configuration::print() {
 }
 
 int main() {
-    initHash(3232);
-    initMoveGen();
+    init_hash(3232);
+    init_movegen();
     srand(get_current_ms());
 
     add_tunables(piece_eval, 100, 1000, "piece_evals_starting_from_knight", KNIGHT - PAWN, KING - PAWN);
@@ -154,3 +155,4 @@ int main() {
 
     return 0;
 }
+*/

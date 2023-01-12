@@ -10,14 +10,22 @@
 
 using namespace std;
 
-
+struct PosInfo {
+	
+	// need carry-over forward
+	CR cr = 0;
+	Square ep = EP_NONE;
+	int num_checks = 0;
+	Clock ply_clock = 0;
+	Clock repetitions_index = 0;
+	BB check_blocking_squares = ~0ULL;
+	BB pinned = 0;
+	BB hashkey = 0;
+    BB moveable_squares[64] = {};
+	BB atk[2] = {0, 0};
+};
 
 class Pos {
-	private:
-	
-	BB pieces_[2][6] = {{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}};
-	Piece mailboxes_[2][64] = { PIECE_NONE };
-	
 	public:
 
 	const static int MOVES_RESERVE_SIZE = 100;
@@ -25,34 +33,172 @@ class Pos {
 	
 	Color turn = WHITE;
 	Color notturn = BLACK;
-	BB hashkey = 0;
-	CR cr = 0;
-	Square ep = SQUARE_NONE;
-	Clock hm_clock = 0;
-	Clock m_clock = 1;
-	Clock repetitions_index = 0;
-	int null_moves_made = 0;
-
-	vector<Move> move_log;
-	vector<BB> hashkey_log;
-	vector<CR> cr_log;
-	vector<Piece> to_piece_log;
-	vector<Square> ep_log;
-	vector<Clock> hm_clock_log;
-	vector<Clock> repetitions_index_log;
 	
+	private:
+	// incrementally updated forwards and backwards
+	int null_moves_made = 0;
+	Clock move_clock = 1;
+	BB occ[3] = {0, 0, 0};
+	Piece mailboxes[2][64] = { PIECE_NONE };
+	BB piece_masks[2][6] = {{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}};
 
+	public:
+	// recalculated forward, uses log to go backwards. 
+	// in order to make code consice, all 
+	// elements in this category are grouped into PosInfo
+	vector<PosInfo> pi_log = {};
+	vector<Move> move_log = {};
+	vector<Piece> to_piece_log = {};
+
+	public:
 	Pos(string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+	void do_move(Move m);
+	void undo_move();
+	bool do_move(string SAN);
+	void calc_meta();
+
+	// void do_null_move();
+	// void undo_null_move();
+
+	public:
+	BB get_atk_mask(Color color);
+	BB get_pawn_atk_mask(Color color);
+	BB get_knight_atk_mask(Color color);
+	BB get_bishop_atk_mask(Color color);
+	BB get_rook_atk_mask(Color color);
+	BB get_queen_atk_mask(Color color);
+	BB get_king_atk_mask(Color color);
+
+	public:
+	bool in_check();
+	bool three_repetitions();
+	bool one_repetition(int root);
+	bool insufficient_material();
+	bool is_draw();
+	bool is_mate();
+	bool is_over();
+	bool causes_check(Move move);
+
+	int get_control_value(Color color, Square square);
+	BB isolated_pawns(Color color);
+	BB doubled_pawns(Color color);
+	BB blocked_pawns(Color color);
+	BB supported_pawns(Color color);
+	BB passed_pawns(Color color);
+	BB double_passed_pawns(Color color);
+
+	void save(string path);
+
+	inline Square& ref_ep() {
+		return pi_log.back().ep;
+	}
+
+	inline int& ref_num_checks() {
+		return pi_log.back().num_checks;
+	}
+
+	inline CR& ref_cr() {
+		return pi_log.back().cr;
+	}
+
+	inline Clock& ref_ply_clock() {
+		return pi_log.back().ply_clock;
+	}
+
+	inline Clock& ref_repetitions_index() {
+		return pi_log.back().repetitions_index;
+	}
+
+	inline BB& ref_moveable_squares(Square square) {
+		return pi_log.back().moveable_squares[square];
+	}
+
+	inline BB& ref_check_blocking_squares() {
+		return pi_log.back().check_blocking_squares;
+	}
+
+	inline BB& ref_pinned() {
+		return pi_log.back().pinned;
+	}
+
+	inline BB& ref_hashkey() {
+		return pi_log.back().hashkey;
+	}
+
+	inline Color& ref_turn() {
+		return turn;
+	}
+
+	inline Color& ref_notturn() {
+		return notturn;
+	}
+
+	inline int& ref_null_moves_made() {
+		return null_moves_made;
+	}
+
+	inline Clock& ref_move_clock() {
+		return move_clock;
+	}
+
+	inline BB& ref_atk(Color color) {
+		return pi_log.back().atk[color - BLACK];
+	}
+
+	inline BB& ref_occ(Color color = COLOR_NONE) {
+		return occ[color];
+	}
+
+	inline Piece& ref_mailbox(Color color, Square square) {
+		assert(square < 64);
+		return mailboxes[color - BLACK][square];
+	}
+
+	inline BB& ref_piece_mask(Color color, Piece piece) {
+		return piece_masks[color - BLACK][piece - PAWN];
+	}
+
+	inline void add_piece(Color c, Square s, Piece p) { 
+		assert(s < 64);
+		ref_hashkey() ^= z_squares(c, p, s);
+		ref_piece_mask(c, p) |= get_BB(s);
+		ref_occ(c) |= get_BB(s);
+		ref_occ() |= get_BB(s);
+		ref_mailbox(c, s) = p;
+	}
+
+	inline void rem_piece(Color c, Square s, Piece p) {
+		assert(s < 64);
+		ref_hashkey() ^= z_squares(c, p, s);
+		ref_piece_mask(c, p) &= ~get_BB(s);
+		ref_occ(c) &= ~get_BB(s);
+		ref_occ() = ref_occ(WHITE) | ref_occ(BLACK);
+		ref_mailbox(c, s) = PIECE_NONE;
+	}
+
+	inline void add_check(BB block_squares) {
+		ref_check_blocking_squares() &= block_squares;
+		ref_num_checks()++;
+	}
+
+	inline void add_pin(int square, BB new_moveable_squares) {
+		ref_moveable_squares(square) = new_moveable_squares;
+		ref_pinned() |= get_BB(square);
+	}
+	
+	inline bool is_moveable(int from, int to) {
+		return ((!(ref_pinned() & get_BB(from))) || (ref_moveable_squares(from) & get_BB(to))) && (ref_check_blocking_squares() & get_BB(to)); 
+	}
 	
 	inline void switch_cr(CR_Index i) {
-		hashkey ^= z_cr(i);
-		cr ^= 1<<i;
+		ref_hashkey() ^= z_cr(i);
+		ref_cr() ^= 1<<i;
 	}
 
 	inline void set_ep(Square s) {
-		hashkey ^= z_ep(ep != SQUARE_NONE ? ep%8 : 8);
-		ep = s;
-		hashkey ^= z_ep(ep != SQUARE_NONE ? ep%8 : 8); 
+		ref_hashkey() ^= z_ep(ref_ep() != SQUARE_NONE ? ref_ep() % 8 : 8);
+		ref_ep() = s;
+		ref_hashkey() ^= z_ep(ref_ep() != SQUARE_NONE ? ref_ep() % 8 : 8); 
 	}
 
 	inline void set_turn(Color c) { 
@@ -60,47 +206,24 @@ class Pos {
 	}
 
 	inline void switch_turn() { 
-		hashkey ^= z_turn();
+		ref_hashkey() ^= z_turn();
 		turn = notturn; 
 		notturn = opp(turn); 
-	}
-
-	inline BB& pieces(Color c, Piece p) { 
-		return pieces_[c == WHITE ? 1 : 0][p - PAWN];
-	}
-
-	inline Piece& mailboxes(Color c, Square s) { 
-		assert(s < 64);
-		return mailboxes_[c - BLACK][s]; 
 	}
 	
 	inline Color color_at(Square s) { 
 		assert(s < 64);
-		return mailboxes(WHITE, s) != PIECE_NONE ? WHITE : 
-			  (mailboxes(BLACK, s) != PIECE_NONE ? BLACK : COLOR_NONE); 
+		return ref_mailbox(WHITE, s) != PIECE_NONE ? WHITE : 
+			  (ref_mailbox(BLACK, s) != PIECE_NONE ? BLACK : COLOR_NONE); 
 	}
 
-	inline void setPiece(Color c, Square s, Piece p) { 
-		assert(s < 64);
-		hashkey ^= z_squares(c, p, s);
-		pieces(c, p) |= get_BB(s);
-		mailboxes(c, s) = p;
-	}
-
-	inline void removePiece(Color c, Square s, Piece p) {
-		assert(s < 64);
-		hashkey ^= z_squares(c, p, s);
-		pieces(c, p) &= ~get_BB(s);
-		mailboxes(c, s) = PIECE_NONE;
-	}
-
-	inline BB get_occ(Color c) { 
-		return pieces(c, PAWN)
-		 | pieces(c, KNIGHT)
-		 | pieces(c, BISHOP)
-		 | pieces(c, ROOK)
-		 | pieces(c, KING)
-		 | pieces(c, QUEEN); 
+	inline BB calc_occ(Color c) { 
+		return ref_piece_mask(c, PAWN)
+		 | ref_piece_mask(c, KNIGHT)
+		 | ref_piece_mask(c, BISHOP)
+		 | ref_piece_mask(c, ROOK)
+		 | ref_piece_mask(c, KING)
+		 | ref_piece_mask(c, QUEEN); 
 	}
 	
 	inline Move last_move() {
@@ -124,52 +247,12 @@ class Pos {
 
 	inline Piece last_from_piece() {
 		assert(last_move() != MOVE_NULL && last_move() != MOVE_NONE);
-		return mailboxes(turn, last_to());
+		return ref_mailbox(turn, last_to());
 	}
-
-	inline BB get_occ() { 
-		return get_occ(WHITE) | get_occ(BLACK);
-	}
-	
-	void do_move(Move m);
-	void undo_move();
-	bool do_move(string SAN);
-
-	void do_null_move();
-	void undo_null_move();
-	
-	int get_control_value(Color color, Square square);
-
-	BB get_atk_mask(Color color);
-	BB get_pawn_atk_mask(Color color);
-	BB get_knight_atk_mask(Color color);
-	BB get_bishop_atk_mask(Color color);
-	BB get_rook_atk_mask(Color color);
-	BB get_queen_atk_mask(Color color);
-	BB get_king_atk_mask(Color color);
-
-	bool in_check();
-	bool three_repetitions();
-	bool one_repetition(int root);
-	bool insufficient_material();
-	bool is_draw();
-	bool is_mate();
-	bool is_over();
-
-	bool causes_check(Move move);
-
-	BB isolated_pawns(Color color);
-	BB doubled_pawns(Color color);
-	BB blocked_pawns(Color color);
-	BB supported_pawns(Color color);
-	BB passed_pawns(Color color);
-	BB double_passed_pawns(Color color);
-
-	void save(string path);
 };
 
 
 
 void print(Pos& p, bool meta = false);
 
-string getFen(Pos& p);
+string get_fen(Pos& p);

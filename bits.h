@@ -20,6 +20,12 @@ inline int poplsb(BB& n) {
 	return i;
 }
 
+inline void switch_bbs(BB& bb1, BB& bb2) {
+	BB temp = bb1;
+	bb1 = bb2;
+	bb2 = temp;
+}
+
 const uint64_t m1  = 0x5555555555555555; //binary: 0101...
 const uint64_t m2  = 0x3333333333333333; //binary: 00110011..
 const uint64_t m4  = 0x0f0f0f0f0f0f0f0f; //binary:  4 zeros,  4 ones ...
@@ -33,7 +39,7 @@ inline int bitcount(BB x)
     return (x * h01) >> 56;  //returns left 8 bits of x + (x<<8) + (x<<16) + (x<<24) + ... 
 }
 
-inline bool bitAt(BB& n, int k) {
+inline bool bitAt(BB& n, int k) { // todo: optimize with get_BB lookup 
 	return n & (1ULL << k);
 }
 
@@ -54,7 +60,7 @@ inline BB get_rank_mask(int r) {
 	return row1<<(r*8);
 }
 
-inline BB get_BB(int s) {
+inline BB get_BB(int s) { // todo: optimize with loopup
 	return 1ULL<<s;
 }
 

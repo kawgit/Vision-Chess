@@ -31,13 +31,13 @@ int TT::hashfull() {
 	return count;
 }
 
-void TT::addPV(Pos& p, vector<Move>& pv) {
+void TT::addPV(Pos& pos, vector<Move>& pv) {
 	bool found = false;
-	TTEntry* entry = probe(p.hashkey, found);
+	TTEntry* entry = probe(pos.ref_hashkey(), found);
 	if (found && (entry->get_bound() != LB || entry->get_eval() >= MINMATE) && entry->get_move() != MOVE_NONE) {
-		p.do_move(entry->get_move());
+		pos.do_move(entry->get_move());
 		pv.push_back(entry->get_move());
-		if (!p.is_over()) addPV(p, pv);
-		p.undo_move();
+		if (!pos.is_over()) addPV(pos, pv);
+		pos.undo_move();
 	}
 }

@@ -68,31 +68,14 @@ inline BB get_piece_atk(Piece pt, Square s, Color c, BB occupied) {
     return 0;
 }
 
-void initMoveGen(int seed = 38921083);
+void init_movegen(int seed = 38921083);
 
-struct PosInfo { //pins and checks
-    BB occ;
-    BB notturn_occ;
-    BB turn_occ;
+vector<Move> get_legal_moves(Pos& pos);
 
-    int checks = 0;
-    BB check_blocking_squares = ~0ULL;
-    BB moveable_squares[64] = {};
-    BB pinned_mask = 0ULL;
-    bool isPawnCheck = false;
-
-    PosInfo(Pos &p);
-    void add_check(BB block_squares);
-    void add_pin(int square, BB moveable_squares_);
-    bool is_moveable(int from, int to);
-};
-
-vector<Move> get_legal_moves(Pos& p);
-
-void addPawnMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo);
-void addKnightMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo);
-void addBishopMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo);
-void addRookMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo);
-void addQueenMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo);
-void addKingMoves(vector<Move> &moves, Pos &p, PosInfo &posInfo);
+void add_pawn_moves(vector<Move>& moves, Pos& pos);
+void add_knight_moves(vector<Move>& moves, Pos& pos);
+void add_bishop_moves(vector<Move>& moves, Pos& pos);
+void add_rook_moves(vector<Move>& moves, Pos& pos);
+void add_queen_moves(vector<Move>& moves, Pos& pos);
+void add_king_moves(vector<Move>& moves, Pos& pos);
 

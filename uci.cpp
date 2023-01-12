@@ -49,7 +49,9 @@ void uci() {
     
     string token;
     while (true) {
+        loop_start_pre_cin:
         cin >> token;
+        loop_start_post_cin:
 
         if (token == "uci") {
             cout << "id name VisionChess" << endl;
@@ -163,6 +165,13 @@ void uci() {
                     uci_si.max_depth = DEPTHMAX;
                     uci_si.max_time = -1;
                 }
+                else if (token == "perft") {
+                    iss >> token;
+                    int depth = stoi(token);
+                    Pos pos_copy = uci_si.root_pos;
+                    perft(pos_copy, depth, true);
+                    goto loop_start_pre_cin;
+                }
             }
 
             uci_si.max_time = (uci_si.root_pos.turn == WHITE ? min((wtime / 30 + winc), wtime / 2) : min((btime / 30 + binc), btime / 2));
@@ -177,7 +186,6 @@ void uci() {
         else if (token == "ponderhit") {
             uci_si.start_time = get_current_ms();
             uci_si.ponder = false;
-            uci_si.print();
         }
         else if (token == "d") {
             print(uci_si.root_pos, true);

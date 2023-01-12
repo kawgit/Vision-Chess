@@ -111,7 +111,7 @@ inline bool is_ep(Move m) { return get_flags(m) == EP; }
 inline bool is_promotion(Move m) { return get_flags(m) & N_PROM; }
 inline Piece get_promotion_type(Move m) { return (get_flags(m) & 0b0011) + KNIGHT; }
 
-string getSAN(Move m);
+string to_san(Move m);
 
 string to_string(vector<Move> moves);
 void print(vector<Move> moves);

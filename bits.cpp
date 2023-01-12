@@ -1,4 +1,3 @@
-#include "pos.h"
 #include "bits.h"
 #include <stdint.h>
 #include <iostream>

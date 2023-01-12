@@ -18,70 +18,40 @@ using namespace std;
 #define REDUCTION(d, i, f) ((d)-1)
 
 
-ThreadInfo::ThreadInfo(Pos& p, string id_) {
-	root_ply = p.move_log.size();
+ThreadInfo::ThreadInfo(Pos& pos, string id_) {
+	root_ply = pos.move_log.size();
 	id = id_;
 }
 
-BB perft(Pos &p, Depth depth, bool divide) {
-	if (depth == 0) return 1;
+BB perft(Pos& pos, Depth depth, bool divide) {
+
+	if (depth == 0) {
+		if (divide) cout << "divide on depth zero, total: zero" << endl;
+		return 1;
+	}
 
 	Timestamp start;
 	if (divide) start = get_current_ms();
 
 	BB count = 0;
-	vector<Move> moves = get_legal_moves(p);
+	vector<Move> moves = get_legal_moves(pos);
 
-	//if (depth == 1 && !divide) return moves.size();
-
-	if (divide) cout << moves.size() << endl;
+	// if (depth == 1 && !divide) return moves.size();
 
 	for (Move move : moves) {
-		p.do_move(move);
-		BB n = perft(p, depth-1, false);
-		p.undo_move();
+		pos.do_move(move);
+		BB n = perft(pos, depth-1, false);
+		pos.undo_move();
 
-		if (divide) cout << getSAN(move) << " " << to_string(n) << endl;
+		if (divide) cout << to_san(move) << " " << to_string(n) << endl;
 		count += n;
 	}
 
 	if (divide) cout << "total: " << to_string(count) << endl;
 	if (divide) cout << "time: " << to_string(get_time_diff(start)) <<" ms" << endl;
+	if (divide) cout << "nps: " << to_string(count * 1000 / get_time_diff(start) + 1) << endl;
 
 	return count;
-}
-
-void perftTest() {
-	vector<string> fens = {
-		"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-		"r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
-		"8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
-		"r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
-		"r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1",
-		"rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
-		"r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10 ",
-		};
-	vector<BB>   counts = {
-		4865609,
-		193690690,
-		674624,
-		15833292,
-		15833292,
-		89941194,
-		164075551,
-	};
-
-	for (int i = 0; i < fens.size(); i++) {
-		Pos p(fens[i]);
-		Timestamp start = get_current_ms();
-		BB count = perft(p, 5, false);
-		cout << (count == counts[i] ? "pass " : "fail ") 
-			<< "time: " << std::setw (6) << to_string(get_time_diff(start)) << "ms " 
-			<< "nps: " <<std::setw (8) << to_string(count*1000/get_time_diff(start)) 
-			<< " fen: " << fens[i] 
-			<< endl;
-	}
-
 }
 
 Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si) {
@@ -94,8 +64,8 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 	}
 
 	if (pos.insufficient_material()) return 0;
-	if (pos.hm_clock >= 4) {
-		if (pos.hm_clock == 50) return 0;
+	if (pos.ref_ply_clock() >= 4) {
+		if (pos.ref_ply_clock() == 50) return 0;
 		if (pos.one_repetition(ti.root_ply)) return 0;
 		if (pos.three_repetitions()) return 0;
 	}
@@ -103,7 +73,7 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 	if (depth <= 0) return qsearch(pos, alpha, beta, ti, si);
 
 	bool found = false;
-	TTEntry* entry = si.tt.probe(pos.hashkey, found);
+	TTEntry* entry = si.tt.probe(pos.ref_hashkey(), found);
 
 	if (found && entry->get_depth() >= depth && entry->get_gen() == si.tt.gen) {
 		if (entry->get_bound() == EXACT) return entry->get_eval();
@@ -116,7 +86,7 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 
 	if (moves.size() == 0) {
 		Eval eval = pos.in_check() ? -INF : 0;
-		entry->save(pos.hashkey, eval, EXACT, depth, MOVE_NONE, si.tt.gen);
+		entry->save(pos.ref_hashkey(), eval, EXACT, depth, MOVE_NONE, si.tt.gen);
 		return eval;
 	}
 	
@@ -155,9 +125,9 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 
 	if (!ti.searching) return 0;
 
-	if (besteval <= alpha)		entry->save(pos.hashkey, besteval, UB   , depth, bestmove, si.tt.gen);
-	else if (besteval < beta)	entry->save(pos.hashkey, besteval, EXACT, depth, bestmove, si.tt.gen);
-	else						entry->save(pos.hashkey, besteval, LB   , depth, bestmove, si.tt.gen);
+	if (besteval <= alpha)		entry->save(pos.ref_hashkey(), besteval, UB   , depth, bestmove, si.tt.gen);
+	else if (besteval < beta)	entry->save(pos.ref_hashkey(), besteval, EXACT, depth, bestmove, si.tt.gen);
+	else						entry->save(pos.ref_hashkey(), besteval, LB   , depth, bestmove, si.tt.gen);
 
 	return besteval;
 }
@@ -177,8 +147,8 @@ Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si) {
 
 	if (pos.insufficient_material()) return 0;
 	// ONLY IF MOVES INCLUDE CHECKS
-	if (pos.hm_clock >= 4) {
-		if (pos.hm_clock == 50) return 0;
+	if (pos.ref_ply_clock() >= 4) {
+		if (pos.ref_ply_clock() == 50) return 0;
 		if (pos.one_repetition(ti.root_ply)) return 0;
 		if (pos.three_repetitions()) return 0;
 	}
@@ -225,7 +195,6 @@ mutex print_mutex;
 void SearchInfo::launch(bool verbose) {
 	stop();
 	tis.clear();
-	clear();
 
     is_active = true;
     start_time = get_current_ms();
@@ -255,7 +224,7 @@ void SearchInfo::launch(bool verbose) {
     vector<Move> pv = tt.getPV(root_pos);
     vector<Move> moves = get_legal_moves(root_pos);
     print_mutex.lock();
-    cout << "bestmove " + (pv.size() > 0 ? getSAN(pv[0]) : (moves.size() ? getSAN(moves[0]) : "(none)")) + (pv.size() > 1 ? " ponder " + getSAN(pv[1]) : "") << endl;
+    cout << "bestmove " + (pv.size() > 0 ? to_san(pv[0]) : (moves.size() ? to_san(moves[0]) : "(none)")) + (pv.size() > 1 ? " ponder " + to_san(pv[1]) : "") << endl;
     print_mutex.unlock();
     
     for (thread& thr : threads) {
@@ -303,7 +272,7 @@ void SearchInfo::worker(ThreadInfo& ti, bool verbose) {
 
 void SearchInfo::print() {
     bool found = false;
-    TTEntry* entry = tt.probe(root_pos.hashkey, found);
+    TTEntry* entry = tt.probe(root_pos.ref_hashkey(), found);
     
     if (!found) return;
 
@@ -331,4 +300,33 @@ void timer(bool& target, Timestamp time) {
 		sleep(10);
 	}
 	target = false;
+}
+
+Eval sea_gain(Pos& pos, Move move) {
+	Pos pos_copy = pos;
+	Eval curr_mat = eval_mat(pos, pos.turn) - eval_mat(pos, pos.notturn);
+	pos_copy.do_move(move);
+	Eval after_mat = -static_exchange_search(pos_copy, get_to(move), -INF, INF);
+	return after_mat - curr_mat;
+}
+
+Eval static_exchange_search(Pos& pos, Square target_square, Eval alpha, Eval beta) {
+	Eval stand_pat = eval_mat(pos, pos.turn) - eval_mat(pos, pos.notturn);
+	alpha = max(stand_pat, alpha);
+	if (alpha >= beta) return beta;
+
+	BB occ = pos.ref_occ();
+	Move move = MOVE_NONE;
+	for (Piece pt = PAWN; pt <= KING; pt++) {
+		BB attackers = get_piece_atk(pt, target_square, pos.notturn, occ) & pos.ref_piece_mask(pos.turn, pt);
+		if (attackers) {
+			move = make_move(lsb(attackers), target_square, CAPTURE);
+			break;
+		}
+	}
+	
+	if (move == MOVE_NONE) return stand_pat;
+
+	pos.do_move(move);
+	return -static_exchange_search(pos, target_square, -beta, -alpha);
 }

@@ -28,4 +28,4 @@ inline BB& z_turn() {
 }
 
 
-void initHash(int seed);
+void init_hash(int seed);

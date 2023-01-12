@@ -11,7 +11,7 @@ BB z_ep_[9] = {}; //one for each column and the last one for no EP
 BB z_cr_[4] = {};
 BB z_turn_ = 0;
 
-void initHash(int seed) {
+void init_hash(int seed) {
     srand(seed);
     for (int i = PAWN; i <= KING; i++) {
         for (int s = 0; s < 64; s++) {

@@ -8,7 +8,7 @@ using namespace std;
 
 const char piece_notations[] = {'p', 'n', 'b', 'r', 'q', 'k'};
 
-string getSAN(Move m) {
+string to_san(Move m) {
     string res = square_to_string(get_from(m)) + square_to_string(get_to(m));
 
     if (is_promotion(m)) {
@@ -23,7 +23,7 @@ string getSAN(Move m) {
 string to_string(vector<Move> moves) {
 	string result = "";
 	for (Move& m : moves) {
-        result += getSAN(m);
+        result += to_san(m);
 		result += " ";
     }
 	return result;
@@ -31,6 +31,7 @@ string to_string(vector<Move> moves) {
 
 void print(vector<Move> moves) {
     for (Move& m : moves) {
-        cout<<getSAN(m)<<" ";
+        cout << to_san(m) << " ";
     }
+    cout << endl;
 }
