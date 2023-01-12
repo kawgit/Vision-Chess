@@ -40,6 +40,7 @@ class Pos {
 	// incrementally updated forwards and backwards
 	int null_moves_made = 0;
 	Clock move_clock = 1;
+	Eval mat = 0;
 	BB occ[3] = {0, 0, 0};
 	Piece mailboxes[2][64] = { PIECE_NONE };
 	BB piece_masks[2][6] = {{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}};
@@ -91,6 +92,9 @@ class Pos {
 	BB double_passed_pawns(Color color);
 
 	void save(string path);
+
+	void add_piece(Color c, Square s, Piece p);
+	void rem_piece(Color c, Square s, Piece p);
 
 	inline Square& ref_ep() {
 		return pi_log.back().ep;
@@ -144,6 +148,10 @@ class Pos {
 		return move_clock;
 	}
 
+	inline Eval& ref_mat() {
+		return mat;
+	}
+
 	inline BB& ref_atk(Color color) {
 		if (!pi_log.back().has_updated_atks) update_atks();
 		return pi_log.back().atk[color - BLACK];
@@ -160,24 +168,6 @@ class Pos {
 
 	inline BB& ref_piece_mask(Color color, Piece piece) {
 		return piece_masks[color - BLACK][piece - PAWN];
-	}
-
-	inline void add_piece(Color c, Square s, Piece p) { 
-		assert(s < 64);
-		ref_hashkey() ^= z_squares(c, p, s);
-		ref_piece_mask(c, p) |= get_BB(s);
-		ref_occ(c) |= get_BB(s);
-		ref_occ() |= get_BB(s);
-		ref_mailbox(c, s) = p;
-	}
-
-	inline void rem_piece(Color c, Square s, Piece p) {
-		assert(s < 64);
-		ref_hashkey() ^= z_squares(c, p, s);
-		ref_piece_mask(c, p) &= ~get_BB(s);
-		ref_occ(c) &= ~get_BB(s);
-		ref_occ() = ref_occ(WHITE) | ref_occ(BLACK);
-		ref_mailbox(c, s) = PIECE_NONE;
 	}
 
 	inline void add_check(BB block_squares) {

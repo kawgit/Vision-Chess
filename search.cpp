@@ -303,15 +303,20 @@ void timer(bool& target, Timestamp time) {
 }
 
 Eval sea_gain(Pos& pos, Move move) {
-	Pos pos_copy = pos;
-	Eval curr_mat = eval_mat(pos, pos.turn) - eval_mat(pos, pos.notturn);
-	pos_copy.do_move(move);
-	Eval after_mat = -static_exchange_search(pos_copy, get_to(move), -INF, INF);
-	return after_mat - curr_mat;
+	Eval curr_mat = pos.ref_mat();
+	pos.do_move(move);
+	BB exclude = 0;
+	return 0;
+	/*Eval stand_pat = curr_mat;
+
+
+
+	pos.undo_move();
+	return after_mat - curr_mat;*/
 }
 
 Eval static_exchange_search(Pos& pos, Square target_square, Eval alpha, Eval beta) {
-	Eval stand_pat = eval_mat(pos, pos.turn) - eval_mat(pos, pos.notturn);
+	Eval stand_pat = pos.ref_mat();
 	alpha = max(stand_pat, alpha);
 	if (alpha >= beta) return beta;
 

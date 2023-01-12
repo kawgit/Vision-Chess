@@ -20,9 +20,6 @@ int main(int argc, char* argv[]) {
 	init_hash(4643);
 	init_movegen();
 
-	cout << "READY" << endl;
-
-
 	uci();
 
 	// SearchInfo si;
@@ -31,5 +28,5 @@ int main(int argc, char* argv[]) {
 	// cout << to_string(si.root_pos.ref_hashkey()) << endl;
 	// search(si.root_pos, 8, -INF, INF, ti, si);
 
-	cout << "EXIT SUCCESS" << endl;
+	// cout << "EXIT SUCCESS" << endl;
 }

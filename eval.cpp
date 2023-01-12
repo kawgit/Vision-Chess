@@ -101,10 +101,6 @@ vector<vector<float>> king_eval_map = {
 };
 
 vector<Factor> factors = {
-    Factor("material", [](Pos& pos, Color color) {
-        return eval_mat(pos, color);
-    }),
-
     Factor("maps", [](Pos& pos, Color color) {
         Eval res = 0;
 
@@ -282,7 +278,7 @@ vector<Factor> factors = {
 };
 
 Eval eval_pos(Pos& pos, Eval lb, Eval ub, bool debug) {
-    Eval eval = 0;
+    Eval eval = pos.turn == WHITE ? pos.ref_mat() : -pos.ref_mat();
 
     if (debug) print(pos, true);
 
@@ -295,16 +291,6 @@ Eval eval_pos(Pos& pos, Eval lb, Eval ub, bool debug) {
     }
 
     return eval;
-}
-
-Eval eval_mat(Pos& p, Color c) {
-    return (
-        bitcount(p.ref_piece_mask(c, PAWN)) * piece_eval[PAWN - PAWN] +
-        bitcount(p.ref_piece_mask(c, KNIGHT)) * piece_eval[KNIGHT - PAWN] +
-        bitcount(p.ref_piece_mask(c, BISHOP)) * piece_eval[BISHOP - PAWN] +
-        bitcount(p.ref_piece_mask(c, ROOK)) * piece_eval[ROOK - PAWN] +
-        bitcount(p.ref_piece_mask(c, QUEEN)) * piece_eval[QUEEN - PAWN]
-    );
 }
 
 
