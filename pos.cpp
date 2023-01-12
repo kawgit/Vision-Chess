@@ -75,8 +75,6 @@ Pos::Pos(string fen) {
 	pi_log.reserve(LOG_RESERVE_SIZE);
 	move_log.reserve(LOG_RESERVE_SIZE);
 	to_piece_log.reserve(LOG_RESERVE_SIZE);
-
-	calc_meta();
 }
 
 void Pos::do_move(Move move) {
@@ -88,6 +86,8 @@ void Pos::do_move(Move move) {
 	// }
 
 	pi_log.emplace_back(pi_log.back());
+	pi_log.back().has_updated_pins_and_checks = false;
+	pi_log.back().has_updated_atks = false;
 	move_log.push_back(move);
 
 	Square from = get_from(move);
@@ -179,7 +179,6 @@ void Pos::do_move(Move move) {
     }
 
 	switch_turn();
-	calc_meta();
 }
 
 void Pos::undo_move() {
@@ -654,11 +653,10 @@ void Pos::save(string path) {
 	fs.close();
 }
 
-void Pos::calc_meta() {
-	ref_atk(WHITE) = get_atk_mask(WHITE);
-	ref_atk(BLACK) = get_atk_mask(BLACK);
-
+void Pos::update_pins_and_checks() {
 	//pins and checks
+	if (pi_log.back().has_updated_pins_and_checks) return;
+	pi_log.back().has_updated_pins_and_checks = true;
 
 	ref_num_checks() = 0;
 	for (int i = 0; i < 64; i++) ref_moveable_squares(i) = 0;
@@ -754,3 +752,8 @@ void Pos::calc_meta() {
     }
 }
 
+void Pos::update_atks() {
+	pi_log.back().has_updated_atks = true;
+	ref_atk(WHITE) = get_atk_mask(WHITE);
+	ref_atk(BLACK) = get_atk_mask(BLACK);
+}

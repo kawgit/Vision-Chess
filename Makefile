@@ -9,7 +9,7 @@ rel:
 main.exe: bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o main.cpp
 	clang++ -Ofast -pthread bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o main.cpp -o main.exe
 
-unit_tests.exe: bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o unit_tests.cpp
+test: bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o unit_tests.cpp
 	clang++ -Ofast -pthread bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o unit_tests.cpp -o unit_tests.exe
 
 bits.o: bits.cpp bits.h

@@ -23,6 +23,8 @@ struct PosInfo {
 	BB hashkey = 0;
     BB moveable_squares[64] = {};
 	BB atk[2] = {0, 0};
+	bool has_updated_pins_and_checks = false;
+	bool has_updated_atks = false;
 };
 
 class Pos {
@@ -55,7 +57,8 @@ class Pos {
 	void do_move(Move m);
 	void undo_move();
 	bool do_move(string SAN);
-	void calc_meta();
+	void update_pins_and_checks();
+	void update_atks();
 
 	// void do_null_move();
 	// void undo_null_move();
@@ -142,6 +145,7 @@ class Pos {
 	}
 
 	inline BB& ref_atk(Color color) {
+		if (!pi_log.back().has_updated_atks) update_atks();
 		return pi_log.back().atk[color - BLACK];
 	}
 
