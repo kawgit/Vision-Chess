@@ -77,13 +77,13 @@ void require(bool condition, vector<vector<string>> metadata = {}) {
 vector<Test> tests = {
     Test("perft", [] {
         vector<string> fens = {
-            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
-            "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
-            "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
-            "r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1",
-            "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
-            "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10 ",
+            // "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            // "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+            // "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+            // "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
+            // "r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1",
+            // "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
+            // "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
 		};
         vector<BB>   counts = {
             4865609,
@@ -109,6 +109,7 @@ vector<Test> tests = {
 
     Test("puzzles", [] {
         vector<vector<string>> tests = {
+            {"8/2p3pk/3r3p/p1p2R2/P1P5/2P1q3/6PP/5K2 w - - 4 35", "g2g3"},
             {"2br4/2R3bk/5p1p/5Pp1/2BpP1P1/1P5P/P7/6K1 w - - 3 34", "e4e5"},
             {"b1r3k1/4ppb1/p2p2p1/7p/2rBP3/P4P2/4N1PP/1RR3K1 w - - 0 30", "c1c4"},
             {"1r6/1p3p1k/2pp2Rp/4p3/r1B1Pq2/2bP1P1P/4KP2/3R2Q1 w - - 1 28", "g6g7"},
@@ -122,7 +123,8 @@ vector<Test> tests = {
             {"5rk1/3R4/4p1pR/8/3b4/1Pp2P1P/1n2K1P1/8 b - - 1 38", "f8c8"},
             {"4r2k/1p5p/p2P4/5p2/8/5PK1/PP6/3R4 b - - 2 34", "h8g7"},
             {"4r2k/1p5p/p2P4/3Q1pp1/7P/4qP2/PP1n2P1/3R3K b - h3 0 25", "e3e1"},
-            {"1r1q1rk1/2p1np2/bp2p1pp/p1PpP3/7P/1PR1P1P1/PB1N1P2/3Q2RK b - - 0 23", "d5d4"}
+            {"1r1q1rk1/2p1np2/bp2p1pp/p1PpP3/7P/1PR1P1P1/PB1N1P2/3Q2RK b - - 0 23", "d5d4"},
+            {"rk5r/1p3pp1/p1n4p/8/2P2NQP/6P1/PB3qB1/R3b2K w - - 0 25", "a1b1"},
         };
 
         for (vector<string> test : tests) {

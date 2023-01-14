@@ -136,6 +136,7 @@ void uci() {
             uci_si.max_time = -1;
             uci_si.max_depth = DEPTHMAX;
             uci_si.last_depth_searched = 0;
+            bool time_is_perm = false;
 
             while (iss >> token) {
                 if (token == "ponder") {
@@ -164,6 +165,7 @@ void uci() {
                 else if (token == "infinite") {
                     uci_si.max_depth = DEPTHMAX;
                     uci_si.max_time = -1;
+                    time_is_perm = true;
                 }
                 else if (token == "perft") {
                     iss >> token;
@@ -172,10 +174,14 @@ void uci() {
                     perft(pos_copy, depth, true);
                     goto loop_start_pre_cin;
                 }
+                else if (token == "movetime") {
+                    iss >> token;
+                    uci_si.max_time = stoi(token);
+                    time_is_perm = true;
+                }
             }
 
-            uci_si.max_time = (uci_si.root_pos.turn == WHITE ? min((wtime / 30 + winc), wtime / 2) : min((btime / 30 + binc), btime / 2));
-
+            if (!time_is_perm) uci_si.max_time = (uci_si.root_pos.turn == WHITE ? min((wtime / 30 + winc), wtime / 2) : min((btime / 30 + binc), btime / 2));
             bool verbose = true;
             thread(&SearchInfo::launch, &uci_si, ref(verbose)).detach();
             sleep(10);

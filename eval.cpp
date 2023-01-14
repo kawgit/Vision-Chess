@@ -18,110 +18,62 @@ using namespace std;
 
 vector<float> piece_eval = {100, 300, 320, 500, 900, 100};
 
-vector<vector<float>> piece_eval_maps = {
-
-    { //pawn
-         0,  0,  0,  0,  0,  0,  0,  0,
-        20, 20, 20, 20, 20, 20, 20, 20,
-        10, 10, 20, 30, 30, 20, 10, 10,
-         5,  5, 10, 20, 20, 10,  5,  5,
-         0,  0,  0, 10, 10,  0,  0,  0,
-         0,  0,  0,  0,  0,  0,  0,  0,
-         0,  0,  0,-10,-10,  0,  0,  0,
-         0,  0,  0,  0,  0,  0,  0,  0
-    },
-
-    { //knight
-        -50,-40,-20,-20,-20,-20,-20, -50,
-        -40,-20,  0,  0,  0,  0,-20, -40,
-        -30,  0, 10, 15, 15, 10,  0, -30,
-        -30,  0, 15, 20, 20, 15,  0, -30,
-        -30,  0, 15, 20, 20, 15,  0, -30,
-        -30,  0, 10, 15, 15, 10,  0, -30,
-        -40,-20,  0,  5,  5,  0,-20, -40,
-        -50,-40,-20,-20,-20,-20,-20, -50,
-    },
-
-    { //bishop
-         0,  0,  0,  0,  0,  0,  0,  0,
-         0,  0,  0,  0,  0,  0,  0,  0,
-         0,  0,  0,  0,  0,  0,  0,  0,
-         0,  0,  0,  0,  0,  0,  0,  0,
-         0,  0,  0,  0,  0,  0,  0,  0,
-         0,  0,  0,  0,  0,  0,  0,  0,
-         0,  0,  0,  0,  0,  0,  0,  0,
-         0,  0,  0,  0,  0,  0,  0,  0,
-    },
-
-    { //rook
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-    },
-
-    { //queen
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-          0,  0,  0,  0,  0,  0,  0,  0,
-    }
+Eval early_pawn_map[64] = {
+      0,  0,  0,  0,  0,  0,  0,  0,
+     20, 20, 20, 20, 20, 20, 20, 20,
+     10, 10, 20, 30, 30, 20, 10, 10,
+      5,  5, 10, 20, 20, 10,  5,  5,
+      0,  0,  0, 10, 10,  0,  0,  0,
+      0,  0,  0,  0,  0,  0,  0,  0,
+      0,  0,  0,-10,-10,  0,  0,  0,
+      0,  0,  0,  0,  0,  0,  0,  0
 };
 
-vector<vector<float>> king_eval_map = {
-    {
-        -30,-40,-40,-50,-50,-40,-40,-30,
-        -30,-40,-40,-50,-50,-40,-40,-30,
-        -30,-40,-40,-50,-50,-40,-40,-30,
-        -30,-40,-40,-50,-50,-40,-40,-30,
-        -20,-30,-30,-40,-40,-30,-30,-20,
-        -10,-20,-20,-20,-20,-20,-20,-10,
-         10, 10,-10,-10,-10,-10, 10, 10,
-         20, 20, 10,  0,  0, 10, 20, 20
-    },  
+Eval anytime_knight_map[64] = {
+    -40,-30,-20,-20,-20,-20,-30, -40,
+    -30,-10,  0,  0,  0,  0,-10, -30,
+    -15,  0, 10, 15, 15, 10,  0, -15,
+    -15,  0, 15, 20, 20, 15,  0, -15,
+    -15,  0, 15, 20, 20, 15,  0, -15,
+    -15,  0, 10, 15, 15, 10,  0, -15,
+    -30,-10,  0,  5,  5,  0,-10, -30,
+    -40,-30,-20,-20,-20,-20,-30, -40,
+};
 
-    {
-        -20,-10,-10, -5, -5,-10,-10,-20,
-        -10, -5,  0,  0,  0,  0, -5,-10,
-        -10,  0, 15, 15, 15, 15,  0,-10,
-        -5,   0, 15, 15, 15, 15,  0, -5,
-        -5,   0, 15, 15, 15, 15,  0, -5,
-        -10,  0, 15, 15, 15, 15,  0,-10,
-        -10, -5,  0,  0,  0,  0, -5,-10,
-        -20,-10,-10, -5, -5,-10,-10,-20
-    }
+Eval early_bishop_map[64] = {
+      0,  0,  0,  0,  0,  0,  0,  0,
+      0, 10, 10,  0,  0, 10, 10,  0,
+      0, 10, 10, 10, 10, 10, 10,  0,
+      0,  0, 10, 10, 10, 10,  0,  0,
+      0,  0, 20, 10, 10, 20,  0,  0,
+      0, 10, 10, 10, 10, 10, 10,  0,
+      0, 20, 10,  0, 10, 10, 20,  0,
+      0,  0,  0,  0,  0,  0,  0,  0,
+};
+
+Eval early_king_map[64] = {
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -20,-30,-30,-40,-40,-30,-30,-20,
+    -10,-20,-20,-20,-20,-20,-20,-10,
+     40, 40,-10,-10,-10,-10, 40, 40,
+     40, 40,-10,-10,-10,-10, 40, 40,
+};
+
+Eval late_king_map[64] = {
+    -20,-10,-10, -5, -5,-10,-10,-20,
+    -10, -5,  0,  0,  0,  0, -5,-10,
+    -10,  0, 15, 15, 15, 15,  0,-10,
+    -5,   0, 15, 15, 15, 15,  0, -5,
+    -5,   0, 15, 15, 15, 15,  0, -5,
+    -10,  0, 15, 15, 15, 15,  0,-10,
+    -10, -5,  0,  0,  0,  0, -5,-10,
+    -20,-10,-10, -5, -5,-10,-10,-20
 };
 
 vector<Factor> factors = {
-    Factor("maps", [](Pos& pos, Color color) {
-        Eval res = 0;
-
-        for (int pt = PAWN; pt < KING; pt++) {
-            BB pieces = pos.ref_piece_mask(color, pt);
-            while (pieces) {
-                int sq = poplsb(pieces);
-                res += piece_eval_maps[pt - PAWN][color == WHITE ? sqMapTrans(sq) : sq];
-            }
-        }
-
-        Square ksq = lsb(pos.ref_piece_mask(color, KING));
-        bool is_endgame = !(pos.ref_piece_mask(opp(color), QUEEN) ||
-            bitcount(pos.ref_piece_mask(opp(color), ROOK)) >= 2 ||
-            bitcount(pos.ref_piece_mask(opp(color), KNIGHT)) + bitcount(pos.ref_piece_mask(opp(color), BISHOP)) + bitcount(pos.ref_piece_mask(opp(color), ROOK)) >= 3);
-        
-        res += king_eval_map[is_endgame ? 1 : 0][color == WHITE ? sqMapTrans(ksq) : ksq];
-
-        return res;
-    }),
-
     Factor("pawn_structure", [](Pos& pos, Color color) {
 
         const static Eval w1[8] = {0, 10, 20, 30, 70, 90, 120, 900};
@@ -162,6 +114,57 @@ vector<Factor> factors = {
 
         return res;
     }),
+
+    Factor("early_king", [](Pos& pos, Color color) {
+        float weight = ((float) pos.ref_mat(opp(color))) / 3940;
+        return (Eval)(weight * early_king_map[lsb(pos.ref_piece_mask(color, KING))]);
+    }),
+
+    Factor("late_king", [](Pos& pos, Color color) {
+        float weight = 1 - ((float) pos.ref_mat(opp(color))) / 3940;
+        return (Eval)(weight * late_king_map[lsb(pos.ref_piece_mask(color, KING))]);
+    }),
+
+    Factor("early_bishop", [](Pos& pos, Color color) {
+        Eval result = 0;
+        BB pieces = pos.ref_piece_mask(color, BISHOP);
+        while (pieces) {
+            Square from = poplsb(pieces);
+            result += early_bishop_map[color == WHITE ? sqMapTrans(from) : from];
+        }
+        float weight = ((float) pos.ref_mat(opp(color))) / 3940;
+        return (Eval)(weight * result);
+    }),
+
+    Factor("early_pawn", [](Pos& pos, Color color) {
+        Eval result = 0;
+        BB pieces = pos.ref_piece_mask(color, PAWN);
+        while (pieces) {
+            Square from = poplsb(pieces);
+            result += early_pawn_map[color == WHITE ? sqMapTrans(from) : from];
+        }
+        float weight = ((float) pos.ref_mat(opp(color))) / 3940;
+        return (Eval)(weight * result);
+    }),
+
+    Factor("anytime_knight", [](Pos& pos, Color color) {
+        Eval result = 0;
+        BB pieces = pos.ref_piece_mask(color, KNIGHT);
+        while (pieces) {
+            Square from = poplsb(pieces);
+            result += anytime_knight_map[color == WHITE ? sqMapTrans(from) : from];
+        }
+        float weight = ((float) pos.ref_mat(opp(color))) / 3940;
+        return (Eval)(weight * result);
+    }),
+
+    /*
+    early game king
+    end game king
+    early game bishop
+    early game pawn
+    all game knight
+    */
 
     // Factor("control", [](Pos& pos, Color color) {
         // Eval res = 0;
@@ -205,32 +208,32 @@ vector<Factor> factors = {
         // return res;
     // }),
 
-    /*Factor("mobility", [](Pos& pos, Color color) {
-        Eval res = 0;
-        BB us = pos.ref_occ(color);
-        BB occ = pos.ref_occ(opp(color)) | us;
+    // Factor("mobility", [](Pos& pos, Color color) {
+    //     Eval res = 0;
+    //     BB us = pos.ref_occ(color);
+    //     BB occ = pos.ref_occ(opp(color)) | us;
 
-        for (Piece pt = BISHOP; pt <= QUEEN; pt++) {
-            BB froms = pos.ref_piece_mask(color, pt);
-            while (froms) {
-                int from = poplsb(froms);
-                BB tos = get_piece_atk(pt, from, color, occ) & ~us;
-                Eval max_gain = -INF;
-                while (tos) {
-                    int to = poplsb(tos);
-                    int gain = sea_gain(pos, make_move(from, to, (get_BB(to) & occ) ? CAPTURE : QUIET));
-                    max_gain = max(max_gain, gain);
-                    if (gain >= 0) break;
-                }
+    //     for (Piece pt = BISHOP; pt <= QUEEN; pt++) {
+    //         BB froms = pos.ref_piece_mask(color, pt);
+    //         while (froms) {
+    //             int from = poplsb(froms);
+    //             BB tos = get_piece_atk(pt, from, color, occ) & ~us;
+    //             Eval max_gain = -INF;
+    //             while (tos) {
+    //                 int to = poplsb(tos);
+    //                 int gain = sea_gain(pos, make_move(from, to, (get_BB(to) & occ) ? CAPTURE : QUIET));
+    //                 max_gain = max(max_gain, gain);
+    //                 if (gain >= 0) break;
+    //             }
 
-                if (max_gain < 0) {
-                    res += max(-get_piece_eval(pt) / 2, max_gain);
-                }
-            }
-        }
+    //             if (max_gain < 0) {
+    //                 res += max(-get_piece_eval(pt) / 2, max_gain);
+    //             }
+    //         }
+    //     }
 
-        return res;
-    }),*/
+    //     return res;
+    // }),
 
     Factor("king_safety", [](Pos& pos, Color color) {
         Eval res = 0;

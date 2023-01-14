@@ -40,7 +40,7 @@ class Pos {
 	// incrementally updated forwards and backwards
 	int null_moves_made = 0;
 	Clock move_clock = 1;
-	Eval mat = 0;
+	Eval mat[3] = {0, 0, 0};
 	BB occ[3] = {0, 0, 0};
 	Piece mailboxes[2][64] = { PIECE_NONE };
 	BB piece_masks[2][6] = {{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}};
@@ -148,8 +148,8 @@ class Pos {
 		return move_clock;
 	}
 
-	inline Eval& ref_mat() {
-		return mat;
+	inline Eval& ref_mat(Color c = COLOR_NONE) {
+		return mat[c];
 	}
 
 	inline BB& ref_atk(Color color) {

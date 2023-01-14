@@ -77,16 +77,17 @@ Pos::Pos(string fen) {
 	to_piece_log.reserve(LOG_RESERVE_SIZE);
 }
 
-void Pos::add_piece(Color c, Square s, Piece p) { 
-		assert(s < 64);
-		ref_hashkey() ^= z_squares(c, p, s);
-		ref_piece_mask(c, p) |= get_BB(s);
-		ref_occ(c) |= get_BB(s);
-		ref_occ() |= get_BB(s);
-		ref_mailbox(c, s) = p;
-		if (c == WHITE) ref_mat() += get_piece_eval(p);
-		else            ref_mat() -= get_piece_eval(p);
-	}
+void Pos::add_piece(Color c, Square s, Piece p) {
+	assert(s < 64);
+	ref_hashkey() ^= z_squares(c, p, s);
+	ref_piece_mask(c, p) |= get_BB(s);
+	ref_occ(c) |= get_BB(s);
+	ref_occ() |= get_BB(s);
+	ref_mailbox(c, s) = p;
+	if (c == WHITE) ref_mat() += get_piece_eval(p);
+	else            ref_mat() -= get_piece_eval(p);
+	ref_mat(c) += get_piece_eval(p);
+}
 
 void Pos::rem_piece(Color c, Square s, Piece p) {
 	assert(s < 64);
@@ -97,6 +98,7 @@ void Pos::rem_piece(Color c, Square s, Piece p) {
 	ref_mailbox(c, s) = PIECE_NONE;
 	if (c == WHITE) ref_mat() -= get_piece_eval(p);
 	else            ref_mat() += get_piece_eval(p);
+	ref_mat(c) -= get_piece_eval(p);
 }
 
 void Pos::do_move(Move move) {

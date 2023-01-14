@@ -303,35 +303,48 @@ void timer(bool& target, Timestamp time) {
 }
 
 Eval sea_gain(Pos& pos, Move move) {
-	Eval curr_mat = pos.ref_mat();
 	pos.do_move(move);
-	BB exclude = 0;
-	return 0;
-	/*Eval stand_pat = curr_mat;
-
-
-
+	Eval initial_mat = pos.ref_mat(pos.turn) - pos.ref_mat(pos.notturn);
+	Eval final_mat = 0;//-static_exchange_search(
+	// 	pos, 
+	// 	get_to(move), 
+	// 	pos.turn, 
+	// 	-initial_mat, 
+	// 	pos.ref_occ(), 
+	// 	get_piece_eval(pos.ref_mailbox(pos.turn, get_from(move))), 
+	// 	-INF, 
+	// 	INF);
 	pos.undo_move();
-	return after_mat - curr_mat;*/
+	return final_mat - initial_mat;
 }
 
-Eval static_exchange_search(Pos& pos, Square target_square, Eval alpha, Eval beta) {
-	Eval stand_pat = pos.ref_mat();
-	alpha = max(stand_pat, alpha);
-	if (alpha >= beta) return beta;
+// Eval static_exchange_search(Pos& pos, Square target_square, Color turn, Eval curr_mat, BB occ, Eval target_piece_eval, Eval alpha, Eval beta) {
+// 	alpha = max(curr_mat, alpha);
+// 	if (alpha >= beta) return beta;
 
-	BB occ = pos.ref_occ();
-	Move move = MOVE_NONE;
-	for (Piece pt = PAWN; pt <= KING; pt++) {
-		BB attackers = get_piece_atk(pt, target_square, pos.notturn, occ) & pos.ref_piece_mask(pos.turn, pt);
-		if (attackers) {
-			move = make_move(lsb(attackers), target_square, CAPTURE);
-			break;
-		}
-	}
+// 	Square from = SQUARE_NONE;
+// 	Piece from_piece = PIECE_NONE;
+// 	for (Piece pt = PAWN; pt <= KING; pt++) {
+// 		BB attackers = get_piece_atk(pt, target_square, opp(turn), occ)
+// 			& pos.ref_piece_mask(turn, pt)
+// 			& occ;
+// 		if (attackers) {
+// 			from = lsb(attackers);
+// 			from_piece = pt;
+// 			break;
+// 		}
+// 	}
+
+// 	if (from == SQUARE_NONE) return curr_mat;
 	
-	if (move == MOVE_NONE) return stand_pat;
-
-	pos.do_move(move);
-	return -static_exchange_search(pos, target_square, -beta, -alpha);
-}
+// 	return max(curr_mat, -static_exchange_search(
+// 		pos, 
+// 		target_square, 
+// 		opp(turn), 
+// 		-(curr_mat + target_piece_eval), 
+// 		occ & ~get_BB(from), 
+// 		get_piece_eval(pos.ref_mailbox(turn, from)), 
+// 		-beta, 
+// 		-alpha
+// 		));
+// }
