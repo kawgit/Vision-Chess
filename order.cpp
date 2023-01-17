@@ -65,23 +65,21 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, Searc
     bool found_huer_response = false;
     for (Move& move : unsorted_moves) {
         Score score = 0;
-        if (is_capture(move) && !is_ep(move)) {
-            if (notturn_atk & get_BB(get_to(move))) {
-                score += mvvlva(pos.ref_mailbox(pos.turn, get_from(move)), pos.ref_mailbox(pos.notturn, get_to(move)));
-                // score += sea_gain(pos, move);
-                // cout << to_san(move) + " " + to_string(score) << endl;
-            }
-            else {
-                score += mvvlva(pos.ref_mailbox(pos.turn, get_from(move)), pos.ref_mailbox(pos.notturn, get_to(move)));
-            }
-        }
-        if (is_promotion(move)) score += get_piece_eval(get_promotion_type(move)) * 20;
-        if (pos.causes_check(move)) score += 1000000;
 
-        if (!for_qsearch || score != 0) {
-            if (move == entry_move) score = 10000000;
-            else if (move == counter_move) score = 10000000 - 100;
+
+        if (move == entry_move && (!for_qsearch || score != 0)) score = 10000000;
+        else if (move == counter_move && (!for_qsearch || score != 0)) score = 10000000 - 100;
+        else {
+            if (!is_ep(move)) {
+                score += sea_gain(pos, move, -1);
+            }
+            else score += 100;
+            if (is_capture(move)) score += 10000;
+            if (is_promotion(move)) score += get_piece_eval(get_promotion_type(move)) * 20;
+            if (pos.causes_check(move)) score += 1000000;
         }
+
+        // cout << to_san(move) << " " << to_string(score) << endl;
 
         if (score > 0) interesting++;
 

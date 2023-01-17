@@ -84,9 +84,7 @@ void Pos::add_piece(Color c, Square s, Piece p) {
 	ref_occ(c) |= get_BB(s);
 	ref_occ() |= get_BB(s);
 	ref_mailbox(c, s) = p;
-	if (c == WHITE) ref_mat() += get_piece_eval(p);
-	else            ref_mat() -= get_piece_eval(p);
-	ref_mat(c) += get_piece_eval(p);
+	if (p != KING) ref_mat(c) += get_piece_eval(p);
 }
 
 void Pos::rem_piece(Color c, Square s, Piece p) {
@@ -96,9 +94,7 @@ void Pos::rem_piece(Color c, Square s, Piece p) {
 	ref_occ(c) &= ~get_BB(s);
 	ref_occ() = ref_occ(WHITE) | ref_occ(BLACK);
 	ref_mailbox(c, s) = PIECE_NONE;
-	if (c == WHITE) ref_mat() -= get_piece_eval(p);
-	else            ref_mat() += get_piece_eval(p);
-	ref_mat(c) -= get_piece_eval(p);
+	if (p != KING) ref_mat(c) -= get_piece_eval(p);
 }
 
 void Pos::do_move(Move move) {
@@ -112,6 +108,7 @@ void Pos::do_move(Move move) {
 	pi_log.emplace_back(pi_log.back());
 	pi_log.back().has_updated_pins_and_checks = false;
 	pi_log.back().has_updated_atks = false;
+	pi_log.back().has_updated_sum_mat_squared = false;
 	move_log.push_back(move);
 
 	Square from = get_from(move);
@@ -780,4 +777,10 @@ void Pos::update_atks() {
 	pi_log.back().has_updated_atks = true;
 	ref_atk(WHITE) = get_atk_mask(WHITE);
 	ref_atk(BLACK) = get_atk_mask(BLACK);
+}
+
+void Pos::update_sum_mat_squared() {
+	pi_log.back().has_updated_sum_mat_squared = true;
+	ref_sum_mat_squared(WHITE) = sum_mat_squared(*this, WHITE);
+	ref_sum_mat_squared(BLACK) = sum_mat_squared(*this, BLACK);
 }

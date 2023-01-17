@@ -107,6 +107,6 @@ Eval qsearch(Pos &p, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si);
 
 void timer(bool& target, Timestamp time);
 
-Eval sea_gain(Pos& pos, Move move);
+Eval sea_gain(Pos& pos, Move move, Eval alpha);
 
-Eval static_exchange_search(Pos& pos, Square target_square, Color turn, Eval curr_mat, BB occ, Eval target_piece_eval, Eval alpha, Eval beta) {
+Eval static_exchange_search(Pos& pos, Square target_square, Color turn, Eval curr_mat, BB occ, Eval target_piece_eval, Eval alpha, Eval beta);

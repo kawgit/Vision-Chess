@@ -259,7 +259,7 @@ void SearchInfo::worker(ThreadInfo& ti, bool verbose) {
         Depth depth = ++last_depth_searched;
         depth_increment_mutex.unlock();
 
-        // if (depth > max_depth || depth < 0) break;
+        if (depth > max_depth || depth < 0) break;
         
         search(root_copy, depth, -INF, INF, ti, *this);
 
@@ -302,49 +302,52 @@ void timer(bool& target, Timestamp time) {
 	target = false;
 }
 
-Eval sea_gain(Pos& pos, Move move) {
-	pos.do_move(move);
-	Eval initial_mat = pos.ref_mat(pos.turn) - pos.ref_mat(pos.notturn);
-	Eval final_mat = 0;//-static_exchange_search(
-	// 	pos, 
-	// 	get_to(move), 
-	// 	pos.turn, 
-	// 	-initial_mat, 
-	// 	pos.ref_occ(), 
-	// 	get_piece_eval(pos.ref_mailbox(pos.turn, get_from(move))), 
-	// 	-INF, 
-	// 	INF);
-	pos.undo_move();
-	return final_mat - initial_mat;
+Eval sea_gain(Pos& pos, Move move, Eval alpha) {
+	Eval target_square = get_to(move);
+	Eval target_piece_eval = get_piece_eval(pos.ref_mailbox(pos.notturn, target_square));
+	if (!(pos.ref_atk(pos.notturn) & get_BB(target_square))) { // hanging
+		return get_piece_eval(pos.ref_mailbox(pos.notturn, target_square));
+	}
+	Eval result = -static_exchange_search(
+		pos, 
+		target_square, 
+		pos.notturn, 
+		-(target_piece_eval), 
+		pos.ref_occ() & ~get_BB(get_from(move)), 
+		get_piece_eval(pos.ref_mailbox(pos.turn, get_from(move))), 
+		-INF, 
+		-alpha);
+	return result;
 }
 
-// Eval static_exchange_search(Pos& pos, Square target_square, Color turn, Eval curr_mat, BB occ, Eval target_piece_eval, Eval alpha, Eval beta) {
-// 	alpha = max(curr_mat, alpha);
-// 	if (alpha >= beta) return beta;
+Eval static_exchange_search(Pos& pos, Square target_square, Color turn, Eval curr_mat, BB occ, Eval target_piece_eval, Eval alpha, Eval beta) {
+	alpha = max(curr_mat, alpha);
+	if (alpha >= beta) return beta;
 
-// 	Square from = SQUARE_NONE;
-// 	Piece from_piece = PIECE_NONE;
-// 	for (Piece pt = PAWN; pt <= KING; pt++) {
-// 		BB attackers = get_piece_atk(pt, target_square, opp(turn), occ)
-// 			& pos.ref_piece_mask(turn, pt)
-// 			& occ;
-// 		if (attackers) {
-// 			from = lsb(attackers);
-// 			from_piece = pt;
-// 			break;
-// 		}
-// 	}
+	Square from = SQUARE_NONE;
+	Piece from_piece = PIECE_NONE;
+	for (Piece pt = PAWN; pt <= KING; pt++) {
+		BB attackers = get_piece_atk(pt, target_square, opp(turn), occ)
+			& pos.ref_piece_mask(turn, pt)
+			& occ;
+		if (attackers) {
+			from = lsb(attackers);
+			from_piece = pt;
+			break;
+		}
+	}
 
-// 	if (from == SQUARE_NONE) return curr_mat;
-	
-// 	return max(curr_mat, -static_exchange_search(
-// 		pos, 
-// 		target_square, 
-// 		opp(turn), 
-// 		-(curr_mat + target_piece_eval), 
-// 		occ & ~get_BB(from), 
-// 		get_piece_eval(pos.ref_mailbox(turn, from)), 
-// 		-beta, 
-// 		-alpha
-// 		));
-// }
+	if (from == SQUARE_NONE) return curr_mat;
+
+	Eval result_after_move = -static_exchange_search(
+		pos, 
+		target_square, 
+		opp(turn), 
+		-(curr_mat + target_piece_eval), 
+		occ & ~get_BB(from), 
+		get_piece_eval(pos.ref_mailbox(turn, from)), 
+		-beta, 
+		-alpha
+		);
+	return max(curr_mat, result_after_move);
+}

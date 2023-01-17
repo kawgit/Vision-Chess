@@ -23,8 +23,10 @@ struct PosInfo {
 	BB hashkey = 0;
     BB moveable_squares[64] = {};
 	BB atk[2] = {0, 0};
+	Eval sum_mat_squared[2] = {0, 0};
 	bool has_updated_pins_and_checks = false;
 	bool has_updated_atks = false;
+	bool has_updated_sum_mat_squared = false;
 };
 
 class Pos {
@@ -40,7 +42,7 @@ class Pos {
 	// incrementally updated forwards and backwards
 	int null_moves_made = 0;
 	Clock move_clock = 1;
-	Eval mat[3] = {0, 0, 0};
+	Eval mat[2] = {0, 0};
 	BB occ[3] = {0, 0, 0};
 	Piece mailboxes[2][64] = { PIECE_NONE };
 	BB piece_masks[2][6] = {{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}};
@@ -60,6 +62,7 @@ class Pos {
 	bool do_move(string SAN);
 	void update_pins_and_checks();
 	void update_atks();
+	void update_sum_mat_squared();
 
 	// void do_null_move();
 	// void undo_null_move();
@@ -148,13 +151,22 @@ class Pos {
 		return move_clock;
 	}
 
-	inline Eval& ref_mat(Color c = COLOR_NONE) {
-		return mat[c];
+	inline Eval& ref_mat(Color c) {
+		return mat[c - BLACK];
+	}
+
+	inline Eval ref_mat() {
+		return ref_mat(turn) - ref_mat(notturn);
 	}
 
 	inline BB& ref_atk(Color color) {
 		if (!pi_log.back().has_updated_atks) update_atks();
 		return pi_log.back().atk[color - BLACK];
+	}
+	
+	inline Eval& ref_sum_mat_squared(Color color) {
+		if (!pi_log.back().has_updated_sum_mat_squared) update_sum_mat_squared();
+		return pi_log.back().sum_mat_squared[color - BLACK];
 	}
 
 	inline BB& ref_occ(Color color = COLOR_NONE) {
