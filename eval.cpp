@@ -63,14 +63,14 @@ vector<Eval> early_king_map = {
 };
 
 vector<Eval> late_king_map = {
-    -20,-10,-10, -5, -5,-10,-10,-20,
-    -10, -5,  0,  0,  0,  0, -5,-10,
-    -10,  0, 15, 15, 15, 15,  0,-10,
-    -5,   0, 15, 15, 15, 15,  0, -5,
-    -5,   0, 15, 15, 15, 15,  0, -5,
-    -10,  0, 15, 15, 15, 15,  0,-10,
-    -10, -5,  0,  0,  0,  0, -5,-10,
-    -20,-10,-10, -5, -5,-10,-10,-20
+    -20,-20,-10, -5, -5,-10,-20,-20,
+    -20,-10,  5,  5,  5,  5, -5,-20,
+    -10,  5, 15, 15, 15, 15,  5,-10,
+    -5,  15, 15, 15, 15, 15, 15, -5,
+    -5,  15, 15, 15, 15, 15, 15, -5,
+    -10,  5, 15, 15, 15, 15,  5,-10,
+    -20,-10,  5,  5,  5,  5,-10,-20,
+    -20,-20,-10, -5, -5,-10,-20,-20
 };
 
 vector<Factor> lazy_factors = {
@@ -80,8 +80,7 @@ vector<Factor> lazy_factors = {
     
     Factor("pawn_structure", [](Pos& pos, Color color) {
 
-        const static Eval w1[8] = {0, 20, 30, 40, 50,  90, 120, 900};
-        const static Eval w2[8] = {0, 40, 50, 70, 120, 220, 340, 900};
+        const static Eval w1[8] = {0, 10, 20, 30, 40, 70, 120, 900};
 
         Eval res = 0;
 
@@ -90,24 +89,36 @@ vector<Factor> lazy_factors = {
         res -= bitcount(pos.blocked_pawns(color)) * 2;
 
         res += bitcount(pos.supported_pawns(color)) * 3;
+
         
         BB passed_pawns = pos.passed_pawns(color);
 
+        res += bitcount(passed_pawns) * 10;
+
+        Eval late_passed_pawns_res = 0;
         if (passed_pawns) {
-
-            BB double_passed_pawns = passed_pawns & (files_of(passed_pawns) & files_of(shift<WEST>(passed_pawns)));
-            passed_pawns &= ~double_passed_pawns;
-
             while (passed_pawns) {
                 Square sq = poplsb(passed_pawns);
-                res += w1[rel_rank_of(color, sq)];
-            }
-
-            while (double_passed_pawns) {
-                Square sq = poplsb(double_passed_pawns);
-                res += w2[rel_rank_of(color, sq)];
+                if (color == WHITE) {
+                    if (shift<NORTH>(get_BB(sq)) & ~pos.ref_occ() & ~pos.ref_atk(BLACK)) {
+                        late_passed_pawns_res += w1[rel_rank_of(color, sq) + 1];
+                    }
+                    else {
+                        late_passed_pawns_res += w1[rel_rank_of(color, sq)];
+                    }
+                }
+                else {
+                    if (shift<SOUTH>(get_BB(sq)) & ~pos.ref_occ() & ~pos.ref_atk(WHITE)) {
+                        late_passed_pawns_res += w1[rel_rank_of(color, sq) + 1];
+                    }
+                    else {
+                        late_passed_pawns_res += w1[rel_rank_of(color, sq)];
+                    }
+                }
             }
         }
+
+        res += late_passed_pawns_res * get_late_weight(pos, opp(color));
 
         return res;
     }),
@@ -119,11 +130,16 @@ vector<Factor> lazy_factors = {
         int ksq = lsb(ksq_bb);
 
         BB surr = get_king_atk(ksq);
+        if (color == WHITE) {
+            surr = shift<NORTH>(surr);
+        }
+        else {
+            surr = shift<SOUTH>(surr);
+        }
         //res += (8 - bitcount(surr)) * 4;
-        res += bitcount(surr & pos.ref_piece_mask(color, PAWN)) * 9;
-        res += bitcount(surr & pos.ref_piece_mask(color, KNIGHT)) * 1;
-        res += bitcount(surr & pos.ref_piece_mask(color, BISHOP)) * 2;
+        res += bitcount(surr & pos.ref_piece_mask(color, PAWN)) * 8;
         
+        /*
         BB temp = surr;
         while (temp) {
             Square square = poplsb(temp);
@@ -131,6 +147,7 @@ vector<Factor> lazy_factors = {
                 res -= 10;
             }
         }
+        */
 
         res -= bitcount(pos.ref_atk(opp(color)) & surr) * 8;
 
@@ -226,12 +243,18 @@ vector<Factor> tough_factors = {
 Eval eval_pos(Pos& pos, Eval lb, Eval ub, bool debug) {
     Eval eval = 0;
 
+    pos.update_atks();
+    pos.update_sum_mat_squared();
+
     if (debug) print(pos, true);
 
     if (debug) {
         cout << "white perspective early weight: " << to_string(get_early_weight(pos, WHITE)) << endl;
         cout << "black perspective early weight: " << to_string(get_early_weight(pos, BLACK)) << endl;
     }
+
+    // tempo bonus
+    eval += 10;
 
     for (Factor factor : lazy_factors) {
         Eval ours = factor.func(pos, pos.turn);
@@ -252,6 +275,16 @@ Eval eval_pos(Pos& pos, Eval lb, Eval ub, bool debug) {
         eval -= theirs;
         if (debug) cout << "factor: " << setw(15) << factor.name << " = (" << setw(8) << to_string(ours) << ") - (" << setw(8) << to_string(theirs) << ") = " << setw(8) << to_string(ours - theirs) << endl;
     }
+
+    // boring punishment
+    eval *= ((float)(100 - pos.ref_halfmove_clock())) / 100;
+
+    /* MUST BE REVISED TO ACTUALLY AFFECT MOVE ORDER
+    // winning is winning
+    Color winner = eval > 0 ? pos.turn : pos.notturn;
+    Eval winning_threshold = max(pos.ref_sum_mat_squared(opp(winner)), 100) * 2;
+    eval = (2 / (1 + exp(((double)-eval * 2) / winning_threshold)) - 1) * winning_threshold;
+    */
 
     return eval;
 }

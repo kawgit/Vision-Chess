@@ -181,6 +181,7 @@ vector<Move> get_legal_moves(Pos& pos) {
     assert(pos.ref_piece_mask(WHITE, KING) != 0);
     assert(pos.ref_piece_mask(BLACK, KING) != 0);
 
+	pos.update_atks();
 	pos.update_pins_and_checks();
     if (!pos.pi_log.back().has_updated_atks) pos.update_atks();
 

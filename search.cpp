@@ -64,8 +64,8 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 	}
 
 	if (pos.insufficient_material()) return 0;
-	if (pos.ref_ply_clock() >= 4) {
-		if (pos.ref_ply_clock() == 50) return 0;
+	if (pos.ref_halfmove_clock() >= 4) {
+		if (pos.ref_halfmove_clock() >= 100) return 0;
 		if (pos.one_repetition(ti.root_ply)) return 0;
 		if (pos.three_repetitions()) return 0;
 	}
@@ -90,8 +90,13 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 		return eval;
 	}
 	
-	int interesting = 0;
-	moves = order(moves, pos, ti, si, interesting);
+	int num_good;
+	int num_boring;
+	int num_bad;
+	moves = order(moves, pos, ti, si, num_good, num_boring, num_bad, false);
+
+	assert(moves.size());
+
 
 	Eval besteval = -INF;
 	Move bestmove = moves[0];
@@ -101,12 +106,16 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 
 		pos.do_move(move);
 
-#ifndef AGGR_PRUNE
-		Eval eval = -search(pos, depth - (i > interesting ? depth / 8 + 2 : 1), -beta, -max(alpha, besteval), ti, si);
-#endif
-#ifdef AGGR_PRUNE
-		Eval eval = -search(pos, depth - (i > interesting ? depth / 4 + 2 : 1), -beta, -max(alpha, besteval), ti, si);
-#endif
+		Eval eval;
+		if (i < num_good) {
+			eval = -search(pos, depth - 1, -beta, -max(alpha, besteval), ti, si);
+		}
+		else if (i < num_good + num_boring) {
+			eval = -search(pos, depth - (2 + depth / 8), -beta, -max(alpha, besteval), ti, si);
+		}
+		else {
+			eval = -search(pos, depth - (2 + depth / 4), -beta, -max(alpha, besteval), ti, si);
+		}
 
 		pos.undo_move();
 
@@ -147,17 +156,16 @@ Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si) {
 
 	if (pos.insufficient_material()) return 0;
 	// ONLY IF MOVES INCLUDE CHECKS
-	if (pos.ref_ply_clock() >= 4) {
-		if (pos.ref_ply_clock() == 50) return 0;
+	if (pos.ref_halfmove_clock() >= 4) {
+		if (pos.ref_halfmove_clock() >= 100) return 0;
 		if (pos.one_repetition(ti.root_ply)) return 0;
 		if (pos.three_repetitions()) return 0;
 	}
 
-#ifndef NO_QSEARCH_EVASION
+	// king attacked evasion extension
 	if (pos.in_check()) {
 		return search(pos, 1, alpha, beta, ti, si);
 	}
-#endif
 
     vector<Move> moves = get_legal_moves(pos);
 
@@ -166,10 +174,14 @@ Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si) {
 		else return 0;
 	}
 
-	int interesting = moves.size();
-	moves = order(moves, pos, ti, si, interesting, true);
+	int num_good;
+	int num_boring;
+	int num_bad;
+	moves = order(moves, pos, ti, si, num_good, num_boring, num_bad, true);
+
+	assert(moves.size() == num_good);
     
-    for (int i = 0; i < interesting; i++) {
+    for (int i = 0; i < num_good; i++) {
 		Move move = moves[i];
 
 		pos.do_move(move);
@@ -219,7 +231,7 @@ void SearchInfo::launch(bool verbose) {
     }
     
     stop();
-	print();
+	print_uci_info();
 
     vector<Move> pv = tt.getPV(root_pos);
     vector<Move> moves = get_legal_moves(root_pos);
@@ -265,12 +277,12 @@ void SearchInfo::worker(ThreadInfo& ti, bool verbose) {
 
 		if (verbose && ti.searching) {
         	// cout << "thread " << ti.id << ":";
-        	print();
+        	print_uci_info();
 		}
     }
 }
 
-void SearchInfo::print() {
+void SearchInfo::print_uci_info() {
     bool found = false;
     TTEntry* entry = tt.probe(root_pos.ref_hashkey(), found);
     
@@ -303,6 +315,8 @@ void timer(bool& target, Timestamp time) {
 }
 
 Eval sea_gain(Pos& pos, Move move, Eval alpha) {
+	pos.update_atks();
+
 	Eval target_square = get_to(move);
 	Eval target_piece_eval = get_piece_eval(pos.ref_mailbox(pos.notturn, target_square));
 	if (!(pos.ref_atk(pos.notturn) & get_BB(target_square))) { // hanging

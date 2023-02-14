@@ -7,57 +7,48 @@
 #include "movegen.h"
 #include <vector>
 
-
-inline unsigned int mvvlva(Piece attacker, Piece victim) {
-    static const unsigned int table[6][6] = { //attacker, victim
-        {6000, 20220, 20250, 20400, 20800, 26900},
-        {4770,  6000, 20020, 20170, 20570, 26670},
-        {4750,  4970,  6000, 20150, 20550, 26650},
-        {4600,  4820,  4850,  6000, 20400, 26500},
-        {4200,  4420,  4450,  4600,  6010, 26100},
-        {3100,  3320,  3350,  3500,  3900, 26000},
-    };
-    assert(attacker - PAWN >= 0);
-    assert(attacker - PAWN < 6);
-    assert(victim - PAWN >= 0);
-    assert(victim - PAWN < 6);
-    return table[attacker - PAWN][victim - PAWN];
-}
-
-/*
-bool keeps_tempo(Move& move, Pos& pos, ThreadInfo& ti) {
-    Eval cur_eval = qsearch(pos, -INF, INF, nullptr, nullptr);
-    
-    pos.do_move(move);
-
-    if (pos.in_check()) { 
-        pos.undo_move();
-        return true;
+void insert_to_sorted(Move move, Score score, vector<Move>& moves, vector<Score>& scores, int lb) {
+    moves.push_back(move);
+    scores.push_back(score);
+    for (int i = scores.size() - 2; i >= lb; i--) {
+        if (scores[i] < score) {
+            moves[i+1] = moves[i];
+            scores[i+1] = scores[i];
+        }
+        else {
+            moves[i] = move;
+            scores[i] = score;
+            return;
+        }
     }
-
-    pos.do_null_move();
-    
-    Eval threatened_eval = qsearch(pos, -INF, INF, nullptr, nullptr);
-    
-    pos.undo_null_move();
-
-    pos.undo_move();
-
-    return threatened_eval - cur_eval > TEMPO_MARGIN;
+    moves[lb] = move;
+    scores[lb] = score;
 }
-*/
 
-vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, SearchInfo& si, int& interesting, bool for_qsearch) {
-    interesting = 0;
+vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, SearchInfo& si, int& num_good, int& num_boring, int& num_bad, bool for_qsearch) {
     Move counter_move = si.get_cm(pos);
 
     bool found = false;
 	TTEntry* entry = si.tt.probe(pos.ref_hashkey(), found);
 	Move entry_move = found ? entry->get_move() : MOVE_NONE;
 
-    vector<Score> unsorted_scores;
-    unsorted_scores.reserve(unsorted_moves.size());
+    vector<Score> unsorted_good_scores;
+    vector<Score> unsorted_good_moves;
+    vector<Score> unsorted_boring_scores;
+    vector<Score> unsorted_boring_moves;
+    vector<Score> unsorted_bad_scores;
+    vector<Score> unsorted_bad_moves;
 
+    unsorted_good_scores.reserve(unsorted_moves.size());
+    unsorted_good_moves.reserve(unsorted_moves.size());
+    if (!for_qsearch) {
+        unsorted_boring_scores.reserve(unsorted_moves.size());
+        unsorted_boring_moves.reserve(unsorted_moves.size());
+        unsorted_bad_scores.reserve(unsorted_moves.size());
+        unsorted_bad_moves.reserve(unsorted_moves.size());
+    }
+
+    pos.update_atks();
     BB occ = pos.ref_occ();
     BB turn_atk = pos.ref_atk(pos.turn);
     BB notturn_atk = pos.ref_atk(pos.notturn);
@@ -66,61 +57,124 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, Searc
     for (Move& move : unsorted_moves) {
         Score score = 0;
 
-
-        if (move == entry_move && (!for_qsearch || score != 0)) score = 10000000;
-        else if (move == counter_move && (!for_qsearch || score != 0)) score = 10000000 - 100;
+        if (move == entry_move && (!for_qsearch || score != 0)) score = 100001;
+        else if (move == counter_move && (!for_qsearch || score != 0)) score = 100000;
         else {
-            if (!is_ep(move)) {
-                score += sea_gain(pos, move, -1);
+            if (!(for_qsearch || is_ep(move) || is_king_castle(move) || is_queen_castle(move) || is_promotion(move))) {
+                score += sea_gain(pos, move, -INF);
             }
-            else score += 100;
-            if (is_capture(move)) score += 10000;
-            if (is_promotion(move)) score += get_piece_eval(get_promotion_type(move)) * 20;
-            if (pos.causes_check(move)) score += 1000000;
+
+            if (is_capture(move)) score += 100;
+            if (is_promotion(move)) {
+                switch (get_promotion_type(move)) {
+                    case QUEEN:
+                        score += 900;
+                        break;
+                    case KNIGHT:
+                        score -= 500; // usually only wanted because it comes with check, which is accounted for elsewhere
+                    case BISHOP:
+                    case ROOK:
+                        score -= 1000; // should practically garaunteed to not be best move
+                        break;
+                    default:
+                        assert(false);
+                        break;
+
+                }
+            }
+            if (pos.causes_check(move)) score += 1000;
         }
 
         // cout << to_san(move) << " " << to_string(score) << endl;
 
-        if (score > 0) interesting++;
-
-        unsorted_scores.push_back(score);
+        if (score > 0) {
+            unsorted_good_scores.push_back(score);
+            unsorted_good_moves.push_back(move);
+        }
+        else if (!for_qsearch) {
+            if (score < 0) {
+                unsorted_bad_scores.push_back(score);
+                unsorted_bad_moves.push_back(move);
+            }
+            else {
+                unsorted_boring_scores.push_back(score);
+                unsorted_boring_moves.push_back(move);
+            }
+        }
     }
+
+    num_good = unsorted_good_moves.size();
+    num_boring = unsorted_boring_moves.size();
+    num_bad = unsorted_bad_moves.size();
 
     vector<Move> sorted_moves;
     vector<Score> sorted_scores;
     sorted_moves.reserve(unsorted_moves.size());
     sorted_scores.reserve(unsorted_moves.size());
 
-    vector<Move> uninteresting;
+    for (int i = 0; i < unsorted_good_moves.size(); i++) {
+        // sorted_moves.push_back(unsorted_good_moves[i]);
+        insert_to_sorted(unsorted_good_moves[i], unsorted_good_scores[i], sorted_moves, sorted_scores, 0);
+    }
 
-    for (int j = 0; j < unsorted_moves.size(); j++) {
-        Move& move = unsorted_moves[j];
-        Score& score = unsorted_scores[j];
-
-        if (score != 0) {
-            sorted_moves.push_back(move);
-            sorted_scores.push_back(score);
-            int i = sorted_moves.size()-1;
-            while (i != -1) {
-                i--;
-                if (sorted_scores[i] < score) {
-                    sorted_moves[i+1] = sorted_moves[i];
-                    sorted_scores[i+1] = sorted_scores[i];
-                }
-                else break;
-            }
-            sorted_moves[i+1] = move;
-            sorted_scores[i+1] = score;
-        }
-        else {
-            uninteresting.push_back(move);
-        }
+    if (for_qsearch) return sorted_moves;
+    
+    for (int i = 0; i < unsorted_boring_moves.size(); i++) {
+        sorted_moves.push_back(unsorted_boring_moves[i]);
+        // sorted_scores.push_back(0);
+        // insert_to_sorted(unsorted_boring_moves[i], unsorted_boring_scores[i], sorted_moves, sorted_scores, num_good);
     }
     
-    for (Move& move : uninteresting) {
-        sorted_moves.push_back(move);
-        sorted_scores.push_back(0);
+    for (int i = 0; i < unsorted_bad_moves.size(); i++) {
+        sorted_moves.push_back(unsorted_bad_moves[i]);
+        // sorted_scores.push_back(-1);
+        // insert_to_sorted(unsorted_bad_moves[i], unsorted_bad_scores[i], sorted_moves, sorted_scores, num_good + num_boring);
     }
+
+    // early game bonuses
+    /*
+    if (get_early_weight(pos, pos.turn) > .6) {
+        for (int i = 0; i < unsorted_moves.size(); i++) {
+            if (unsorted_scores[i] >= 0) {
+                Move move = unsorted_moves[i];
+                Square from = get_from(move);
+                if (pos.ref_mailbox(pos.turn, from) != ROOK) {
+                    Rank rank = rank_of(from);
+                    if (rank == RANK_1 || rank == RANK_2) {
+                        unsorted_scores[i] += 10;
+                    }
+                }
+
+                if (is_king_castle(move) || is_queen_castle(move)) {
+                    unsorted_scores[i] += 20;
+                }
+            }
+        }
+    }
+    */
+
+    // end game bonuses
+    /*
+    if (get_late_weight(pos, opp(pos.turn)) > .6) {
+        BB passed_pawns = pos.passed_pawns(pos.turn);
+        for (int i = 0; i < unsorted_moves.size(); i++) {
+            if (unsorted_scores[i] >= 0) {
+                Square from = get_from(unsorted_moves[i]);
+                
+                // push passed pawns
+                if (get_BB(from) & passed_pawns) {
+                    unsorted_scores[i] += 10;
+                }
+            }
+        }
+    }
+    */
+
+    // for (int i = 0; i < sorted_moves.size(); i++) {
+    //     cout << to_san(sorted_moves[i]) << " " << to_string(sorted_scores[i]) << endl;
+    // }
+
+    assert(sorted_moves.size() == unsorted_moves.size());
 
     return sorted_moves;
 }

@@ -9,6 +9,7 @@ using namespace std;
 extern vector<Eval> piece_eval;
 
 const Eval STARTPOS_SUM_MAT_SQUARED = 17748;
+const Eval WINNING_THRESHOLD = 900;
 
 inline Eval get_piece_eval(Piece p) {
     return piece_eval[p];

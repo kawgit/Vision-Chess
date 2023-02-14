@@ -64,7 +64,7 @@ class SearchInfo {
 	void launch(bool verbose = true);
 	void stop();
 	void clear();
-	void print();
+	void print_uci_info();
 	void worker(ThreadInfo& ti, bool verbose = true);
 
 	inline int get_nodes() {

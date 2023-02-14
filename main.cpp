@@ -23,11 +23,13 @@ int main(int argc, char* argv[]) {
 	uci();
 
 	// SearchInfo si;
-	// si.root_pos = Pos("rnbq1rk1/2pp1ppp/pp2pn2/4P1B1/1b1P4/2N2N2/PPP2PPP/R2QKB1R w KQ - 0 8");
+	// si.root_pos = Pos("3q2kr/5p1p/p1r1bp2/1p1p4/3Q4/1B3P2/P1P1RPPP/3R2K1 w - - 0 20");
 	// ThreadInfo ti(si.root_pos, "hi");
 	// vector<Move> moves = get_legal_moves(si.root_pos);
-	// int interesting = 0;
-	// moves = order(moves, si.root_pos, ti, si, interesting, false);
+	// int num_good;
+	// int num_boring;
+	// int num_bad;
+	// moves = order(moves, si.root_pos, ti, si, num_good, num_boring, num_bad, false);
 	// cout << to_string(moves) << endl;
 	
 	// search(si.root_pos, 8, -INF, INF, ti, si);

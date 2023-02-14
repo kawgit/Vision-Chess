@@ -6,7 +6,7 @@ fout.write("")
 fout.close()
 
 flags = [
-    "ORDER_SEA",
+    "AGGR_PRUNE",
 ]
 
 cpp_first_names = [

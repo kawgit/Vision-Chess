@@ -15,18 +15,21 @@ struct PosInfo {
 	// need carry-over forward
 	CR cr = 0;
 	Square ep = EP_NONE;
-	int num_checks = 0;
-	Clock ply_clock = 0;
+	Clock halfmove_clock = 0;
 	Clock repetitions_index = 0;
+	BB hashkey = 0;
+
+	bool has_updated_pins_and_checks = false;
+	int num_checks = 0;
 	BB check_blocking_squares = ~0ULL;
 	BB pinned = 0;
-	BB hashkey = 0;
     BB moveable_squares[64] = {};
-	BB atk[2] = {0, 0};
-	Eval sum_mat_squared[2] = {0, 0};
-	bool has_updated_pins_and_checks = false;
-	bool has_updated_atks = false;
+
 	bool has_updated_sum_mat_squared = false;
+	Eval sum_mat_squared[2] = {0, 0};
+	
+	bool has_updated_atks = false;
+	BB atk[2] = {0, 0};
 };
 
 class Pos {
@@ -103,32 +106,16 @@ class Pos {
 		return pi_log.back().ep;
 	}
 
-	inline int& ref_num_checks() {
-		return pi_log.back().num_checks;
-	}
-
 	inline CR& ref_cr() {
 		return pi_log.back().cr;
 	}
 
-	inline Clock& ref_ply_clock() {
-		return pi_log.back().ply_clock;
+	inline Clock& ref_halfmove_clock() {
+		return pi_log.back().halfmove_clock;
 	}
 
 	inline Clock& ref_repetitions_index() {
 		return pi_log.back().repetitions_index;
-	}
-
-	inline BB& ref_moveable_squares(Square square) {
-		return pi_log.back().moveable_squares[square];
-	}
-
-	inline BB& ref_check_blocking_squares() {
-		return pi_log.back().check_blocking_squares;
-	}
-
-	inline BB& ref_pinned() {
-		return pi_log.back().pinned;
 	}
 
 	inline BB& ref_hashkey() {
@@ -159,16 +146,6 @@ class Pos {
 		return ref_mat(turn) - ref_mat(notturn);
 	}
 
-	inline BB& ref_atk(Color color) {
-		if (!pi_log.back().has_updated_atks) update_atks();
-		return pi_log.back().atk[color - BLACK];
-	}
-	
-	inline Eval& ref_sum_mat_squared(Color color) {
-		if (!pi_log.back().has_updated_sum_mat_squared) update_sum_mat_squared();
-		return pi_log.back().sum_mat_squared[color - BLACK];
-	}
-
 	inline BB& ref_occ(Color color = COLOR_NONE) {
 		return occ[color];
 	}
@@ -182,14 +159,44 @@ class Pos {
 		return piece_masks[color - BLACK][piece - PAWN];
 	}
 
+	inline int& ref_num_checks() {
+		assert(pi_log.back().has_updated_pins_and_checks);
+		return pi_log.back().num_checks;
+	}
+
+	inline BB& ref_moveable_squares(Square square) {
+		assert(pi_log.back().has_updated_pins_and_checks);
+		return pi_log.back().moveable_squares[square];
+	}
+
+	inline BB& ref_check_blocking_squares() {
+		assert(pi_log.back().has_updated_pins_and_checks);
+		return pi_log.back().check_blocking_squares;
+	}
+
+	inline BB& ref_pinned() {
+		assert(pi_log.back().has_updated_pins_and_checks);
+		return pi_log.back().pinned;
+	}
+
+	inline BB& ref_atk(Color color) {
+		assert(pi_log.back().has_updated_atks);
+		return pi_log.back().atk[color - BLACK];
+	}
+	
+	inline Eval& ref_sum_mat_squared(Color color) {
+		assert(pi_log.back().has_updated_sum_mat_squared);
+		return pi_log.back().sum_mat_squared[color - BLACK];
+	}
+
 	inline void add_check(BB block_squares) {
-		ref_check_blocking_squares() &= block_squares;
-		ref_num_checks()++;
+		pi_log.back().check_blocking_squares &= block_squares;
+		pi_log.back().num_checks++;
 	}
 
 	inline void add_pin(int square, BB new_moveable_squares) {
-		ref_moveable_squares(square) = new_moveable_squares;
-		ref_pinned() |= get_BB(square);
+		pi_log.back().moveable_squares[square] = new_moveable_squares;
+		pi_log.back().pinned |= get_BB(square);
 	}
 	
 	inline bool is_moveable(int from, int to) {

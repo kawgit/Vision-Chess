@@ -63,7 +63,7 @@ Pos::Pos(string fen) {
 	fen = fen.substr(fen.find(" ")+1);
 	if (fen.size() == 0) goto end;
 
-	ref_ply_clock() = stoi(fen.substr(0, fen.find(" ")));
+	ref_halfmove_clock() = stoi(fen.substr(0, fen.find(" ")));
 
 	fen = fen.substr(fen.find(" ")+1);
 	if (fen.size() == 0) goto end;
@@ -114,7 +114,6 @@ void Pos::do_move(Move move) {
 	Square from = get_from(move);
 	Square to = get_to(move);
 
-
 	assert(to < 64);
 	assert(from < 64);
 
@@ -122,15 +121,20 @@ void Pos::do_move(Move move) {
 	Piece to_piece = ref_mailbox(notturn, to);
 	to_piece_log.push_back(to_piece);
 	
+	if (to_piece == KING) {
+		print(*this, true);
+		cout << to_string(move_log) << endl;
+	}
+
 	assert(to_piece != KING);
 
 	rem_piece(turn, from, from_piece);
 
 	if (is_capture(move) || from_piece == PAWN) {
-		ref_ply_clock() = 0;
+		ref_halfmove_clock() = 0;
 		ref_repetitions_index() = pi_log.size();
 	}
-	else ref_ply_clock()++;
+	else ref_halfmove_clock()++;
 	if (turn == BLACK) ref_move_clock()++;
 
 	if (!is_promotion(move)) add_piece(turn, to, from_piece);
@@ -335,7 +339,7 @@ void print(Pos& pos, bool meta) {
 		if (getBQ(pos.ref_cr())) cout << "q";
 		cout << endl;
 		cout << "ep: " << square_to_string(pos.ref_ep()) << endl;
-		cout << "halfmove clock: " << to_string(pos.ref_ply_clock()) << endl;
+		cout << "halfmove clock: " << to_string(pos.ref_halfmove_clock()) << endl;
 		cout << "move clock: " << to_string(pos.ref_move_clock()) << endl;
 		cout << "fen: " << get_fen(pos) << endl;
 	}
@@ -376,7 +380,7 @@ string get_fen(Pos& pos) {
 	if (fen[fen.size() - 1] == ' ') fen+="-";
 
 	fen += " " + square_to_string(pos.ref_ep());
-	fen += " " + to_string(pos.ref_ply_clock());
+	fen += " " + to_string(pos.ref_halfmove_clock());
 	fen += " " + to_string(pos.ref_move_clock());
 
 	return fen;
@@ -470,7 +474,16 @@ BB Pos::get_king_atk_mask(Color color) {
 }
 
 bool Pos::in_check() {
-	return ref_num_checks() != 0;
+	if (pi_log.back().has_updated_pins_and_checks) return ref_num_checks() != 0;
+
+	Square ksq = lsb(ref_piece_mask(turn, KING));
+	for (Piece pt = PAWN; pt <= QUEEN; pt++) {
+		if (ref_piece_mask(notturn, pt) && 
+			(ref_piece_mask(notturn, pt) & get_piece_atk(pt, ksq, turn, ref_occ()))) {
+			return true;
+		}
+	}
+	return false;
 }
 
 bool Pos::three_repetitions() {
@@ -497,7 +510,7 @@ bool Pos::do_move(string SAN) {
 
 bool Pos::is_draw() {
 	return three_repetitions()
-		|| ref_ply_clock() == 50
+		|| ref_halfmove_clock() >= 100
 		|| insufficient_material()
 		|| (!get_legal_moves(*this).size() && !in_check());
 }
@@ -679,22 +692,22 @@ void Pos::update_pins_and_checks() {
 	if (pi_log.back().has_updated_pins_and_checks) return;
 	pi_log.back().has_updated_pins_and_checks = true;
 
-	ref_num_checks() = 0;
-	for (int i = 0; i < 64; i++) ref_moveable_squares(i) = 0;
-	ref_check_blocking_squares() = ~0ULL;
-	ref_pinned() = 0;
+	pi_log.back().num_checks = 0;
+	for (int i = 0; i < 64; i++) pi_log.back().moveable_squares[i] = 0;
+	pi_log.back().check_blocking_squares = ~0ULL;
+	pi_log.back().pinned = 0;
 
 	int ksq = lsb(ref_piece_mask(turn, KING));
 	
 	bool is_pawn_check = false;
 	if (get_pawn_atk(turn, ksq) & ref_piece_mask(notturn, PAWN)) {
-        ref_num_checks()++;
-        ref_check_blocking_squares() &= get_pawn_atk(turn, ksq) & ref_piece_mask(notturn, PAWN);
+        pi_log.back().num_checks++;
+        pi_log.back().check_blocking_squares &= get_pawn_atk(turn, ksq) & ref_piece_mask(notturn, PAWN);
 		is_pawn_check = true;
 	}
     else if (get_knight_atk(ksq) & ref_piece_mask(notturn, KNIGHT)) {
-        ref_num_checks()++;
-        ref_check_blocking_squares() &= get_knight_atk(ksq) & ref_piece_mask(notturn, KNIGHT);
+        pi_log.back().num_checks++;
+        pi_log.back().check_blocking_squares &= get_knight_atk(ksq) & ref_piece_mask(notturn, KNIGHT);
     }
 
     BB bishop_sliders = ref_piece_mask(notturn, BISHOP) | ref_piece_mask(notturn, QUEEN);
@@ -753,33 +766,35 @@ void Pos::update_pins_and_checks() {
     }
 
     //EN PASSANT CASE
-    if (ref_ep() != SQUARE_NONE && ref_num_checks() != 2) {
+    if (ref_ep() != SQUARE_NONE && pi_log.back().num_checks != 2) {
         BB to_pawns = get_pawn_atk(notturn, ref_ep()) & ref_piece_mask(turn, PAWN);
         while (to_pawns) {
             int from = poplsb(to_pawns);
             BB post = (ref_occ() | get_BB(ref_ep())) & (~get_BB(from)) & (~get_BB(ref_ep() - (turn == WHITE ? 8 : -8)));
-            if ((ref_num_checks() == 1 && !is_pawn_check) || (get_bishop_atk(ksq, post) & bishop_sliders) || (get_rook_atk(ksq, post) & rook_sliders)) {
-                if (ref_pinned() & get_BB(from))
-                    ref_moveable_squares(from) &= ~get_BB(ref_ep());
+            if ((pi_log.back().num_checks == 1 && !is_pawn_check) || (get_bishop_atk(ksq, post) & bishop_sliders) || (get_rook_atk(ksq, post) & rook_sliders)) {
+                if (pi_log.back().pinned & get_BB(from))
+                    pi_log.back().moveable_squares[from] &= ~get_BB(ref_ep());
                 else {
-                    ref_moveable_squares(from) = ~get_BB(ref_ep());
-                    ref_pinned() |= get_BB(from);
+                    pi_log.back().moveable_squares[from] = ~get_BB(ref_ep());
+                    pi_log.back().pinned |= get_BB(from);
                 }
             }
             else {
-                ref_moveable_squares(from) |= get_BB(ref_ep());
+                pi_log.back().moveable_squares[from] |= get_BB(ref_ep());
             }
         }
     }
 }
 
 void Pos::update_atks() {
+	if (pi_log.back().has_updated_atks) return;
 	pi_log.back().has_updated_atks = true;
 	ref_atk(WHITE) = get_atk_mask(WHITE);
 	ref_atk(BLACK) = get_atk_mask(BLACK);
 }
 
 void Pos::update_sum_mat_squared() {
+	if (pi_log.back().has_updated_sum_mat_squared) return;
 	pi_log.back().has_updated_sum_mat_squared = true;
 	ref_sum_mat_squared(WHITE) = sum_mat_squared(*this, WHITE);
 	ref_sum_mat_squared(BLACK) = sum_mat_squared(*this, BLACK);
