@@ -60,9 +60,9 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, Searc
         if (move == entry_move) score = 1000001;
         else if (move == counter_move) score = 1000000;
         else {
-            // if (!(for_qsearch || is_ep(move) || is_king_castle(move) || is_queen_castle(move) || is_promotion(move))) {
-            //     score += sea_gain(pos, move, -INF);
-            // }
+            if (!(for_qsearch || is_ep(move) || is_king_castle(move) || is_queen_castle(move) || is_promotion(move))) {
+                score += sea_gain(pos, move, -200);
+            }
 
             if (is_capture(move)) score += 100;
             if (is_promotion(move)) {

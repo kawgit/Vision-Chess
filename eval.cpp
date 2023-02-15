@@ -45,9 +45,9 @@ vector<Eval> early_bishop_map = {
       0, 10, 10,  0,  0, 10, 10,  0,
       0, 10, 10, 10, 10, 10, 10,  0,
       0,  0, 10, 10, 10, 10,  0,  0,
-      0,  0, 20, 10, 10, 20,  0,  0,
+      0,  0, 10, 10, 10, 10,  0,  0,
       0, 10, 10, 10, 10, 10, 10,  0,
-      0, 20, 10,  0, 10, 10, 20,  0,
+      0, 20, 10, 10, 10, 10, 20,  0,
       0,  0,  0,  0,  0,  0,  0,  0,
 };
 
@@ -277,7 +277,7 @@ Eval eval_pos(Pos& pos, Eval lb, Eval ub, bool debug) {
     }
 
     // boring punishment
-    eval *= ((float)(100 - pos.ref_halfmove_clock())) / 100;
+    eval *= ((float)(120 - pos.ref_halfmove_clock())) / 120;
 
     /* MUST BE REVISED TO ACTUALLY AFFECT MOVE ORDER
     // winning is winning
