@@ -132,7 +132,7 @@ void Pos::do_move(Move move) {
 
 	if (is_capture(move) || from_piece == PAWN) {
 		ref_halfmove_clock() = 0;
-		ref_repetitions_index() = pi_log.size();
+		ref_repetitions_index() = pi_log.size() - 1;
 	}
 	else ref_halfmove_clock()++;
 	if (turn == BLACK) ref_move_clock()++;
