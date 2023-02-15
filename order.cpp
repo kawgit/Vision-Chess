@@ -16,8 +16,8 @@ void insert_to_sorted(Move move, Score score, vector<Move>& moves, vector<Score>
             scores[i+1] = scores[i];
         }
         else {
-            moves[i] = move;
-            scores[i] = score;
+            moves[i+1] = move;
+            scores[i+1] = score;
             return;
         }
     }
@@ -57,12 +57,12 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, Searc
     for (Move& move : unsorted_moves) {
         Score score = 0;
 
-        if (move == entry_move && (!for_qsearch || score != 0)) score = 100001;
-        else if (move == counter_move && (!for_qsearch || score != 0)) score = 100000;
+        if (move == entry_move) score = 1000001;
+        else if (move == counter_move) score = 1000000;
         else {
-            if (!(for_qsearch || is_ep(move) || is_king_castle(move) || is_queen_castle(move) || is_promotion(move))) {
-                score += sea_gain(pos, move, -INF);
-            }
+            // if (!(for_qsearch || is_ep(move) || is_king_castle(move) || is_queen_castle(move) || is_promotion(move))) {
+            //     score += sea_gain(pos, move, -INF);
+            // }
 
             if (is_capture(move)) score += 100;
             if (is_promotion(move)) {
@@ -84,8 +84,6 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, Searc
             }
             if (pos.causes_check(move)) score += 1000;
         }
-
-        // cout << to_san(move) << " " << to_string(score) << endl;
 
         if (score > 0) {
             unsorted_good_scores.push_back(score);

@@ -86,7 +86,7 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 
 	if (moves.size() == 0) {
 		Eval eval = pos.in_check() ? -INF : 0;
-		entry->save(pos.ref_hashkey(), eval, EXACT, depth, MOVE_NONE, si.tt.gen);
+		entry->save(pos.ref_hashkey(), eval, EXACT, DEPTHMAX, MOVE_NONE, si.tt.gen);
 		return eval;
 	}
 	
@@ -96,7 +96,6 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 	moves = order(moves, pos, ti, si, num_good, num_boring, num_bad, false);
 
 	assert(moves.size());
-
 
 	Eval besteval = -INF;
 	Move bestmove = moves[0];
@@ -114,7 +113,7 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 			eval = -search(pos, depth - (2 + depth / 8), -beta, -max(alpha, besteval), ti, si);
 		}
 		else {
-			eval = -search(pos, depth - (2 + depth / 4), -beta, -max(alpha, besteval), ti, si);
+			eval = -search(pos, depth - (2 + depth / 6), -beta, -max(alpha, besteval), ti, si);
 		}
 
 		pos.undo_move();

@@ -23,7 +23,7 @@ int main(int argc, char* argv[]) {
 	uci();
 
 	// SearchInfo si;
-	// si.root_pos = Pos("3q2kr/5p1p/p1r1bp2/1p1p4/3Q4/1B3P2/P1P1RPPP/3R2K1 w - - 0 20");
+	// si.root_pos = Pos("8/2p3pk/3r3p/p1p2R2/P1P5/2P1q1P1/7P/5K2 b - - 0 35");
 	// ThreadInfo ti(si.root_pos, "hi");
 	// vector<Move> moves = get_legal_moves(si.root_pos);
 	// int num_good;
