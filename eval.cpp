@@ -18,6 +18,10 @@ using namespace std;
 
 vector<Eval> piece_eval = {0, 100, 300, 320, 500, 900, 10000};
 
+vector<Eval> mg_piece_eval = {0, 60, 379, 400, 619, 1232, 10000};
+
+vector<Eval> eg_piece_eval = {0, 100, 415, 444, 670, 1302, 10000};
+
 vector<Eval> early_pawn_map = {
       0,  0,  0,  0,  0,  0,  0,  0,
      20, 20, 20, 20, 20, 20, 20, 20,
@@ -51,6 +55,17 @@ vector<Eval> early_bishop_map = {
       0,  0,  0,  0,  0,  0,  0,  0,
 };
 
+vector<Eval> early_rook_map = {
+      0,  0,  0,  0,  0,  0,  0,  0,
+      0,  0,  0,  0,  0,  0,  0,  0,
+      0,  0,  0,  0,  0,  0,  0,  0,
+      0,  0,  5,  5,  5,  5,  0,  0,
+      0,  0,  5,  5,  5,  5,  0,  0,
+      0,  0,  5,  5,  5,  5,  0,  0,
+      0,  0,  5,  5,  5,  5,  0,  0,
+      0,  0, 10, 15, 15, 10,  0,  0,
+};
+
 vector<Eval> early_king_map = {
       0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,
@@ -58,7 +73,7 @@ vector<Eval> early_king_map = {
       0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,
       0,  0,  0,  0,  0,  0,  0,  0,
-     20, 20,  0,  0,  0,  0, 20, 20,
+     10, 10,  0,  0,  0,  0, 10, 10,
      20, 20,  0,  0,  0,  0, 20, 20,
 };
 
@@ -73,23 +88,38 @@ vector<Eval> late_king_map = {
     -20,-20,-10, -5, -5,-10,-20,-20
 };
 
+const Eval w1[8] = {0, 10, 20, 30, 40, 70, 120, 900};
+const Eval w2[8] = {0, 3, 4, 6, 14, 23, 42, 900};
+
 vector<Factor> lazy_factors = {
-    Factor("material", [](Pos& pos, Color color) {
-        return pos.ref_mat(color);
+    Factor("mg_material", [](Pos& pos, Color color) {
+        return get_early_weight(pos, color)
+            * (mg_piece_eval[PAWN] * bitcount(pos.ref_piece_mask(color, PAWN))
+            + mg_piece_eval[KNIGHT] * bitcount(pos.ref_piece_mask(color, KNIGHT))
+            + mg_piece_eval[BISHOP] * bitcount(pos.ref_piece_mask(color, BISHOP))
+            + mg_piece_eval[ROOK] * bitcount(pos.ref_piece_mask(color, ROOK))
+            + mg_piece_eval[QUEEN] * bitcount(pos.ref_piece_mask(color, QUEEN)));
+    }),
+
+    Factor("eg_material", [](Pos& pos, Color color) {
+        return get_late_weight(pos, color)
+            * (eg_piece_eval[PAWN] * bitcount(pos.ref_piece_mask(color, PAWN))
+            + eg_piece_eval[KNIGHT] * bitcount(pos.ref_piece_mask(color, KNIGHT))
+            + eg_piece_eval[BISHOP] * bitcount(pos.ref_piece_mask(color, BISHOP))
+            + eg_piece_eval[ROOK] * bitcount(pos.ref_piece_mask(color, ROOK))
+            + eg_piece_eval[QUEEN] * bitcount(pos.ref_piece_mask(color, QUEEN)));
     }),
     
     Factor("pawn_structure", [](Pos& pos, Color color) {
 
-        const static Eval w1[8] = {0, 10, 20, 30, 40, 70, 120, 900};
-
         Eval res = 0;
 
-        res -= bitcount(pos.isolated_pawns(color)) * 5;
-        res -= bitcount(pos.doubled_pawns(color)) * 10;
-        res -= bitcount(pos.blocked_pawns(color)) * 2;
+        res -= bitcount(pos.isolated_pawns(color)) * 3;
+        res -= bitcount(pos.doubled_pawns(color)) * 5;
+        // res -= bitcount(pos.blocked_pawns(color)) * 2;
 
         res += bitcount(pos.supported_pawns(color)) * 3;
-
+        res += bitcount(pos.phalanx_pawns(color)) * 4;
         
         BB passed_pawns = pos.passed_pawns(color);
 
@@ -137,7 +167,7 @@ vector<Factor> lazy_factors = {
             surr = shift<SOUTH>(surr);
         }
         //res += (8 - bitcount(surr)) * 4;
-        res += bitcount(surr & pos.ref_piece_mask(color, PAWN)) * 8;
+        res += bitcount(surr & pos.ref_piece_mask(color, PAWN)) * 3;
         
         /*
         BB temp = surr;
@@ -154,15 +184,15 @@ vector<Factor> lazy_factors = {
         return res;
     }),
     
-    Factor("early_king", [](Pos& pos, Color color) {
+    Factor("early_king_map", [](Pos& pos, Color color) {
         return (Eval)(get_early_weight(pos, color) * early_king_map[sqMapTrans(color, lsb(pos.ref_piece_mask(color, KING)))]);
     }),
 
-    Factor("late_king", [](Pos& pos, Color color) {
+    Factor("late_king_map", [](Pos& pos, Color color) {
         return (Eval)(get_late_weight(pos, color) * late_king_map[sqMapTrans(color, lsb(pos.ref_piece_mask(color, KING)))]);
     }),
 
-    Factor("early_bishop", [](Pos& pos, Color color) {
+    Factor("early_bishop_map", [](Pos& pos, Color color) {
         Eval result = 0;
         BB pieces = pos.ref_piece_mask(color, BISHOP);
         while (pieces) {
@@ -172,7 +202,7 @@ vector<Factor> lazy_factors = {
         return (Eval)(get_early_weight(pos, color) * result);
     }),
 
-    Factor("early_pawn", [](Pos& pos, Color color) {
+    Factor("early_pawn_map", [](Pos& pos, Color color) {
         Eval result = 0;
         BB pieces = pos.ref_piece_mask(color, PAWN);
         while (pieces) {
@@ -182,7 +212,7 @@ vector<Factor> lazy_factors = {
         return (Eval)(get_early_weight(pos, color) * result);
     }),
 
-    Factor("anytime_knight", [](Pos& pos, Color color) {
+    Factor("anytime_knight_map", [](Pos& pos, Color color) {
         Eval result = 0;
         BB pieces = pos.ref_piece_mask(color, KNIGHT);
         while (pieces) {
@@ -190,6 +220,16 @@ vector<Factor> lazy_factors = {
             result += anytime_knight_map[sqMapTrans(color, from)];
         }
         return result;
+    }),
+
+    Factor("early_rook_map", [](Pos& pos, Color color) {
+        Eval result = 0;
+        BB pieces = pos.ref_piece_mask(color, ROOK);
+        while (pieces) {
+            Square from = poplsb(pieces);
+            result += early_rook_map[sqMapTrans(color, from)];
+        }
+        return result * get_early_weight(pos, color);
     }),
 };
 

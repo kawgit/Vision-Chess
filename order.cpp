@@ -32,21 +32,17 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, Searc
 	TTEntry* entry = si.tt.probe(pos.ref_hashkey(), found);
 	Move entry_move = found ? entry->get_move() : MOVE_NONE;
 
-    vector<Score> unsorted_good_scores;
-    vector<Score> unsorted_good_moves;
-    vector<Score> unsorted_boring_scores;
     vector<Score> unsorted_boring_moves;
-    vector<Score> unsorted_bad_scores;
     vector<Score> unsorted_bad_moves;
-
-    unsorted_good_scores.reserve(unsorted_moves.size());
-    unsorted_good_moves.reserve(unsorted_moves.size());
     if (!for_qsearch) {
-        unsorted_boring_scores.reserve(unsorted_moves.size());
         unsorted_boring_moves.reserve(unsorted_moves.size());
-        unsorted_bad_scores.reserve(unsorted_moves.size());
         unsorted_bad_moves.reserve(unsorted_moves.size());
     }
+
+    vector<Move> sorted_moves;
+    vector<Score> sorted_scores;
+    sorted_moves.reserve(unsorted_moves.size());
+    sorted_scores.reserve(unsorted_moves.size());
 
     pos.update_atks();
     BB occ = pos.ref_occ();
@@ -60,9 +56,9 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, Searc
         if (move == entry_move) score = 1000001;
         else if (move == counter_move) score = 1000000;
         else {
-            if (!(for_qsearch || is_ep(move) || is_king_castle(move) || is_queen_castle(move) || is_promotion(move))) {
-                score += sea_gain(pos, move, -200);
-            }
+            // if (!(for_qsearch || is_ep(move) || is_king_castle(move) || is_queen_castle(move) || is_promotion(move))) {
+            //     score += sea_gain(pos, move, -200);
+            // }
 
             if (is_capture(move)) score += 100;
             if (is_promotion(move)) {
@@ -86,41 +82,51 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, Searc
         }
 
         if (score > 0) {
-            unsorted_good_scores.push_back(score);
-            unsorted_good_moves.push_back(move);
+            insert_to_sorted(move, score, sorted_moves, sorted_scores, 0);
         }
         else if (!for_qsearch) {
-            if (score < 0) {
-                unsorted_bad_scores.push_back(score);
-                unsorted_bad_moves.push_back(move);
+            if (score == 0) {
+                unsorted_boring_moves.push_back(move);
             }
             else {
-                unsorted_boring_scores.push_back(score);
-                unsorted_boring_moves.push_back(move);
+                unsorted_bad_moves.push_back(move);
             }
         }
     }
 
-    num_good = unsorted_good_moves.size();
+    num_good = sorted_moves.size();
     num_boring = unsorted_boring_moves.size();
     num_bad = unsorted_bad_moves.size();
 
-    vector<Move> sorted_moves;
-    vector<Score> sorted_scores;
-    sorted_moves.reserve(unsorted_moves.size());
-    sorted_scores.reserve(unsorted_moves.size());
-
-    for (int i = 0; i < unsorted_good_moves.size(); i++) {
-        // sorted_moves.push_back(unsorted_good_moves[i]);
-        insert_to_sorted(unsorted_good_moves[i], unsorted_good_scores[i], sorted_moves, sorted_scores, 0);
-    }
-
     if (for_qsearch) return sorted_moves;
-    
-    for (int i = 0; i < unsorted_boring_moves.size(); i++) {
-        sorted_moves.push_back(unsorted_boring_moves[i]);
-        // sorted_scores.push_back(0);
-        // insert_to_sorted(unsorted_boring_moves[i], unsorted_boring_scores[i], sorted_moves, sorted_scores, num_good);
+
+    if (false && pos.last_move() != MOVE_NONE) {
+        // BB our_threatened = get_threatened(pos, pos.turn);
+        // BB their_threatened = get_threatenable(pos, pos.notturn);
+        BB our_threatened = get_piece_atk(pos.last_from_piece(), pos.last_from(), pos.notturn, pos.ref_occ()) & pos.ref_occ();
+        for (Move move : unsorted_boring_moves) {
+            // sorted_moves.push_back(unsorted_boring_moves[i]);
+            // sorted_scores.push_back(0);
+            // si.get_hist(pos, unsorted_boring_moves[i]);
+            Score score = 0;
+            BB to_atk = get_piece_atk(pos.ref_mailbox(pos.turn, get_from(move)), get_to(move), pos.turn, pos.ref_occ());
+            if (to_atk & our_threatened) score += 10;
+            else if (get_BB(get_from(move)) & our_threatened) {
+                if (pos.ref_mailbox(pos.turn, get_from(move)) > pos.last_from_piece()
+                    || !(pos.ref_atk(pos.turn) & get_BB(get_from(move)))) {
+                    score += 20;
+                }
+                else {
+                    score += 5;
+                }
+            }
+            insert_to_sorted(move, score, sorted_moves, sorted_scores, num_good);
+        }
+    }
+    else {
+        for (Move move : unsorted_boring_moves) {
+            sorted_moves.push_back(move);
+        }
     }
     
     for (int i = 0; i < unsorted_bad_moves.size(); i++) {

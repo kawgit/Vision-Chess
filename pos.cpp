@@ -488,7 +488,7 @@ bool Pos::in_check() {
 
 bool Pos::three_repetitions() {
 	int count = 1;
-	for (int i = pi_log.size()-4; i >= ref_repetitions_index(); i-=2) {
+	for (int i = pi_log.size() - 5; i >= ref_repetitions_index(); i -= 2) {
 		if (pi_log[i].hashkey == ref_hashkey()) {
 			count++;
 			if (count == 3) return true;
@@ -525,7 +525,8 @@ bool Pos::is_over() {
 }
 
 bool Pos::one_repetition(int root) {
-	for (int i = pi_log.size()-4; i >= max((int)ref_repetitions_index(), root); i-=2) {
+	int lb = max((int)ref_repetitions_index(), root);
+	for (int i = pi_log.size() - 5; i >= lb; i -= 2) {
 		if (pi_log[i].hashkey == ref_hashkey()) {
 			return true;
 		}
@@ -626,6 +627,11 @@ BB Pos::supported_pawns(Color color) {
 	BB pawns = ref_piece_mask(color, PAWN);
 	if (color == WHITE) return (pawns & shift<NORTH>(shift<EAST>(pawns))) | (pawns & shift<NORTH>(shift<WEST>(pawns)));
 	else				return (pawns & shift<SOUTH>(shift<EAST>(pawns))) | (pawns & shift<SOUTH>(shift<WEST>(pawns)));
+}
+
+BB Pos::phalanx_pawns(Color color) {
+	BB pawns = ref_piece_mask(color, PAWN);
+	return (shift<WEST>(pawns) & pawns) | (shift<EAST>(pawns) & pawns);
 }
 
 BB Pos::passed_pawns(Color color) {

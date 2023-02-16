@@ -3,14 +3,14 @@ objects: bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o type
 
 rel:
 	clang++ -D NDEBUG -Ofast -pthread bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o main.cpp -o main.exe
-	clang++ -D NDEBUG -Ofast -pthread bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o unit_tests.cpp -o unit_tests.exe
+	clang++ -D NDEBUG -Ofast -pthread bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o tests.cpp -o tests.exe
 
 
 main.exe: bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o main.cpp
 	clang++ -Ofast -pthread bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o main.cpp -o main.exe
 
-test: bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o unit_tests.cpp
-	clang++ -Ofast -pthread bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o unit_tests.cpp -o unit_tests.exe
+tests.exe: bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o tests.cpp
+	clang++ -Ofast -pthread bits.o eval.o hash.o movegen.o order.o pos.o search.o timer.o tt.o types.o uci.o tests.cpp -o tests.exe
 
 bits.o: bits.cpp bits.h
 	clang++ -c -Ofast bits.cpp -o bits.o

@@ -94,6 +94,7 @@ class Pos {
 	BB doubled_pawns(Color color);
 	BB blocked_pawns(Color color);
 	BB supported_pawns(Color color);
+	BB phalanx_pawns(Color color);
 	BB passed_pawns(Color color);
 	BB double_passed_pawns(Color color);
 
@@ -260,7 +261,7 @@ class Pos {
 
 	inline Piece last_from_piece() {
 		assert(last_move() != MOVE_NULL && last_move() != MOVE_NONE);
-		return ref_mailbox(turn, last_to());
+		return ref_mailbox(notturn, last_to());
 	}
 };
 

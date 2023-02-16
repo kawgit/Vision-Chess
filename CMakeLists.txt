@@ -22,7 +22,7 @@ add_executable(Vision
     uci.cpp
     )
 
-add_executable(unit_tests 
+add_executable(tests 
     unit_tests.cpp
     bits.cpp
     eval.cpp 

@@ -36,9 +36,9 @@ struct TTEntry {
 	inline bool matches(BB hashkey) { return get_hashkey32() == (hashkey >> 32); }
 
 	inline void save(BB hashkey, Eval eval, Bound bound, Depth depth, Move move, Gen gen) {
-		if ( get_gen() < gen ||
-			(get_bound() != EXACT && (bound == EXACT || get_depth() < depth)) ||
-			(get_bound() == EXACT && (bound == EXACT && get_depth() < depth))) {
+		if (get_gen() < gen
+			|| (get_bound() != EXACT && (bound == EXACT || get_depth() <= depth))
+			|| (get_bound() == EXACT && (bound == EXACT && get_depth() <= depth))) {
 			forcesave(hashkey, eval, bound, depth, move, gen);
 		}
 	}
