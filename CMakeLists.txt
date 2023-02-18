@@ -23,7 +23,7 @@ add_executable(Vision
     )
 
 add_executable(tests 
-    unit_tests.cpp
+    tests.cpp
     bits.cpp
     eval.cpp 
     hash.cpp
