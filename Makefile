@@ -4,6 +4,7 @@ WASM_BUILD_DEST = build/wasm
 all: initdir $(ASM_BUILD_DEST)/bits.o $(ASM_BUILD_DEST)/eval.o $(ASM_BUILD_DEST)/hash.o $(ASM_BUILD_DEST)/movegen.o $(ASM_BUILD_DEST)/order.o $(ASM_BUILD_DEST)/pos.o $(ASM_BUILD_DEST)/search.o $(ASM_BUILD_DEST)/timer.o $(ASM_BUILD_DEST)/tt.o $(ASM_BUILD_DEST)/types.o $(ASM_BUILD_DEST)/uci.o main.exe
 
 initdir:
+	-mkdir build
 	-mkdir $(ASM_BUILD_DEST)
 	-mkdir $(WASM_BUILD_DEST)
 
@@ -14,7 +15,7 @@ tests.exe: initdir $(ASM_BUILD_DEST)/bits.o $(ASM_BUILD_DEST)/eval.o $(ASM_BUILD
 	clang++ -Ofast -pthread -o tests.exe src/tests.cpp $(ASM_BUILD_DEST)/bits.o $(ASM_BUILD_DEST)/eval.o $(ASM_BUILD_DEST)/hash.o $(ASM_BUILD_DEST)/movegen.o $(ASM_BUILD_DEST)/order.o $(ASM_BUILD_DEST)/pos.o $(ASM_BUILD_DEST)/search.o $(ASM_BUILD_DEST)/timer.o $(ASM_BUILD_DEST)/tt.o $(ASM_BUILD_DEST)/types.o
 
 web: initdir $(WASM_BUILD_DEST)/bits.o $(WASM_BUILD_DEST)/eval.o $(WASM_BUILD_DEST)/hash.o $(WASM_BUILD_DEST)/movegen.o $(WASM_BUILD_DEST)/order.o $(WASM_BUILD_DEST)/pos.o $(WASM_BUILD_DEST)/search.o $(WASM_BUILD_DEST)/timer.o $(WASM_BUILD_DEST)/tt.o $(WASM_BUILD_DEST)/types.o $(WASM_BUILD_DEST)/uci.o src/main.cpp
-	em++ -O3 -pthread -sTOTAL_MEMORY=1079050240 -o web.html src/main.cpp $(WASM_BUILD_DEST)/bits.o $(WASM_BUILD_DEST)/eval.o $(WASM_BUILD_DEST)/hash.o $(WASM_BUILD_DEST)/movegen.o $(WASM_BUILD_DEST)/order.o $(WASM_BUILD_DEST)/pos.o $(WASM_BUILD_DEST)/search.o $(WASM_BUILD_DEST)/timer.o $(WASM_BUILD_DEST)/tt.o $(WASM_BUILD_DEST)/types.o $(WASM_BUILD_DEST)/uci.o
+	em++ -O3 -pthread -sTOTAL_MEMORY=1310720000 -o web.html src/main.cpp $(WASM_BUILD_DEST)/bits.o $(WASM_BUILD_DEST)/eval.o $(WASM_BUILD_DEST)/hash.o $(WASM_BUILD_DEST)/movegen.o $(WASM_BUILD_DEST)/order.o $(WASM_BUILD_DEST)/pos.o $(WASM_BUILD_DEST)/search.o $(WASM_BUILD_DEST)/timer.o $(WASM_BUILD_DEST)/tt.o $(WASM_BUILD_DEST)/types.o $(WASM_BUILD_DEST)/uci.o
 
 $(ASM_BUILD_DEST)/bits.o: src/bits.cpp src/bits.h
 	clang++ -c -Ofast src/bits.cpp -o $(ASM_BUILD_DEST)/bits.o
