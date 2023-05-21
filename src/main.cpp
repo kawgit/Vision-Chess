@@ -12,6 +12,8 @@
 #include "eval.h"
 #include "uci.h"
 #include "order.h"
+#include "nnue.h"
+#include "train.h"
 
 using namespace std;
 
@@ -20,7 +22,11 @@ int main(int argc, char* argv[]) {
 	init_hash(4643);
 	init_movegen();
 
-	uci();
+	NNUE nnue;
+
+	train("ft.nnue", 100, 3);
+
+	// uci();
 
 	// SearchInfo si;
 	// si.root_pos = Pos("7k/2p5/1P6/4K2P/8/3r2P1/8/3q4 b - - 0 66");

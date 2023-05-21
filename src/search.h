@@ -30,7 +30,7 @@ struct ThreadInfo {
 	string id = "";
 	bool searching = true;
 
-	ThreadInfo(Pos& p, string id_);
+	ThreadInfo(Pos& p, string id_ = "");
 };
 
 class SearchInfo {
@@ -110,3 +110,5 @@ void timer(bool& target, Timestamp time);
 Eval sea_gain(Pos& pos, Move move, Eval alpha);
 
 Eval static_exchange_search(Pos& pos, Square target_square, Color turn, Eval curr_mat, BB occ, Eval target_piece_eval, Eval alpha, Eval beta);
+
+Move get_best_move(Pos& pos, Depth depth);

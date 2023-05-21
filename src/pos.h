@@ -7,6 +7,7 @@
 #include "bits.h"
 #include "types.h"
 #include "hash.h"
+#include "nnue.h"
 
 using namespace std;
 
@@ -40,6 +41,7 @@ class Pos {
 	
 	Color turn = WHITE;
 	Color notturn = BLACK;
+	NNUE* nnue = nullptr;
 	
 	private:
 	// incrementally updated forwards and backwards

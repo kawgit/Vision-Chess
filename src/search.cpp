@@ -364,3 +364,14 @@ Eval static_exchange_search(Pos& pos, Square target_square, Color turn, Eval cur
 		);
 	return max(curr_mat, result_after_move);
 }
+
+Move get_best_move(Pos& pos, Depth depth) {
+	SearchInfo si;
+	ThreadInfo ti(pos);
+
+	for (int d = 0; d < depth; d++) {
+		search(pos, depth, -INF, INF, ti, si);
+	}
+
+	return si.tt.getPV(pos)[0];
+}
