@@ -22,11 +22,11 @@ int main(int argc, char* argv[]) {
 	init_hash(4643);
 	init_movegen();
 
-	NNUE nnue;
+	// NNUE nnue;
 
-	train("ft.nnue", 100, 3);
+	// train("ft.nnue", 100, 3);
 
-	// uci();
+	uci();
 
 	// SearchInfo si;
 	// si.root_pos = Pos("7k/2p5/1P6/4K2P/8/3r2P1/8/3q4 b - - 0 66");
