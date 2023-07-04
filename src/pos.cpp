@@ -85,7 +85,7 @@ void Pos::add_piece(Color c, Square s, Piece p) {
 	ref_occ() |= get_BB(s);
 	ref_mailbox(c, s) = p;
 	if (p != KING) ref_mat(c) += get_piece_eval(p);
-	if (nnue != nullptr) nnue->add_piece(c, s, p);
+	// if (nnue != nullptr) nnue->add_piece(c, s, p);
 }
 
 void Pos::rem_piece(Color c, Square s, Piece p) {
@@ -96,7 +96,7 @@ void Pos::rem_piece(Color c, Square s, Piece p) {
 	ref_occ() = ref_occ(WHITE) | ref_occ(BLACK);
 	ref_mailbox(c, s) = PIECE_NONE;
 	if (p != KING) ref_mat(c) -= get_piece_eval(p);
-	if (nnue != nullptr) nnue->rem_piece(c, s, p);
+	// if (nnue != nullptr) nnue->rem_piece(c, s, p);
 }
 
 void Pos::do_move(Move move) {
