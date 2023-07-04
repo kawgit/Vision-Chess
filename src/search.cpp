@@ -143,6 +143,10 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si) {
 	if (!ti.searching) return 0;
 	ti.nodes++;
+	Depth depth = pos.move_log.size() - ti.root_ply;
+	if (depth > ti.seldepth) {
+		ti.seldepth = depth;
+	}
 
 	if (beta <= -MINMATE && beta != -INF) {
 		beta--;
@@ -293,6 +297,7 @@ void SearchInfo::print_uci_info() {
     string msg = "";
     msg += "info";
     msg += " depth " + to_string(entry->get_depth());
+	msg += " seldepth " + to_string(get_seldepth());
     msg += " score " + eval_to_string(entry->get_eval());
     msg += " nodes " + to_string(nodes);
     msg += " time " + to_string(time_elapsed);

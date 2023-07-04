@@ -29,6 +29,7 @@ struct ThreadInfo {
 	uint64_t nodes = 0;
 	string id = "";
 	bool searching = true;
+	Depth seldepth = 0;
 
 	ThreadInfo(Pos& p, string id_ = "");
 };
@@ -67,12 +68,20 @@ class SearchInfo {
 	void print_uci_info();
 	void worker(ThreadInfo& ti, bool verbose = true);
 
-	inline int get_nodes() {
+	inline BB get_nodes() {
 		BB nodes = 0;
 		for (ThreadInfo& ti : tis) {
 			nodes += ti.nodes;
 		}
 		return nodes;
+	}
+
+	inline Depth get_seldepth() {
+		Depth seldepth = 0;
+		for (ThreadInfo& ti : tis) {
+			if (ti.seldepth > seldepth) seldepth = ti.seldepth;
+		}
+		return seldepth;
 	}
 
 	inline void add_failhigh(Pos& pos, Move move) {

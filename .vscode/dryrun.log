@@ -1,6 +1,0 @@
-make.exe --dry-run --keep-going --print-directory
-make.exe: Entering directory `c:/Users/Kbana/OneDrive/Documents/GitHub/Vision'
-make.exe: Nothing to be done for `all'.
- 
-make.exe: Leaving directory `c:/Users/Kbana/OneDrive/Documents/GitHub/Vision'
- 

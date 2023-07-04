@@ -11,12 +11,12 @@ add_executable(Vision
     eval.cpp 
     hash.cpp
     movegen.cpp
-    nnue.cpp
+    # nnue.cpp
     order.cpp
     pos.cpp
     search.cpp
     timer.cpp
-    train.cpp
+    # train.cpp
     tt.cpp
     types.cpp
     uci.cpp
@@ -28,7 +28,7 @@ add_executable(tests
     eval.cpp 
     hash.cpp
     movegen.cpp
-    nnue.cpp
+    # nnue.cpp
     order.cpp
     pos.cpp
     search.cpp
