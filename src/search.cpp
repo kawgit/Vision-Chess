@@ -55,7 +55,7 @@ BB perft(Pos& pos, Depth depth, bool divide) {
 }
 
 Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si) {
-	if (!ti.searching) return 0;
+	if (!ti.searching) return alpha;
 	ti.nodes++;
 
 	if (beta <= -MINMATE && beta != -INF) {
@@ -118,6 +118,10 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 
 		pos.undo_move();
 
+		if (!ti.searching && found && i != 0) {
+			break;
+		}
+
 		if (eval > MINMATE) eval--;
 
 		if (eval > besteval) {
@@ -131,8 +135,6 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 		}
 	}
 
-	if (!ti.searching) return 0;
-
 	if (besteval <= alpha)		entry->save(pos.ref_hashkey(), besteval, UB   , depth, bestmove, si.tt.gen);
 	else if (besteval < beta)	entry->save(pos.ref_hashkey(), besteval, EXACT, depth, bestmove, si.tt.gen);
 	else						entry->save(pos.ref_hashkey(), besteval, LB   , depth, bestmove, si.tt.gen);
@@ -141,7 +143,6 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 }
 
 Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si) {
-	if (!ti.searching) return 0;
 	ti.nodes++;
 	Depth depth = pos.move_log.size() - ti.root_ply;
 	if (depth > ti.seldepth) {
