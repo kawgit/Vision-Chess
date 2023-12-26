@@ -1,5 +1,8 @@
 #pragma once
 
+#include <unistd.h>
+#define sleep_ms(ms) usleep(ms * 1000)
+
 #include "pos.h"
 #include "timer.h"
 #include "tt.h"
@@ -11,14 +14,6 @@
 
 using namespace std;
 
-#ifndef _WIN32
-#include <unistd.h>
-#define sleep(ms) usleep(ms * 1000)
-#endif
-#ifdef _WIN32
-#include <Windows.h>
-#define sleep(ms) Sleep(ms)
-#endif
 
 BB perft(Pos &p, Depth depth, bool divide = false);
 

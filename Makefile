@@ -1,5 +1,5 @@
 ASM_BUILD_DEST = build
-CXX_FLAGS = -O3
+CXX_FLAGS = -Ofast -DNDEBUG -std=c++20
 CXX_COMPILER = g++
 
 all: initdir build/bits.o build/eval.o build/hash.o build/movegen.o build/order.o build/pos.o build/search.o build/timer.o build/tt.o build/types.o build/uci.o Vision
@@ -37,5 +37,5 @@ build/uci.o: src/uci.cpp src/uci.h
 	$(CXX_COMPILER) -c $(CXX_FLAGS) -pthread src/uci.cpp -o build/uci.o
 
 clean:
-	-rm build/*.o
-	-del build\*.o
+	@-rm build/*.o
+	@-del build\*.o

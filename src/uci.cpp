@@ -15,16 +15,6 @@
 #include <iostream>
 #include <cstdlib>
 
-#ifndef _WIN32
-#include <unistd.h>
-#define sleep(ms) usleep(ms * 1000)
-#endif
-#ifdef _WIN32
-#include <Windows.h>
-#define sleep(ms) Sleep(ms)
-#endif
-
-
 using namespace std;
 
 
@@ -184,7 +174,7 @@ void uci() {
             if (!time_is_perm) uci_si.max_time = (uci_si.root_pos.turn == WHITE ? min((wtime / 30 + winc), wtime / 2) : min((btime / 30 + binc), btime / 2));
             bool verbose = true;
             thread(&SearchInfo::launch, &uci_si, ref(verbose)).detach();
-            sleep(10);
+            sleep_ms(10);
         }
         else if (token == "stop") {
             uci_si.stop();

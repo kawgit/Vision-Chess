@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <stdint.h>
 #include <vector>
+#include <array>
 
 using namespace std;
 
@@ -11,7 +12,11 @@ typedef uint64_t BB;
 extern int lookup67[68];
 
 inline int lsb(BB& n) {
-	return lookup67[(n & -n) % 67];
+	#ifdef DONT_USE_BUILTINS
+		return lookup67[(n & -n) % 67];
+	#else
+		return __builtin_ctzll(n);
+	#endif
 }
 
 inline int poplsb(BB& n) {
@@ -20,27 +25,22 @@ inline int poplsb(BB& n) {
 	return i;
 }
 
-inline void switch_bbs(BB& bb1, BB& bb2) {
-	BB temp = bb1;
-	bb1 = bb2;
-	bb2 = temp;
-}
-
-const uint64_t m1  = 0x5555555555555555; //binary: 0101...
-const uint64_t m2  = 0x3333333333333333; //binary: 00110011..
-const uint64_t m4  = 0x0f0f0f0f0f0f0f0f; //binary:  4 zeros,  4 ones ...
-const uint64_t h01 = 0x0101010101010101; //the sum of 256 to the power of 0,1,2,3...
 
 inline int bitcount(BB x)
 {
-    x -= (x >> 1) & m1;             //put count of each 2 bits into those 2 bits
-    x = (x & m2) + ((x >> 2) & m2); //put count of each 4 bits into those 4 bits 
-    x = (x + (x >> 4)) & m4;        //put count of each 8 bits into those 8 bits 
-    return (x * h01) >> 56;  //returns left 8 bits of x + (x<<8) + (x<<16) + (x<<24) + ... 
-}
-
-inline bool bitAt(BB& n, int k) { // todo: optimize with get_BB lookup 
-	return n & (1ULL << k);
+	#ifdef DONT_USE_BUILTINS
+		const uint64_t m1  = 0x5555555555555555; //binary: 0101...
+		const uint64_t m2  = 0x3333333333333333; //binary: 00110011..
+		const uint64_t m4  = 0x0f0f0f0f0f0f0f0f; //binary:  4 zeros,  4 ones ...
+		const uint64_t h01 = 0x0101010101010101; //the sum of 256 to the power of 0,1,2,3...
+		
+		x -= (x >> 1) & m1;             //put count of each 2 bits into those 2 bits
+		x = (x & m2) + ((x >> 2) & m2); //put count of each 4 bits into those 4 bits 
+		x = (x + (x >> 4)) & m4;        //put count of each 8 bits into those 8 bits 
+		return (x * h01) >> 56;  //returns left 8 bits of x + (x<<8) + (x<<16) + (x<<24) + ... 
+	#else
+		return __builtin_popcountll(x);
+	#endif
 }
 
 inline int rc(int r, int c) {
@@ -49,19 +49,58 @@ inline int rc(int r, int c) {
 
 void print(BB n);
 
-const BB row1 = 0b11111111;
-const BB col1 = 0b0000000100000001000000010000000100000001000000010000000100000001;
+constexpr std::array<BB, 8> FILE_MASKS = []() constexpr {
+
+	constexpr BB file1 = 0b0000000100000001000000010000000100000001000000010000000100000001;
+    std::array<BB, 8> array {};
+
+    for (size_t i = 0; i < 8; i++)
+
+		array[i] = file1 << i;
+
+    return array;
+
+}();
 
 inline BB get_file_mask(int c) {
-	return col1<<c;
+	return FILE_MASKS[c];
 }
+
+constexpr std::array<BB, 8> RANK_MASKS = []() constexpr {
+
+	constexpr BB rank1 = 0b11111111;
+    std::array<BB, 8> array {};
+
+    for (size_t i = 0; i < 8; i++)
+
+		array[i] = rank1 << (i * 8);
+
+    return array;
+
+}();
 
 inline BB get_rank_mask(int r) {
-	return row1<<(r*8);
+	return RANK_MASKS[r];
 }
 
-inline BB get_BB(int s) { // todo: optimize with loopup
-	return 1ULL<<s;
+constexpr std::array<BB, 64> SQUARE_MASKS = []() constexpr {
+
+    std::array<BB, 64> array {};
+
+    for (size_t i = 0; i < 64; i++)
+
+		array[i] = 1ULL << i;
+
+    return array;
+
+}();
+
+inline BB get_BB(int s) {
+	return SQUARE_MASKS[s];
+}
+
+inline bool bitAt(BB& n, int k) {
+	return n & get_BB(k);
 }
 
 inline BB rand_BB() {

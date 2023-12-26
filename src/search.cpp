@@ -231,7 +231,7 @@ void SearchInfo::launch(bool verbose) {
             break;
         }
 
-        sleep(10);
+        sleep_ms(10);
     }
     
     stop();
@@ -314,7 +314,7 @@ void SearchInfo::print_uci_info() {
 void timer(bool& target, Timestamp time) {
 	Timestamp start = get_current_ms();
 	while (target && get_time_diff(start) < time) {
-		sleep(10);
+		sleep_ms(10);
 	}
 	target = false;
 }
