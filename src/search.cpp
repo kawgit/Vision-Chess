@@ -111,10 +111,10 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 			eval = -search(pos, depth - 1, -beta, -max(alpha, besteval), ti, si);
 		}
 		else if (i < num_good + num_boring) {
-			eval = -search(pos, 3 * (depth - 1) / 4, -beta, -max(alpha, besteval), ti, si);
+			eval = -search(pos, depth - 2, -beta, -max(alpha, besteval), ti, si);
 		}
 		else {
-			eval = -search(pos, (depth - 1) / 4, -beta, -max(alpha, besteval), ti, si);
+			eval = -search(pos, depth - 3, -beta, -max(alpha, besteval), ti, si);
 		}
 
 		pos.undo_move();
