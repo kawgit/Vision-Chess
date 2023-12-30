@@ -2,6 +2,7 @@
 #include "bits.h"
 #include "tt.h"
 #include "search.h"
+#include "move.h"
 
 TTEntry* TT::probe(BB hashkey, bool& found) {
 	TTEntry* entry = &table[hashkey & HASHMASK];

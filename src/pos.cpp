@@ -3,6 +3,7 @@
 #include "types.h"
 #include "movegen.h"
 #include "eval.h"
+#include "move.h"
 #include <iostream>
 #include <map>
 #include <string>
@@ -608,54 +609,6 @@ bool Pos::causes_check(Move move) {
 	}
 	
 	return false;
-}
-
-BB Pos::isolated_pawns(Color color) {
-	BB pawn_files = files_of(ref_piece_mask(color, PAWN));
-	return ref_piece_mask(color, PAWN) & ~shift<EAST>(pawn_files) & ~shift<WEST>(pawn_files);
-}
-
-BB Pos::doubled_pawns(Color color) {
-	BB pawns = ref_piece_mask(color, PAWN);
-	return (pawns & (pawns >> 8)) | (pawns & (pawns >> 16)) | (pawns & (pawns >> 24));
-}
-
-BB Pos::blocked_pawns(Color color) {
-	if (color == WHITE) return shift<NORTH>(ref_piece_mask(color, PAWN)) & ref_occ();
-	else 				return shift<SOUTH>(ref_piece_mask(color, PAWN)) & ref_occ();
-}
-
-BB Pos::supported_pawns(Color color) {
-	BB pawns = ref_piece_mask(color, PAWN);
-	if (color == WHITE) return (pawns & shift<NORTH>(shift<EAST>(pawns))) | (pawns & shift<NORTH>(shift<WEST>(pawns)));
-	else				return (pawns & shift<SOUTH>(shift<EAST>(pawns))) | (pawns & shift<SOUTH>(shift<WEST>(pawns)));
-}
-
-BB Pos::phalanx_pawns(Color color) {
-	BB pawns = ref_piece_mask(color, PAWN);
-	return (shift<WEST>(pawns) & pawns) | (shift<EAST>(pawns) & pawns);
-}
-
-BB Pos::passed_pawns(Color color) {
-	BB pawns = ref_piece_mask(color, PAWN);
-	BB enemy_pawns = ref_piece_mask(opp(color), PAWN);
-	BB passed = 0;
-	while (pawns) {
-		Square sq = poplsb(pawns);
-		BB sq_bb = get_BB(sq);
-		BB half = (sq_bb - 1);
-		if (color == WHITE) half <<= 2;
-		else half >>= 1;
-		BB squares_ahead_of = files_of(sq_bb | shift<WEST>(sq_bb) | shift<EAST>(sq_bb)) & (color == WHITE ? ~half : half);
-		if (!(squares_ahead_of & enemy_pawns)) passed |= sq_bb;
-	}
-
-
-	return passed;
-}
-
-BB Pos::double_passed_pawns(Color color) {
-	return 0;
 }
 
 void Pos::save(string path) {

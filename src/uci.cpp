@@ -124,7 +124,7 @@ void uci() {
             uci_si.ponder = false;
             uci_si.num_threads = stoi(get_uci_option("Threads")->value);
             uci_si.max_time = -1;
-            uci_si.max_depth = DEPTHMAX;
+            uci_si.max_depth = DEPTH_MAX;
             uci_si.last_depth_searched = 0;
             bool time_is_perm = false;
 
@@ -153,7 +153,7 @@ void uci() {
                     uci_si.max_depth = stoi(token);
                 }
                 else if (token == "infinite") {
-                    uci_si.max_depth = DEPTHMAX;
+                    uci_si.max_depth = DEPTH_MAX;
                     uci_si.max_time = -1;
                     time_is_perm = true;
                 }

@@ -5,6 +5,7 @@
 #include "eval.h"
 // #include "tuner.h"
 #include "movegen.h"
+#include "move.h"
 #include <vector>
 
 void insert_to_sorted(Move move, Score score, vector<Move>& moves, vector<Score>& scores, int lb) {

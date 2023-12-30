@@ -5,9 +5,9 @@
 #include <vector>
 #include <array>
 
-using namespace std;
+#include "types.h"
 
-typedef uint64_t BB;
+using namespace std;
 
 extern int lookup67[68];
 
@@ -41,10 +41,6 @@ inline int bitcount(BB x)
 	#else
 		return __builtin_popcountll(x);
 	#endif
-}
-
-inline int rc(int r, int c) {
-	return r*8+c;
 }
 
 void print(BB n);
@@ -116,3 +112,21 @@ vector<float> serialize_bb(BB bb);
 void add_serialized_bb(vector<float>& vec, BB bb);
 
 void add_bb_to_cum(char* cum, BB bb, char coeff);
+
+template <Directions S> BB shift(BB a);
+
+template<> inline BB shift<NORTH>(BB a) {
+    return a << 8;
+}
+
+template<> inline BB shift<SOUTH>(BB a) {
+    return a >> 8;
+}
+
+template<> inline BB shift<EAST>(BB a) {
+    return (a & ~get_file_mask(7)) << 1;
+}
+
+template<> inline BB shift<WEST>(BB a) {
+    return (a & ~get_file_mask(0)) >> 1;
+}

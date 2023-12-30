@@ -2,6 +2,7 @@
 #include "types.h"
 #include "bits.h"
 #include "movegen.h"
+#include "move.h"
 #include <vector>
 #include <cassert>
 

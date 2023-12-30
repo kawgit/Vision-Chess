@@ -7,6 +7,7 @@
 #include "bits.h"
 #include "types.h"
 #include "hash.h"
+#include "move.h"
 // #include "nnue.h"
 
 using namespace std;
@@ -14,7 +15,7 @@ using namespace std;
 struct PosInfo {
 	
 	// need carry-over forward
-	CR cr = 0;
+	CR_Flag cr = 0;
 	Square ep = EP_NONE;
 	Clock halfmove_clock = 0;
 	Clock repetitions_index = 0;
@@ -92,13 +93,6 @@ class Pos {
 	bool causes_check(Move move);
 
 	int get_control_value(Color color, Square square);
-	BB isolated_pawns(Color color);
-	BB doubled_pawns(Color color);
-	BB blocked_pawns(Color color);
-	BB supported_pawns(Color color);
-	BB phalanx_pawns(Color color);
-	BB passed_pawns(Color color);
-	BB double_passed_pawns(Color color);
 
 	void save(string path);
 
@@ -109,7 +103,7 @@ class Pos {
 		return pi_log.back().ep;
 	}
 
-	inline CR& ref_cr() {
+	inline CR_Flag& ref_cr() {
 		return pi_log.back().cr;
 	}
 
@@ -266,8 +260,6 @@ class Pos {
 		return ref_mailbox(notturn, last_to());
 	}
 };
-
-
 
 void print(Pos& p, bool meta = false);
 

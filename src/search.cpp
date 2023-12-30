@@ -8,6 +8,7 @@
 #include "eval.h"
 #include "order.h"
 #include "uci.h"
+#include "move.h"
 #include <iostream>
 #include <iomanip>
 #include <thread>
@@ -86,7 +87,7 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 
 	if (moves.size() == 0) {
 		Eval eval = pos.in_check() ? -INF : 0;
-		entry->save(pos.ref_hashkey(), eval, EXACT, DEPTHMAX, MOVE_NONE, si.tt.gen);
+		entry->save(pos.ref_hashkey(), eval, EXACT, DEPTH_MAX, MOVE_NONE, si.tt.gen);
 		return eval;
 	}
 	

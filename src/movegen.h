@@ -3,6 +3,7 @@
 #include "pos.h"
 #include "types.h"
 #include "bits.h"
+#include "move.h"
 #include <vector>
 #include <cassert>
 

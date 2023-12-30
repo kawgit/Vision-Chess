@@ -2,6 +2,7 @@
 #include "pos.h"
 #include "search.h"
 // #include "tuner.h"
+#include "move.h"
 #include <vector>
 
 using namespace std;

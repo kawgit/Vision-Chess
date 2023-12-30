@@ -7,13 +7,13 @@
 #include "timer.h"
 #include "tt.h"
 #include "types.h"
+#include "move.h"
 #include <thread>
 #include <atomic>
 #include <string>
 #include <mutex>
 
 using namespace std;
-
 
 BB perft(Pos &p, Depth depth, bool divide = false);
 
@@ -41,7 +41,7 @@ class SearchInfo {
 	bool ponder;
 	int num_threads = 0;
 	Timestamp max_time = -1;
-	Depth max_depth = DEPTHMAX;
+	Depth max_depth = DEPTH_MAX;
 	Depth last_depth_searched = 0;
 	
 	// runtime metadata variables

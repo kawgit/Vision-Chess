@@ -2,6 +2,7 @@
 
 #include "pos.h"
 #include "bits.h"
+#include "move.h"
 #include "types.h"
 
 enum Bound : uint8_t {LB, EXACT, UB};

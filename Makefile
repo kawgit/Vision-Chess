@@ -2,7 +2,7 @@ ASM_BUILD_DEST = build
 CXX_FLAGS = -Ofast -DNDEBUG -std=c++20
 CXX_COMPILER = g++
 
-all: initdir build/bits.o build/eval.o build/hash.o build/movegen.o build/order.o build/pos.o build/search.o build/timer.o build/tt.o build/types.o build/uci.o Vision
+all: initdir build/bits.o build/eval.o build/hash.o build/move.o build/movegen.o build/order.o build/pos.o build/search.o build/timer.o build/tt.o build/types.o build/uci.o Vision
 
 initdir:
 	-mkdir build
@@ -19,6 +19,8 @@ build/eval.o: src/eval.cpp src/eval.h
 	$(CXX_COMPILER) -c $(CXX_FLAGS) src/eval.cpp -o build/eval.o
 build/hash.o: src/hash.cpp src/hash.h
 	$(CXX_COMPILER) -c $(CXX_FLAGS) src/hash.cpp -o build/hash.o
+build/move.o: src/move.cpp src/move.h
+	$(CXX_COMPILER) -c $(CXX_FLAGS) src/move.cpp -o build/move.o
 build/movegen.o: src/movegen.cpp src/movegen.h
 	$(CXX_COMPILER) -c $(CXX_FLAGS) src/movegen.cpp -o build/movegen.o
 build/order.o: src/order.cpp src/order.h
