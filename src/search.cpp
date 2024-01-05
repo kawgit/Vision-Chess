@@ -65,8 +65,8 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 	}
 
 	if (pos.insufficient_material()) return 0;
-	if (pos.ref_halfmove_clock() >= 4) {
-		if (pos.ref_halfmove_clock() >= 100) return 0;
+	if (pos.get_halfmove_clock() >= 4) {
+		if (pos.get_halfmove_clock() >= 100) return 0;
 		if (pos.one_repetition(ti.root_ply)) return 0;
 		if (pos.three_repetitions()) return 0;
 	}
@@ -74,7 +74,7 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 	if (depth <= 0) return qsearch(pos, alpha, beta, ti, si);
 
 	bool found = false;
-	TTEntry* entry = si.tt.probe(pos.ref_hashkey(), found);
+	TTEntry* entry = si.tt.probe(pos.get_hashkey(), found);
 
 	if (found && entry->get_depth() >= depth && entry->get_gen() == si.tt.gen) {
 		if (entry->get_bound() == EXACT) return entry->get_eval();
@@ -87,7 +87,7 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 
 	if (moves.size() == 0) {
 		Eval eval = pos.in_check() ? -INF : 0;
-		entry->save(pos.ref_hashkey(), eval, EXACT, DEPTH_MAX, MOVE_NONE, si.tt.gen);
+		entry->save(pos.get_hashkey(), eval, EXACT, DEPTH_MAX, MOVE_NONE, si.tt.gen);
 		return eval;
 	}
 	
@@ -136,9 +136,9 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 		}
 	}
 
-	if (besteval <= alpha)		entry->save(pos.ref_hashkey(), besteval, UB   , depth, bestmove, si.tt.gen);
-	else if (besteval < beta)	entry->save(pos.ref_hashkey(), besteval, EXACT, depth, bestmove, si.tt.gen);
-	else						entry->save(pos.ref_hashkey(), besteval, LB   , depth, bestmove, si.tt.gen);
+	if (besteval <= alpha)		entry->save(pos.get_hashkey(), besteval, UB   , depth, bestmove, si.tt.gen);
+	else if (besteval < beta)	entry->save(pos.get_hashkey(), besteval, EXACT, depth, bestmove, si.tt.gen);
+	else						entry->save(pos.get_hashkey(), besteval, LB   , depth, bestmove, si.tt.gen);
 
 	return besteval;
 }
@@ -161,8 +161,8 @@ Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si) {
 
 	if (pos.insufficient_material()) return 0;
 	// ONLY IF MOVES INCLUDE CHECKS
-	if (pos.ref_halfmove_clock() >= 4) {
-		if (pos.ref_halfmove_clock() >= 100) return 0;
+	if (pos.get_halfmove_clock() >= 4) {
+		if (pos.get_halfmove_clock() >= 100) return 0;
 		if (pos.one_repetition(ti.root_ply)) return 0;
 		if (pos.three_repetitions()) return 0;
 	}
@@ -289,7 +289,7 @@ void SearchInfo::worker(ThreadInfo& ti, bool verbose) {
 
 void SearchInfo::print_uci_info() {
     bool found = false;
-    TTEntry* entry = tt.probe(root_pos.ref_hashkey(), found);
+    TTEntry* entry = tt.probe(root_pos.get_hashkey(), found);
     
     if (!found) return;
 
@@ -324,17 +324,17 @@ Eval sea_gain(Pos& pos, Move move, Eval alpha) {
 	pos.update_atks();
 
 	Eval target_square = get_to(move);
-	Eval target_piece_eval = get_piece_eval(pos.ref_mailbox(pos.notturn, target_square));
-	if (!(pos.ref_atk(pos.notturn) & get_BB(target_square))) { // hanging
-		return get_piece_eval(pos.ref_mailbox(pos.notturn, target_square));
+	Eval target_piece_eval = get_piece_eval(pos.get_mailbox(pos.notturn, target_square));
+	if (!(pos.get_atk(pos.notturn) & get_BB(target_square))) { // hanging
+		return get_piece_eval(pos.get_mailbox(pos.notturn, target_square));
 	}
 	Eval result = -static_exchange_search(
 		pos, 
 		target_square, 
 		pos.notturn, 
 		-(target_piece_eval), 
-		pos.ref_occ() & ~get_BB(get_from(move)), 
-		get_piece_eval(pos.ref_mailbox(pos.turn, get_from(move))), 
+		pos.get_occ() & ~get_BB(get_from(move)), 
+		get_piece_eval(pos.get_mailbox(pos.turn, get_from(move))), 
 		-INF, 
 		-alpha);
 	return result;
@@ -348,7 +348,7 @@ Eval static_exchange_search(Pos& pos, Square target_square, Color turn, Eval cur
 	Piece from_piece = PIECE_NONE;
 	for (Piece pt = PAWN; pt <= KING; pt++) {
 		BB attackers = get_piece_atk(pt, target_square, opp(turn), occ)
-			& pos.ref_piece_mask(turn, pt)
+			& pos.get_piece_mask(turn, pt)
 			& occ;
 		if (attackers) {
 			from = lsb(attackers);
@@ -365,7 +365,7 @@ Eval static_exchange_search(Pos& pos, Square target_square, Color turn, Eval cur
 		opp(turn), 
 		-(curr_mat + target_piece_eval), 
 		occ & ~get_BB(from), 
-		get_piece_eval(pos.ref_mailbox(turn, from)), 
+		get_piece_eval(pos.get_mailbox(turn, from)), 
 		-beta, 
 		-alpha
 		);

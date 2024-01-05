@@ -179,17 +179,17 @@ void init_movegen(int seed) {
 }
 
 vector<Move> get_legal_moves(Pos& pos) {
-    assert(pos.ref_piece_mask(WHITE, KING) != 0);
-    assert(pos.ref_piece_mask(BLACK, KING) != 0);
+    assert(pos.get_piece_mask(WHITE, KING) != 0);
+    assert(pos.get_piece_mask(BLACK, KING) != 0);
 
 	pos.update_atks();
 	pos.update_pins_and_checks();
-    if (!pos.pi_log.back().has_updated_atks) pos.update_atks();
+    if (!pos.slice->has_updated_atks) pos.update_atks();
 
     vector<Move> moves;
     moves.reserve(Pos::MOVES_RESERVE_SIZE);
 
-    if (pos.ref_num_checks() != 2) {
+    if (pos.get_num_checks() != 2) {
         add_pawn_moves(moves, pos);
         add_knight_moves(moves, pos);
         add_bishop_moves(moves, pos);
@@ -214,7 +214,7 @@ inline void add_pawn_ep_moves_from_mask(vector<Move> &moves, Pos& pos, BB &mask,
     while (mask) {
         int to = poplsb(mask);
         int from = to - transform;
-        if (pos.ref_moveable_squares(from) & get_BB(to))
+        if (pos.get_moveable_squares(from) & get_BB(to))
             moves.push_back(make_move(from, to, EP));
     }
 }
@@ -230,9 +230,9 @@ inline void add_pawn_promotion_moves_from_mask(vector<Move> &moves, Pos& pos, BB
 }
 
 void add_pawn_moves(vector<Move>& moves, Pos& pos) {
-    if (!pos.ref_piece_mask(pos.turn, PAWN)) return;
+    if (!pos.get_piece_mask(pos.turn, PAWN)) return;
 
-    BB pawns = pos.ref_piece_mask(pos.turn, PAWN);
+    BB pawns = pos.get_piece_mask(pos.turn, PAWN);
 
     BB p1;
     BB p2;
@@ -254,16 +254,16 @@ void add_pawn_moves(vector<Move>& moves, Pos& pos) {
         rc_t = 9;
         lc_t = 7;
 
-        p1 = (pawns << 8) & ~pos.ref_occ();
-        p2 = ((p1 & get_rank_mask(2)) << 8) & ~pos.ref_occ();
+        p1 = (pawns << 8) & ~pos.get_occ();
+        p2 = ((p1 & get_rank_mask(2)) << 8) & ~pos.get_occ();
         rc = ((pawns & ~get_file_mask(7)) << 9);
         lc = ((pawns & ~get_file_mask(0)) << 7);
-        if (pos.ref_ep() != SQUARE_NONE) {
-            rc_ep = rc & get_BB(pos.ref_ep());
-            lc_ep = lc & get_BB(pos.ref_ep());
+        if (pos.get_ep() != SQUARE_NONE) {
+            rc_ep = rc & get_BB(pos.get_ep());
+            lc_ep = lc & get_BB(pos.get_ep());
         }
-        rc &= pos.ref_occ(pos.notturn);
-        lc &= pos.ref_occ(pos.notturn);
+        rc &= pos.get_occ(pos.notturn);
+        lc &= pos.get_occ(pos.notturn);
 
         p_p1 = p1 & get_rank_mask(7);
         p_rc = rc & get_rank_mask(7);
@@ -278,16 +278,16 @@ void add_pawn_moves(vector<Move>& moves, Pos& pos) {
         rc_t = -9;
         lc_t = -7;
 
-        p1 = (pawns >> 8) & ~pos.ref_occ();
-        p2 = ((p1 & get_rank_mask(5)) >> 8) & ~pos.ref_occ();
+        p1 = (pawns >> 8) & ~pos.get_occ();
+        p2 = ((p1 & get_rank_mask(5)) >> 8) & ~pos.get_occ();
         rc = ((pawns & ~get_file_mask(0)) >> 9);
         lc = ((pawns & ~get_file_mask(7)) >> 7);
-        if (pos.ref_ep() != SQUARE_NONE) {
-            rc_ep = rc & get_BB(pos.ref_ep());
-            lc_ep = lc & get_BB(pos.ref_ep());
+        if (pos.get_ep() != SQUARE_NONE) {
+            rc_ep = rc & get_BB(pos.get_ep());
+            lc_ep = lc & get_BB(pos.get_ep());
         }
-        rc &= pos.ref_occ(pos.notturn);
-        lc &= pos.ref_occ(pos.notturn);
+        rc &= pos.get_occ(pos.notturn);
+        lc &= pos.get_occ(pos.notturn);
         
         p_p1 = p1 & get_rank_mask(0);
         p_rc = rc & get_rank_mask(0);
@@ -311,12 +311,12 @@ void add_pawn_moves(vector<Move>& moves, Pos& pos) {
 }
 
 void add_knight_moves(vector<Move>& moves, Pos& pos) {
-    BB knights = pos.ref_piece_mask(pos.turn, KNIGHT);
+    BB knights = pos.get_piece_mask(pos.turn, KNIGHT);
 
     while (knights) {
         int from = poplsb(knights);
-        BB atk = get_knight_atk(from) & ~pos.ref_occ(pos.turn);
-        BB cap = atk & pos.ref_occ(pos.notturn);
+        BB atk = get_knight_atk(from) & ~pos.get_occ(pos.turn);
+        BB cap = atk & pos.get_occ(pos.notturn);
         BB qui = atk & ~cap;
         while (cap) {
             int to = poplsb(cap);
@@ -330,12 +330,12 @@ void add_knight_moves(vector<Move>& moves, Pos& pos) {
 }
 
 void add_bishop_moves(vector<Move>& moves, Pos& pos) {
-    BB bishop = pos.ref_piece_mask(pos.turn, BISHOP);
+    BB bishop = pos.get_piece_mask(pos.turn, BISHOP);
 
     while (bishop) {
         int from = poplsb(bishop);
-        BB atk = get_bishop_atk(from, pos.ref_occ()) & ~pos.ref_occ(pos.turn);
-        BB cap = atk & pos.ref_occ(pos.notturn);
+        BB atk = get_bishop_atk(from, pos.get_occ()) & ~pos.get_occ(pos.turn);
+        BB cap = atk & pos.get_occ(pos.notturn);
         BB qui = atk & ~cap;
         while (cap) {
             int to = poplsb(cap);
@@ -349,12 +349,12 @@ void add_bishop_moves(vector<Move>& moves, Pos& pos) {
 }
 
 void add_rook_moves(vector<Move>& moves, Pos& pos) {
-    BB rooks = pos.ref_piece_mask(pos.turn, ROOK);
+    BB rooks = pos.get_piece_mask(pos.turn, ROOK);
 
     while (rooks) {
         int from = poplsb(rooks);
-        BB atk = get_rook_atk(from, pos.ref_occ()) & ~pos.ref_occ(pos.turn);
-        BB cap = atk & pos.ref_occ(pos.notturn);
+        BB atk = get_rook_atk(from, pos.get_occ()) & ~pos.get_occ(pos.turn);
+        BB cap = atk & pos.get_occ(pos.notturn);
         BB qui = atk & ~cap;
         while (cap) {
             int to = poplsb(cap);
@@ -368,12 +368,12 @@ void add_rook_moves(vector<Move>& moves, Pos& pos) {
 }
 
 void add_queen_moves(vector<Move>& moves, Pos& pos) {
-    BB queens = pos.ref_piece_mask(pos.turn, QUEEN);
+    BB queens = pos.get_piece_mask(pos.turn, QUEEN);
 
     while (queens) {
         int from = poplsb(queens);
-        BB atk = get_queen_atk(from, pos.ref_occ()) & ~pos.ref_occ(pos.turn);
-        BB cap = atk & pos.ref_occ(pos.notturn);
+        BB atk = get_queen_atk(from, pos.get_occ()) & ~pos.get_occ(pos.turn);
+        BB cap = atk & pos.get_occ(pos.notturn);
         BB qui = atk & ~cap;
         while (cap) {
             int to = poplsb(cap);
@@ -399,15 +399,15 @@ const BB BKS_SAFE = get_BB(F8) | get_BB(G8);
 const BB BQS_SAFE = get_BB(C8) | get_BB(D8);
 
 void add_king_moves(vector<Move>& moves, Pos& pos) {
-    int ksq = lsb(pos.ref_piece_mask(pos.turn, KING));
-    BB atk = get_king_atk(ksq) & ~pos.ref_occ(pos.turn);
+    int ksq = lsb(pos.get_piece_mask(pos.turn, KING));
+    BB atk = get_king_atk(ksq) & ~pos.get_occ(pos.turn);
 
     if (atk == 0) return;
 
-    BB notturn_atk = pos.ref_atk(pos.notturn);
+    BB notturn_atk = pos.get_atk(pos.notturn);
     atk &= ~notturn_atk;
 
-    BB cap = atk & pos.ref_occ(pos.notturn);
+    BB cap = atk & pos.get_occ(pos.notturn);
     BB qui = atk & ~cap;
 
     while (cap) {
@@ -420,14 +420,14 @@ void add_king_moves(vector<Move>& moves, Pos& pos) {
     }
 
     //CASTLING
-    if (pos.ref_num_checks() == 0 && pos.ref_cr()) {
-        if (pos.turn == WHITE && (pos.ref_cr() &  0b0011)) {
-            if (getWK(pos.ref_cr()) && !(pos.ref_occ() & WKS_CLEARANCE) && !(notturn_atk & WKS_SAFE)) moves.push_back(make_move(ksq, G1, KING_CASTLE));
-            if (getWQ(pos.ref_cr()) && !(pos.ref_occ() & WQS_CLEARANCE) && !(notturn_atk & WQS_SAFE)) moves.push_back(make_move(ksq, C1, QUEEN_CASTLE));
+    if (pos.get_num_checks() == 0 && pos.get_cr()) {
+        if (pos.turn == WHITE && (pos.get_cr() &  0b0011)) {
+            if (getWK(pos.get_cr()) && !(pos.get_occ() & WKS_CLEARANCE) && !(notturn_atk & WKS_SAFE)) moves.push_back(make_move(ksq, G1, KING_CASTLE));
+            if (getWQ(pos.get_cr()) && !(pos.get_occ() & WQS_CLEARANCE) && !(notturn_atk & WQS_SAFE)) moves.push_back(make_move(ksq, C1, QUEEN_CASTLE));
         }
-        else if (pos.turn == BLACK && (pos.ref_cr() &  0b1100)){
-            if (getBK(pos.ref_cr()) && !(pos.ref_occ() & BKS_CLEARANCE) && !(notturn_atk & BKS_SAFE)) moves.push_back(make_move(ksq, G8, KING_CASTLE));
-            if (getBQ(pos.ref_cr()) && !(pos.ref_occ() & BQS_CLEARANCE) && !(notturn_atk & BQS_SAFE)) moves.push_back(make_move(ksq, C8, QUEEN_CASTLE));
+        else if (pos.turn == BLACK && (pos.get_cr() &  0b1100)){
+            if (getBK(pos.get_cr()) && !(pos.get_occ() & BKS_CLEARANCE) && !(notturn_atk & BKS_SAFE)) moves.push_back(make_move(ksq, G8, KING_CASTLE));
+            if (getBQ(pos.get_cr()) && !(pos.get_occ() & BQS_CLEARANCE) && !(notturn_atk & BQS_SAFE)) moves.push_back(make_move(ksq, C8, QUEEN_CASTLE));
         }
     }
 }

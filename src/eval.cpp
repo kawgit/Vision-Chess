@@ -155,14 +155,14 @@ Eval eval_pos(Pos& pos, Eval lb, Eval ub, bool debug) {
     // tempo bonus
     Eval eval = 0;
 
-    eval += pos.ref_mat(pos.turn);
-    eval -= pos.ref_mat(pos.notturn);
+    eval += pos.get_mat(pos.turn);
+    eval -= pos.get_mat(pos.notturn);
 
     for (Color color : {WHITE, BLACK}) {
         Eval result_early = 0;
         Eval result_late = 0;
         for (Piece piece = PAWN; piece <= KING; piece++) {
-            BB pieces = pos.ref_piece_mask(color, piece);
+            BB pieces = pos.get_piece_mask(color, piece);
             while (pieces) {
                 Square sq = sqMapTrans(color, poplsb(pieces));
                 result_early += psqt_early[piece - PAWN][sq] / 2;
@@ -174,7 +174,7 @@ Eval eval_pos(Pos& pos, Eval lb, Eval ub, bool debug) {
     }
 
     // boring punishment
-    eval *= ((float)(120 - pos.ref_halfmove_clock())) / 120;
+    eval *= ((float)(120 - pos.get_halfmove_clock())) / 120;
 
     return eval;
 }

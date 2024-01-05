@@ -80,8 +80,8 @@ class SearchInfo {
 	}
 
 	inline void add_failhigh(Pos& pos, Move move) {
-		cm_hueristic[pos.ref_mailbox(pos.notturn, get_to(pos.last_move())) - PAWN][get_to(pos.last_move())] = move;
-		hist_hueristic[pos.ref_mailbox(pos.turn, get_from(move)) - PAWN][get_to(move)]++;
+		cm_hueristic[pos.get_mailbox(pos.notturn, get_to(pos.last_move())) - PAWN][get_to(pos.last_move())] = move;
+		hist_hueristic[pos.get_mailbox(pos.turn, get_from(move)) - PAWN][get_to(move)]++;
 		hist_score_max++;
 
 		if (hist_score_max == SCORE_MAX) { 
@@ -97,11 +97,11 @@ class SearchInfo {
 	}
 
 	inline Move get_cm(Pos& pos) {
-		return ((pos.last_move() != MOVE_NONE) ? (cm_hueristic[pos.ref_mailbox(pos.notturn, get_to(pos.last_move())) - PAWN][get_to(pos.last_move())]) : MOVE_NONE);
+		return ((pos.last_move() != MOVE_NONE) ? (cm_hueristic[pos.get_mailbox(pos.notturn, get_to(pos.last_move())) - PAWN][get_to(pos.last_move())]) : MOVE_NONE);
 	}
 
 	inline Score get_hist(Pos& pos, Move move) {
-		return hist_hueristic[pos.ref_mailbox(pos.turn, get_from(move)) - PAWN][get_to(move)];
+		return hist_hueristic[pos.get_mailbox(pos.turn, get_from(move)) - PAWN][get_to(move)];
 	}
 };
 

@@ -16,15 +16,15 @@ inline Eval get_piece_eval(Piece p) {
 }
 
 inline Eval sum_mat_squared(Pos& pos, Color color) {
-    return bitcount(pos.ref_piece_mask(color, PAWN)) * 100
-        + bitcount(pos.ref_piece_mask(color, KNIGHT)) * 900
-        + bitcount(pos.ref_piece_mask(color, BISHOP)) * 1024
-        + bitcount(pos.ref_piece_mask(color, ROOK)) * 2500
-        + bitcount(pos.ref_piece_mask(color, QUEEN)) * 8100;
+    return bitcount(pos.get_piece_mask(color, PAWN)) * 100
+        + bitcount(pos.get_piece_mask(color, KNIGHT)) * 900
+        + bitcount(pos.get_piece_mask(color, BISHOP)) * 1024
+        + bitcount(pos.get_piece_mask(color, ROOK)) * 2500
+        + bitcount(pos.get_piece_mask(color, QUEEN)) * 8100;
 }
 
 inline float get_early_weight(Pos& pos, Color color) {
-    return ((float) pos.ref_sum_mat_squared(opp(color))) / STARTPOS_SUM_MAT_SQUARED;
+    return ((float) pos.get_sum_mat_squared(opp(color))) / STARTPOS_SUM_MAT_SQUARED;
 }
 
 inline float get_late_weight(Pos& pos, Color color) {

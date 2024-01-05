@@ -30,7 +30,7 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, Searc
     Move counter_move = si.get_cm(pos);
 
     bool found = false;
-	TTEntry* entry = si.tt.probe(pos.ref_hashkey(), found);
+	TTEntry* entry = si.tt.probe(pos.get_hashkey(), found);
 	Move entry_move = found ? entry->get_move() : MOVE_NONE;
 
     vector<Score> unsorted_boring_moves;
@@ -46,9 +46,9 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, Searc
     sorted_scores.reserve(unsorted_moves.size());
 
     pos.update_atks();
-    BB occ = pos.ref_occ();
-    BB turn_atk = pos.ref_atk(pos.turn);
-    BB notturn_atk = pos.ref_atk(pos.notturn);
+    BB occ = pos.get_occ();
+    BB turn_atk = pos.get_atk(pos.turn);
+    BB notturn_atk = pos.get_atk(pos.notturn);
 
     bool found_huer_response = false;
     for (Move& move : unsorted_moves) {
@@ -104,17 +104,17 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, Searc
     if (false && pos.last_move() != MOVE_NONE) {
         // BB our_threatened = get_threatened(pos, pos.turn);
         // BB their_threatened = get_threatenable(pos, pos.notturn);
-        BB our_threatened = get_piece_atk(pos.last_from_piece(), pos.last_from(), pos.notturn, pos.ref_occ()) & pos.ref_occ();
+        BB our_threatened = get_piece_atk(pos.last_from_piece(), pos.last_from(), pos.notturn, pos.get_occ()) & pos.get_occ();
         for (Move move : unsorted_boring_moves) {
             // sorted_moves.push_back(unsorted_boring_moves[i]);
             // sorted_scores.push_back(0);
             // si.get_hist(pos, unsorted_boring_moves[i]);
             Score score = 0;
-            BB to_atk = get_piece_atk(pos.ref_mailbox(pos.turn, get_from(move)), get_to(move), pos.turn, pos.ref_occ());
+            BB to_atk = get_piece_atk(pos.get_mailbox(pos.turn, get_from(move)), get_to(move), pos.turn, pos.get_occ());
             if (to_atk & our_threatened) score += 10;
             else if (get_BB(get_from(move)) & our_threatened) {
-                if (pos.ref_mailbox(pos.turn, get_from(move)) > pos.last_from_piece()
-                    || !(pos.ref_atk(pos.turn) & get_BB(get_from(move)))) {
+                if (pos.get_mailbox(pos.turn, get_from(move)) > pos.last_from_piece()
+                    || !(pos.get_atk(pos.turn) & get_BB(get_from(move)))) {
                     score += 20;
                 }
                 else {
@@ -143,7 +143,7 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, Searc
             if (unsorted_scores[i] >= 0) {
                 Move move = unsorted_moves[i];
                 Square from = get_from(move);
-                if (pos.ref_mailbox(pos.turn, from) != ROOK) {
+                if (pos.get_mailbox(pos.turn, from) != ROOK) {
                     Rank rank = rank_of(from);
                     if (rank == RANK_1 || rank == RANK_2) {
                         unsorted_scores[i] += 10;
