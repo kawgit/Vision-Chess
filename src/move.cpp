@@ -1,4 +1,5 @@
 #include "move.h"
+#include "util.h"
 
 const char piece_notations[] = {'p', 'n', 'b', 'r', 'q', 'k'};
 

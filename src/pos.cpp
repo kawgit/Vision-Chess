@@ -1,80 +1,139 @@
 #include "pos.h"
 #include "bits.h"
 #include "types.h"
-#include "movegen.h"
-#include "eval.h"
 #include "move.h"
+#include "util.h"
 #include <iostream>
 #include <map>
 #include <string>
 #include <cassert>
-#include <fstream>
-
-using namespace std;
-
-static map<char, Piece> fenmap = {
-	{'p', PAWN},
-	{'n', KNIGHT},
-	{'b', BISHOP},
-	{'r', ROOK},
-	{'q', QUEEN},
-	{'k', KING},
-};
+#include <cstring>
 
 Pos::Pos(string fen) {
-	for (int i = 0; i < 64; i++) {
-		get_mailbox(WHITE, i) = PIECE_NONE;
-		get_mailbox(BLACK, i) = PIECE_NONE;
-	}
 
-	int r = 7;
-	int c = 0;
-	int i = 0;
-	while (!(r == 0 && c == 8)) {
-		char ch = fen[i++];
-		if (ch == '/') {
-			c = 0;
-			r--;
+	std::memset(piece_bbs, BB_EMPTY, sizeof(piece_bbs));
+	std::memset(color_bbs, BB_EMPTY, sizeof(color_bbs));
+	std::memset(piece_mailboxes, PIECE_NONE, sizeof(piece_mailboxes));
+	std::memset(color_mailboxes, COLOR_NONE, sizeof(color_mailboxes));
+
+	slice = slice_stack;
+
+	// Board
+	Rank rank = RANK_8;
+	File file = FILE_A;
+	size_t i = 0;
+	
+	while (rank != RANK_1 || file != FILE_H + 1) {
+
+		char c = fen[i++];
+		
+		if (c == '/') {
+		
+			file = FILE_A;
+			rank--;
+		
 		}
-		else if (ch >= '0' && ch <= '9') {
-			c += ch - '0';
+		else if (c >= '0' && c <= '9') {
+		
+			file += c - '0';
+		
 		}
 		else {
-			Color color = (ch >= 'a' ? BLACK : WHITE);
-			add_piece(color, rc(r, c), fenmap[(color == BLACK ? ch : (ch - 'A' + 'a'))]);
-			c++;
+			
+			Spiece spiece = char_to_spiece(c);
+
+			Color color = color_of(spiece);
+			Piece piece = type_of(spiece);
+			Square square = square_of(rank, file);
+			
+			add_piece(color, piece, square);
+
+			file++;
+		
 		}
+
 	}
 
 	fen = fen.substr(i);
 
-	set_turn(fen.find("w") != string::npos ? WHITE : BLACK);
+	// Turn
+	Color target_turn = fen.find("w") != string::npos ? WHITE : BLACK;
+	if (turn() != target_turn)
+		switch_turn();
 
-	if (fen.find("K") != string::npos) switch_cr(WKS_I);
-	if (fen.find("Q") != string::npos) switch_cr(WQS_I);
-	if (fen.find("k") != string::npos) switch_cr(BKS_I);
-	if (fen.find("q") != string::npos) switch_cr(BQS_I);
+	// Castling rights
+	if (piece_on(H1) == ROOK && color_on(H1) == WHITE && fen.find("K") != string::npos)
+		switch_cr(H1);
+	
+	if (piece_on(A1) == ROOK && color_on(A1) == WHITE && fen.find("Q") != string::npos)
+		switch_cr(A1);
+	
+	if (piece_on(H8) == ROOK && color_on(H8) == BLACK && fen.find("k") != string::npos)
+		switch_cr(H8);
+	
+	if (piece_on(A8) == ROOK && color_on(A8) == BLACK && fen.find("q") != string::npos)
+		switch_cr(A8);
+	
+	for (int i = 0; i < 3; i++)
+		fen = fen.substr(fen.find(" ") + 1);
 
-	for (int i = 0; i < 3; i++) fen = fen.substr(fen.find(" ")+1);
+	// En passant
+	if (fen[0] != '-')
+		set_ep(string_to_square(fen));
+	fen = fen.substr(fen.find(" ") + 1);
+	if (fen.size() == 0)
+		return;
 
-	if (fen[0] != '-') set_ep(string_to_square(fen));
-
-	fen = fen.substr(fen.find(" ")+1);
-	if (fen.size() == 0) goto end;
-
-	get_halfmove_clock() = stoi(fen.substr(0, fen.find(" ")));
-
-	fen = fen.substr(fen.find(" ")+1);
-	if (fen.size() == 0) goto end;
-
-	get_move_clock() = stoi(fen);
-
-	end:
-
-	pi_log.reserve(LOG_RESERVE_SIZE);
-	move_log.reserve(LOG_RESERVE_SIZE);
-	to_piece_log.reserve(LOG_RESERVE_SIZE);
+	// Fifty move rule
+	slice->fifty_move_clock = stoi(fen.substr(0, fen.find(" ")));
+	fen = fen.substr(fen.find(" ") + 1);
+	if (fen.size() == 0)
+		return;
+	
+	// Move clock
+	move_clock_ = stoi(fen);
 }
+
+void print(Pos& pos, bool meta) {
+
+	for (Rank rank = RANK_8; rank >= RANK_1; rank--) {
+
+		cout << "+---+---+---+---+---+---+---+---+\n| ";
+
+		for (File file = FILE_A; file <= FILE_H; file++) {
+
+			Square square = square_of(rank, file);
+			Spiece spiece = pos.spiece_on(square);
+
+			cout << spiece_to_char(spiece) << " | ";
+
+		}
+
+		cout << endl;
+
+	}
+
+	cout << "+---+---+---+---+---+---+---+---+" << endl;
+
+	cout << "ayo" << endl;
+
+	if (meta) {
+		cout << "turn: " << (pos.turn() == WHITE ? "WHITE" : "BLACK") << endl;
+		cout << "hashkey: " <<  hex  <<  uppercase  <<  pos.hashkey()  <<  nouppercase  <<  dec  <<  endl;
+		cout << "castle rights: ";
+		if (bb_has(pos.cr(), H1)) cout << "K";
+		if (bb_has(pos.cr(), A1)) cout << "Q";
+		if (bb_has(pos.cr(), H8)) cout << "k";
+		if (bb_has(pos.cr(), A8)) cout << "q";
+		cout << endl;
+		cout << "ep: " << square_to_string(pos.ep()) << endl;
+		cout << "halfmove clock: " << to_string(pos.fifty_move_clock()) << endl;
+		cout << "move clock: " << to_string(pos.move_clock()) << endl;
+	}
+
+}
+
+/*
 
 void Pos::do_move(Move move) {
 	assert(move != MOVE_NONE);
@@ -129,7 +188,7 @@ void Pos::do_move(Move move) {
 			if (!is_ep(move)) rem_piece(notturn, to, to_piece);
 			else rem_piece(notturn, to + (turn == WHITE ? -8 : 8), PAWN);
 		}
-		else if (is_double_pawn_push(move) && (get_rank_mask(to/8) & get_king_atk(to) & get_piece_mask(notturn, PAWN))) {
+		else if (is_double_pawn_push(move) && (bb_of_rank(to/8) & get_king_atk(to) & get_piece_mask(notturn, PAWN))) {
 			set_ep(to + (turn == WHITE ? -8 : 8));
 		}
 		else if (is_king_castle(move)) {
@@ -247,6 +306,7 @@ void Pos::undo_move() {
 	move_log.pop_back();
 	to_piece_log.pop_back();
 }
+*/
 
 /*
 void Pos::do_null_move() {
@@ -289,44 +349,7 @@ void Pos::undo_null_move() {
 }
 */
 
-void print(Pos& pos, bool meta) {
-	const static char white_piece_notation[6] = {'P', 'N', 'B', 'R', 'Q', 'K'};
-	const static char black_piece_notation[6] = {'p', 'n', 'b', 'r', 'q', 'k'};
-
-	for (int r = 7; r >= 0; r--) {
-		cout << " +---+---+---+---+---+---+---+---+ " << endl;
-		for (int c = 0; c < 8; c++) {
-			cout << " | ";
-			if (pos.get_mailbox(WHITE, rc(r, c)) != PIECE_NONE) {
-				cout << white_piece_notation[pos.get_mailbox(WHITE, rc(r, c)) - PAWN];
-			}
-			else if (pos.get_mailbox(BLACK, rc(r, c)) != PIECE_NONE) {
-				cout << black_piece_notation[pos.get_mailbox(BLACK, rc(r, c)) - PAWN];
-			}
-			else {
-				cout << ' ';
-			}
-		}
-		cout << " | " << endl;
-	}
-	cout << " +---+---+---+---+---+---+---+---+ " << endl;
-
-	if (meta) {
-		cout << "turn: " << (pos.turn == WHITE ? "WHITE" : "BLACK") << endl;
-		cout << "hashkey: " <<  hex  <<  uppercase  <<  pos.get_hashkey()  <<  nouppercase  <<  dec  <<  endl;
-		cout << "castle rights: ";
-		if (getWK(pos.get_cr())) cout << "K";
-		if (getWQ(pos.get_cr())) cout << "Q";
-		if (getBK(pos.get_cr())) cout << "k";
-		if (getBQ(pos.get_cr())) cout << "q";
-		cout << endl;
-		cout << "ep: " << square_to_string(pos.get_ep()) << endl;
-		cout << "halfmove clock: " << to_string(pos.get_halfmove_clock()) << endl;
-		cout << "move clock: " << to_string(pos.get_move_clock()) << endl;
-		cout << "fen: " << get_fen(pos) << endl;
-	}
-}
-
+/*
 string get_fen(Pos& pos) {
 	const static char white_piece_notation[6] = {'P', 'N', 'B', 'R', 'Q', 'K'};
 	const static char black_piece_notation[6] = {'p', 'n', 'b', 'r', 'q', 'k'};
@@ -551,8 +574,8 @@ bool Pos::causes_check(Move move) {
 	BB occ = get_occ();
 	BB rook_rays = get_rook_atk(ksq, occ);
 	BB bishop_rays = get_bishop_atk(ksq, occ);
-	BB from_mask = get_BB(get_from(move));
-	BB to_mask = get_BB(get_to(move));
+	BB from_mask = bb_of(get_from(move));
+	BB to_mask = bb_of(get_to(move));
 	
 	if (rook_rays & from_mask
 	 && get_rook_atk(ksq, (occ & ~from_mask) | to_mask) & (get_piece_mask(turn, ROOK) | get_piece_mask(turn, QUEEN))) {
@@ -710,17 +733,17 @@ void Pos::update_pins_and_checks() {
         BB to_pawns = get_pawn_atk(notturn, get_ep()) & get_piece_mask(turn, PAWN);
         while (to_pawns) {
             int from = poplsb(to_pawns);
-            BB post = (get_occ() | get_BB(get_ep())) & (~get_BB(from)) & (~get_BB(get_ep() - (turn == WHITE ? 8 : -8)));
+            BB post = (get_occ() | bb_of(get_ep())) & (~bb_of(from)) & (~bb_of(get_ep() - (turn == WHITE ? 8 : -8)));
             if ((slice->num_checks == 1 && !is_pawn_check) || (get_bishop_atk(ksq, post) & bishop_sliders) || (get_rook_atk(ksq, post) & rook_sliders)) {
-                if (slice->pinned & get_BB(from))
-                    slice->moveable_squares[from] &= ~get_BB(get_ep());
+                if (slice->pinned & bb_of(from))
+                    slice->moveable_squares[from] &= ~bb_of(get_ep());
                 else {
-                    slice->moveable_squares[from] = ~get_BB(get_ep());
-                    slice->pinned |= get_BB(from);
+                    slice->moveable_squares[from] = ~bb_of(get_ep());
+                    slice->pinned |= bb_of(from);
                 }
             }
             else {
-                slice->moveable_squares[from] |= get_BB(get_ep());
+                slice->moveable_squares[from] |= bb_of(get_ep());
             }
         }
     }
@@ -739,3 +762,4 @@ void Pos::update_sum_mat_squared() {
 	get_sum_mat_squared(WHITE) = sum_mat_squared(*this, WHITE);
 	get_sum_mat_squared(BLACK) = sum_mat_squared(*this, BLACK);
 }
+*/

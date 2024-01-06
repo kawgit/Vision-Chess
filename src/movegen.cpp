@@ -33,8 +33,8 @@ BB getAnswer(int r, int c, BB blockerboard, int d_offset) {
             int _c = c + directions[d][0]*m;
             int _s = rc(_r, _c);
             if (_r >= 0 && _r <= 7 && _c >= 0 && _c <= 7) {
-                answer |= get_BB(_s);
-                if (bitAt(blockerboard, _s)) break;
+                answer |= bb_of(_s);
+                if (bb_has(blockerboard, _s)) break;
             }
             else break;
         }
@@ -54,8 +54,8 @@ void init_movegen(int seed) {
                     int _r = r + directions[d][1]*m;
                     int _c = c + directions[d][0]*m;
                     if (_r >= 0 && _r <= 7 && _c >= 0 && _c <= 7) {
-                        rays[s][d] |= get_BB(rc(_r, _c));
-                        if (m == 1) king_atks[s] |= get_BB(rc(_r, _c));
+                        rays[s][d] |= bb_of(rc(_r, _c));
+                        if (m == 1) king_atks[s] |= bb_of(rc(_r, _c));
                     }
                 }
             }
@@ -78,7 +78,7 @@ void init_movegen(int seed) {
                 int _c = c + knight_directions[d][0];
 
                 if (_r >= 0 && _r <= 7 && _c >= 0 && _c <= 7) 
-                    knight_atks[s] |= get_BB(rc(_r, _c));
+                    knight_atks[s] |= bb_of(rc(_r, _c));
             }
         }
     }
@@ -88,10 +88,10 @@ void init_movegen(int seed) {
     for (int r = 0; r < 8; r++) {
         for (int c = 0; c < 8; c++) {
             BB exclude = 0ULL;
-            if (c != 0) exclude |= get_file_mask(0);
-            if (c != 7) exclude |= get_file_mask(7);
-            if (r != 0) exclude |= get_rank_mask(0);
-            if (r != 7) exclude |= get_rank_mask(7);
+            if (c != 0) exclude |= bb_of_file(0);
+            if (c != 7) exclude |= bb_of_file(7);
+            if (r != 0) exclude |= bb_of_rank(0);
+            if (r != 7) exclude |= bb_of_rank(7);
 
             exclude = 0ULL;
             int s = rc(r, c);
@@ -111,7 +111,7 @@ void init_movegen(int seed) {
                 BB save = rook_blockermasks[s];
                 rook_blockerboards[s].push_back(rook_blockermasks[s]);
                 for (int i = 0; i < count; i++) {
-                    if (!bitAt(bits, i)) rook_blockerboards[s][bits] &= ~get_BB(poplsb(save));
+                    if (!bb_has(bits, i)) rook_blockerboards[s][bits] &= ~bb_of(poplsb(save));
                     else poplsb(save);
                 }
             }
@@ -123,7 +123,7 @@ void init_movegen(int seed) {
                 BB save = bishop_blockermasks[s];
                 bishop_blockerboards[s].push_back(bishop_blockermasks[s]);
                 for (int i = 0; i < count; i++) {
-                    if (!bitAt(bits, i)) bishop_blockerboards[s][bits] &= ~get_BB(poplsb(save));
+                    if (!bb_has(bits, i)) bishop_blockerboards[s][bits] &= ~bb_of(poplsb(save));
                     else poplsb(save);
                 }
             }
@@ -214,7 +214,7 @@ inline void add_pawn_ep_moves_from_mask(vector<Move> &moves, Pos& pos, BB &mask,
     while (mask) {
         int to = poplsb(mask);
         int from = to - transform;
-        if (pos.get_moveable_squares(from) & get_BB(to))
+        if (pos.get_moveable_squares(from) & bb_of(to))
             moves.push_back(make_move(from, to, EP));
     }
 }
@@ -255,23 +255,23 @@ void add_pawn_moves(vector<Move>& moves, Pos& pos) {
         lc_t = 7;
 
         p1 = (pawns << 8) & ~pos.get_occ();
-        p2 = ((p1 & get_rank_mask(2)) << 8) & ~pos.get_occ();
-        rc = ((pawns & ~get_file_mask(7)) << 9);
-        lc = ((pawns & ~get_file_mask(0)) << 7);
+        p2 = ((p1 & bb_of_rank(2)) << 8) & ~pos.get_occ();
+        rc = ((pawns & ~bb_of_file(7)) << 9);
+        lc = ((pawns & ~bb_of_file(0)) << 7);
         if (pos.get_ep() != SQUARE_NONE) {
-            rc_ep = rc & get_BB(pos.get_ep());
-            lc_ep = lc & get_BB(pos.get_ep());
+            rc_ep = rc & bb_of(pos.get_ep());
+            lc_ep = lc & bb_of(pos.get_ep());
         }
         rc &= pos.get_occ(pos.notturn);
         lc &= pos.get_occ(pos.notturn);
 
-        p_p1 = p1 & get_rank_mask(7);
-        p_rc = rc & get_rank_mask(7);
-        p_lc = lc & get_rank_mask(7);
+        p_p1 = p1 & bb_of_rank(7);
+        p_rc = rc & bb_of_rank(7);
+        p_lc = lc & bb_of_rank(7);
 
-        p1 &= ~get_rank_mask(7);
-        rc &= ~get_rank_mask(7);
-        lc &= ~get_rank_mask(7);
+        p1 &= ~bb_of_rank(7);
+        rc &= ~bb_of_rank(7);
+        lc &= ~bb_of_rank(7);
     }
     else {
         p1_t = -8;
@@ -279,23 +279,23 @@ void add_pawn_moves(vector<Move>& moves, Pos& pos) {
         lc_t = -7;
 
         p1 = (pawns >> 8) & ~pos.get_occ();
-        p2 = ((p1 & get_rank_mask(5)) >> 8) & ~pos.get_occ();
-        rc = ((pawns & ~get_file_mask(0)) >> 9);
-        lc = ((pawns & ~get_file_mask(7)) >> 7);
+        p2 = ((p1 & bb_of_rank(5)) >> 8) & ~pos.get_occ();
+        rc = ((pawns & ~bb_of_file(0)) >> 9);
+        lc = ((pawns & ~bb_of_file(7)) >> 7);
         if (pos.get_ep() != SQUARE_NONE) {
-            rc_ep = rc & get_BB(pos.get_ep());
-            lc_ep = lc & get_BB(pos.get_ep());
+            rc_ep = rc & bb_of(pos.get_ep());
+            lc_ep = lc & bb_of(pos.get_ep());
         }
         rc &= pos.get_occ(pos.notturn);
         lc &= pos.get_occ(pos.notturn);
         
-        p_p1 = p1 & get_rank_mask(0);
-        p_rc = rc & get_rank_mask(0);
-        p_lc = lc & get_rank_mask(0);
+        p_p1 = p1 & bb_of_rank(0);
+        p_rc = rc & bb_of_rank(0);
+        p_lc = lc & bb_of_rank(0);
 
-        p1 &= ~get_rank_mask(0);
-        rc &= ~get_rank_mask(0);
-        lc &= ~get_rank_mask(0);
+        p1 &= ~bb_of_rank(0);
+        rc &= ~bb_of_rank(0);
+        lc &= ~bb_of_rank(0);
     }
 
     add_pawn_moves_from_mask(moves, pos, p1, p1_t, QUIET);
@@ -386,17 +386,17 @@ void add_queen_moves(vector<Move>& moves, Pos& pos) {
     }
 }
 
-const BB WKS_CLEARANCE = get_BB(F1) | get_BB(G1);
-const BB WQS_CLEARANCE = get_BB(B1) | get_BB(C1) | get_BB(D1);
+const BB WKS_CLEARANCE = bb_of(F1) | bb_of(G1);
+const BB WQS_CLEARANCE = bb_of(B1) | bb_of(C1) | bb_of(D1);
 
-const BB BKS_CLEARANCE = get_BB(F8) | get_BB(G8);
-const BB BQS_CLEARANCE = get_BB(B8) | get_BB(C8) | get_BB(D8);
+const BB BKS_CLEARANCE = bb_of(F8) | bb_of(G8);
+const BB BQS_CLEARANCE = bb_of(B8) | bb_of(C8) | bb_of(D8);
 
-const BB WKS_SAFE = get_BB(F1) | get_BB(G1);
-const BB WQS_SAFE = get_BB(C1) | get_BB(D1);
+const BB WKS_SAFE = bb_of(F1) | bb_of(G1);
+const BB WQS_SAFE = bb_of(C1) | bb_of(D1);
 
-const BB BKS_SAFE = get_BB(F8) | get_BB(G8);
-const BB BQS_SAFE = get_BB(C8) | get_BB(D8);
+const BB BKS_SAFE = bb_of(F8) | bb_of(G8);
+const BB BQS_SAFE = bb_of(C8) | bb_of(D8);
 
 void add_king_moves(vector<Move>& moves, Pos& pos) {
     int ksq = lsb(pos.get_piece_mask(pos.turn, KING));

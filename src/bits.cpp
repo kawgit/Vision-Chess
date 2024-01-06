@@ -1,4 +1,5 @@
 #include "bits.h"
+#include "util.h"
 #include <stdint.h>
 #include <iostream>
 #include <cstdlib>
@@ -16,34 +17,20 @@ int lookup67[68] = {
 	26, 49, 45, 36, 56,  7, 48, 35,
 	6 , 34, 33, -1 };
 
-void print(BB n) {
-	for (int r = 7; r >= 0; r--) {
-		for (int c = 0; c < 8; c++) {
-			cout<<(bitAt(n, rc(r, c)) ? "X" : "-")<<" ";
+void print(BB bb) {
+	
+	for (Rank rank = RANK_8; rank >= RANK_1; rank--) {
+
+		for (File file = FILE_A; file <= FILE_H; file++) {
+
+			cout << (bb_has(bb, square_of(rank, file)) ? "O" : "-") << " ";
+
 		}
-		cout<<endl;
-	}
-	cout<<endl;
-}
 
-vector<float> serialize_bb(BB bb) {
-	vector<float> vec;
-	for (int i = 0; i < bb; i++) {
-		vec.emplace_back(bitAt(bb, i) ? 1 : 0);
-	}
-	return vec;
-}
+		cout << endl;
 
-void add_serialized_bb(vector<float>& vec, BB bb) {
-	for (int i = 0; i < bb; i++) {
-		vec.emplace_back(bitAt(bb, i) ? 1 : 0);
 	}
-}
 
-void add_bb_to_cum(char* cum, BB bb, char coeff) {
-	for (int i = 0; i < 64; i++) {
-		if (bitAt(bb, i)) {
-			cum[i] += coeff;
-		}
-	}
+	cout << endl;
+
 }

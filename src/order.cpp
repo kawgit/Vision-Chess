@@ -112,9 +112,9 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, Searc
             Score score = 0;
             BB to_atk = get_piece_atk(pos.get_mailbox(pos.turn, get_from(move)), get_to(move), pos.turn, pos.get_occ());
             if (to_atk & our_threatened) score += 10;
-            else if (get_BB(get_from(move)) & our_threatened) {
+            else if (bb_of(get_from(move)) & our_threatened) {
                 if (pos.get_mailbox(pos.turn, get_from(move)) > pos.last_from_piece()
-                    || !(pos.get_atk(pos.turn) & get_BB(get_from(move)))) {
+                    || !(pos.get_atk(pos.turn) & bb_of(get_from(move)))) {
                     score += 20;
                 }
                 else {
@@ -167,7 +167,7 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, Searc
                 Square from = get_from(unsorted_moves[i]);
                 
                 // push passed pawns
-                if (get_BB(from) & passed_pawns) {
+                if (bb_of(from) & passed_pawns) {
                     unsorted_scores[i] += 10;
                 }
             }

@@ -325,7 +325,7 @@ Eval sea_gain(Pos& pos, Move move, Eval alpha) {
 
 	Eval target_square = get_to(move);
 	Eval target_piece_eval = get_piece_eval(pos.get_mailbox(pos.notturn, target_square));
-	if (!(pos.get_atk(pos.notturn) & get_BB(target_square))) { // hanging
+	if (!(pos.get_atk(pos.notturn) & bb_of(target_square))) { // hanging
 		return get_piece_eval(pos.get_mailbox(pos.notturn, target_square));
 	}
 	Eval result = -static_exchange_search(
@@ -333,7 +333,7 @@ Eval sea_gain(Pos& pos, Move move, Eval alpha) {
 		target_square, 
 		pos.notturn, 
 		-(target_piece_eval), 
-		pos.get_occ() & ~get_BB(get_from(move)), 
+		pos.get_occ() & ~bb_of(get_from(move)), 
 		get_piece_eval(pos.get_mailbox(pos.turn, get_from(move))), 
 		-INF, 
 		-alpha);
@@ -364,7 +364,7 @@ Eval static_exchange_search(Pos& pos, Square target_square, Color turn, Eval cur
 		target_square, 
 		opp(turn), 
 		-(curr_mat + target_piece_eval), 
-		occ & ~get_BB(from), 
+		occ & ~bb_of(from), 
 		get_piece_eval(pos.get_mailbox(turn, from)), 
 		-beta, 
 		-alpha

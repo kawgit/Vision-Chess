@@ -6,21 +6,27 @@
 
 using namespace std;
 
-BB z_squares_[2][6][64] = {};
-BB z_ep_[9] = {}; //one for each column and the last one for no EP
-BB z_cr_[4] = {};
-BB z_turn_ = 0;
+namespace zobrist {
 
-void init_hash(int seed) {
-    srand(seed);
-    for (int i = PAWN; i <= KING; i++) {
-        for (int s = 0; s < 64; s++) {
-            z_squares(WHITE, i, s) = rand_BB();
-            z_squares(BLACK, i, s) = rand_BB();
+    BB psqt[N_COLORS][N_PIECES][N_SQUARES];
+    BB ep[N_SQUARES];
+    BB cr[N_SQUARES];
+    BB wtm;
+
+    void init() {
+        srand(38217392);
+
+        for (Square square = A1; square < H8; square++) {
+            
+            for (Color color : {WHITE, BLACK})
+                for (Piece piece = PAWN; piece <= KING; piece++)
+                        psqt[color][piece][square] = rand_BB();
+
+            ep[square] = rand_BB();
+
+            cr[square] = rand_BB();
         }
-    }
 
-    for (int i = 0; i < 9; i++) z_ep(i) = rand_BB();
-    for (int i = 0; i < 4; i++) z_cr((CR_Index)i) = rand_BB();
-    z_turn() = rand_BB();
+        wtm = rand_BB();
+    }
 }
