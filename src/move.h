@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.h"
-
+#include "util.h"
 
 inline Move make_move(Move from, Move to, MoveFlag flags) { return (flags << 12) | (from << 6) | to; }
 
@@ -20,5 +20,9 @@ namespace move {
     inline Square from_square(Move move)       { return (move >> 6) & 0b111111; }
     inline Piece promotion_piece(Move move)    { return (flags(move) & 0b0011) + KNIGHT; }
     
-    Square capture_square(Move move);
+    inline Square capture_square(Move move) {
+        Square from_square_ = from_square(move);
+        Square to_square_   = to_square(move);
+        return is_ep(move) ? square_of(rank_of(from_square_), file_of(to_square_)) : to_square_;
+    }
 }

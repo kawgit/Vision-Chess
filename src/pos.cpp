@@ -135,37 +135,35 @@ void Pos::do_move(Move move) {
 	
 	Square from_square = move::from_square(move);
 	Square to_square = move::to_square(move);
-	Piece from_piece = piece_on(from_square);
-	Piece to_piece = piece_on(to_square);
+	Piece moving = piece_on(from_square);
 
 	assert(is_okay_square(from_square));
 	assert(is_okay_square(to_square));
-	assert(to_piece != KING);
-	assert(to_piece == PIECE_NONE || move::is_capture(move));
-	assert(from_piece != PIECE_NONE);
+	assert(piece_on(to_square) != KING);
+	assert(piece_on(to_square) == PIECE_NONE || move::is_capture(move));
+	assert(moving != PIECE_NONE);
 	assert(color_on(from_square) == turn());
 	assert(color_on(to_square) != turn());
 	
 	slice->move     = move;
-	slice->captured = to_piece;
 
 	*(slice + 1) = *slice;
 	slice++;
 
-	rem_piece(turn(), from_piece, from_square);
+	rem_piece(turn(), moving, from_square);
 
-	slice->fifty_move_clock = !(move::is_capture(move) || from_piece == PAWN) * (slice->fifty_move_clock + 1);
+	slice->fifty_move_clock = !(move::is_capture(move) || moving == PAWN) * (slice->fifty_move_clock + 1);
 
 	move_clock_ += turn() == BLACK;
 
 	if (move::is_capture(move)) {
 		Square victim_square = move::capture_square(move);
-		Piece  victim_piece  = piece_on(victim_square);
+		(slice - 1)->victim  = piece_on(victim_square);
 
-		rem_piece(!turn(), victim_piece, victim_square);
+		rem_piece(!turn(), slice->victim, victim_square);
 	}
 
-	add_piece(turn(), move::is_promotion(move) ? move::promotion_piece(move) : from_piece, to_square);
+	add_piece(turn(), move::is_promotion(move) ? move::promotion_piece(move) : moving, to_square);
 
 	bool new_ep = move::is_double_pawn_push(move) && ((shift<WEST>(bb_of(to_square)) | shift<EAST>(bb_of(to_square))) & pieces(!turn(), PAWN));
 	set_ep(new_ep ? (to_square + from_square) / 2 : SQUARE_NONE);
@@ -189,7 +187,7 @@ void Pos::do_move(Move move) {
 
 	if (bb_of(from_square) & cr()) switch_cr(from_square);
 	if (bb_of(to_square) & cr()) switch_cr(to_square);
-	if (from_piece == KING) {
+	if (moving == KING) {
 		BB our_castle_rooks = cr() & pieces(turn());
 		while (our_castle_rooks) {
 			Square castle_rook_square = poplsb(our_castle_rooks);
@@ -201,67 +199,46 @@ void Pos::do_move(Move move) {
 
 }
 
-/*
 void Pos::undo_move() {
-	Move move = move_log.back();
+	assert(slice != slice_stack);
+
+	Move move = (slice - 1)->move;
 	
 	assert(move != MOVE_NONE);
 
-	// if (move == MOVE_NULL) {
-	// 	undo_null_move();
-	// 	return;
-	// }
-
 	switch_turn();
 
-	if (turn == BLACK) get_move_clock()--;
+	move_clock_ -= turn() == BLACK;
 	
-	Square from = move::from_square(move);
-	Square to = move::to_square(move);
-	Piece from_piece = get_mailbox(turn, to);
-	Piece to_piece = slice->to_piece;
+	Square from_square = move::from_square(move);
+	Square to_square = move::to_square(move);
+	Piece moving = piece_on(to_square);
 
-	if (!move::is_promotion(move)) {
-		rem_piece(turn, to, from_piece);
-		add_piece(turn, from, from_piece);
-	}
-	else {
-		rem_piece(turn, to, move::promotion_piece(move));
-		add_piece(turn, from, PAWN);
-	}
+	bool is_promotion = move::is_promotion(move);
+	rem_piece(turn(), is_promotion ? move::promotion_piece(move) : moving, to_square);
+	add_piece(turn(), is_promotion ? PAWN 						 : moving, from_square);
 
-	if (move::flags(move)) {
-		if (move::is_capture(move)) {
-			if (!move::is_ep(move)) add_piece(notturn, to, to_piece);
-			else add_piece(notturn, to + (turn == WHITE ? -8 : 8), PAWN);
-		}
-        else if (move::is_king_castle(move)) {
-            if (turn == WHITE) {
-                rem_piece(WHITE, F1, ROOK);
-                add_piece(WHITE, H1, ROOK);
-            }
-            else {
-                rem_piece(BLACK, F8, ROOK);
-                add_piece(BLACK, H8, ROOK);
-            }
-        }
-        else if (move::is_queen_castle(move)) {
-            if (turn == WHITE) {
-                rem_piece(WHITE, D1, ROOK);
-                add_piece(WHITE, A1, ROOK);
-            }
-            else {
-                rem_piece(BLACK, D8, ROOK);
-                add_piece(BLACK, A8, ROOK);
-            }
-        }
+	if (move::is_capture(move))
+		add_piece(!turn(), (slice - 1)->victim, move::capture_square(move));
+	else if (move::is_king_castle(move)) {
+		Square offset = (turn() == BLACK) * (N_FILES * 7);
+		Square rook_from = H1 + offset;
+		Square rook_to   = F1 + offset;
+
+		rem_piece(turn(), ROOK, rook_to);
+		add_piece(turn(), ROOK, rook_from);
+	}
+	else if (move::is_queen_castle(move)) {
+		Square offset = (turn() == BLACK) * (N_FILES * 7);
+		Square rook_from = A1 + offset;
+		Square rook_to   = D1 + offset;
+
+		rem_piece(turn(), ROOK, rook_to);
+		add_piece(turn(), ROOK, rook_from);
 	}
 
-	slice_stack.pop();
-	move_log.pop_back();
-	to_piece_log.pop_back();
+	slice--;
 }
-*/
 
 /*
 void Pos::do_null_move() {
@@ -349,14 +326,14 @@ string get_fen(Pos& pos) {
 int Pos::get_control_value(Color color, Square square) {
 	int res = 0;
 	BB occ = get_occ();
-	res += bitcount(get_pawn_atk(opp(color), square) & get_piece_mask(color, PAWN))
-		 - bitcount(get_pawn_atk(color, square) & get_piece_mask(opp(color), PAWN));
-	res += bitcount(get_knight_atk(square) & get_piece_mask(color, KNIGHT))
-		 - bitcount(get_knight_atk(square) & get_piece_mask(opp(color), KNIGHT));
-	res += bitcount(get_bishop_atk(square, occ) & (get_piece_mask(color, BISHOP) | get_piece_mask(color, QUEEN)))
-		 - bitcount(get_bishop_atk(square, occ) & (get_piece_mask(opp(color), BISHOP) | get_piece_mask(opp(color), QUEEN)));
-	res += bitcount(get_rook_atk(square, occ) & (get_piece_mask(color, ROOK) | get_piece_mask(color, QUEEN)))
-		 - bitcount(get_rook_atk(square, occ) & (get_piece_mask(opp(color), ROOK) | get_piece_mask(opp(color), QUEEN)));
+	res += bitcount(attacks::pawn(opp(color), square) & get_piece_mask(color, PAWN))
+		 - bitcount(attacks::pawn(color, square) & get_piece_mask(opp(color), PAWN));
+	res += bitcount(attacks::knight(square) & get_piece_mask(color, KNIGHT))
+		 - bitcount(attacks::knight(square) & get_piece_mask(opp(color), KNIGHT));
+	res += bitcount(attacks::bishop(square, occ) & (get_piece_mask(color, BISHOP) | get_piece_mask(color, QUEEN)))
+		 - bitcount(attacks::bishop(square, occ) & (get_piece_mask(opp(color), BISHOP) | get_piece_mask(opp(color), QUEEN)));
+	res += bitcount(attacks::rook(square, occ) & (get_piece_mask(color, ROOK) | get_piece_mask(color, QUEEN)))
+		 - bitcount(attacks::rook(square, occ) & (get_piece_mask(opp(color), ROOK) | get_piece_mask(opp(color), QUEEN)));
 	return res;
 }
 
@@ -389,7 +366,7 @@ BB Pos::get_knight_atk_mask(Color color) {
 	BB knights = get_piece_mask(color, KNIGHT);
 	while (knights) {
 		int from = poplsb(knights);
-		mask |= get_knight_atk(from);
+		mask |= attacks::knight(from);
 	}
 	return mask;
 }
@@ -400,7 +377,7 @@ BB Pos::get_bishop_atk_mask(Color color) {
 	BB bishops = get_piece_mask(color, BISHOP);
 	while (bishops) {
 		int from = poplsb(bishops);
-		mask |= get_bishop_atk(from, nonking_occ);
+		mask |= attacks::bishop(from, nonking_occ);
 	}
 	return mask;
 }
@@ -411,7 +388,7 @@ BB Pos::get_rook_atk_mask(Color color) {
 	BB rooks = get_piece_mask(color, ROOK);
 	while (rooks) {
 		int from = poplsb(rooks);
-		mask |= get_rook_atk(from, nonking_occ);
+		mask |= attacks::rook(from, nonking_occ);
 	}
 	return mask;
 }
@@ -422,14 +399,14 @@ BB Pos::get_queen_atk_mask(Color color) {
 	BB queens = get_piece_mask(color, QUEEN);
 	while (queens) {
 		int from = poplsb(queens);
-		mask |= get_queen_atk(from, nonking_occ);
+		mask |= attacks::queen(from, nonking_occ);
 	}
 	return mask;
 }
 
 BB Pos::get_king_atk_mask(Color color) {
 	BB mask = 0;
-	mask |= get_king_atk(lsb(get_piece_mask(color, KING)));
+	mask |= attacks::king(lsb(get_piece_mask(color, KING)));
 	return mask;
 }
 
@@ -439,7 +416,7 @@ bool Pos::in_check() {
 	Square ksq = lsb(get_piece_mask(turn, KING));
 	for (Piece pt = PAWN; pt <= QUEEN; pt++) {
 		if (get_piece_mask(notturn, pt) && 
-			(get_piece_mask(notturn, pt) & get_piece_atk(pt, ksq, turn, get_occ()))) {
+			(get_piece_mask(notturn, pt) & attacks::lookup(pt, ksq, turn, get_occ()))) {
 			return true;
 		}
 	}
@@ -527,18 +504,18 @@ bool Pos::causes_check(Move move) {
 
 	Square ksq = lsb(get_piece_mask(notturn, KING));
 	BB occ = get_occ();
-	BB rook_rays = get_rook_atk(ksq, occ);
-	BB bishop_rays = get_bishop_atk(ksq, occ);
+	BB rook_rays = attacks::rook(ksq, occ);
+	BB bishop_rays = attacks::bishop(ksq, occ);
 	BB from_mask = bb_of(move::from_square(move));
 	BB to_mask = bb_of(move::to_square(move));
 	
 	if (rook_rays & from_mask
-	 && get_rook_atk(ksq, (occ & ~from_mask) | to_mask) & (get_piece_mask(turn, ROOK) | get_piece_mask(turn, QUEEN))) {
+	 && attacks::rook(ksq, (occ & ~from_mask) | to_mask) & (get_piece_mask(turn, ROOK) | get_piece_mask(turn, QUEEN))) {
 		return true;
 	}
 
 	if (bishop_rays & from_mask
-	 && get_bishop_atk(ksq, (occ & ~from_mask) | to_mask) & (get_piece_mask(turn, BISHOP) | get_piece_mask(turn, QUEEN))) {
+	 && attacks::bishop(ksq, (occ & ~from_mask) | to_mask) & (get_piece_mask(turn, BISHOP) | get_piece_mask(turn, QUEEN))) {
 		return true;
 	}
 
@@ -546,19 +523,19 @@ bool Pos::causes_check(Move move) {
 
 	switch (piece) {
 		case PAWN:
-			return get_pawn_atk(notturn, ksq) & to_mask;
+			return attacks::pawn(notturn, ksq) & to_mask;
 			break;
 		case KNIGHT:
-			return get_knight_atk(ksq) & to_mask;
+			return attacks::knight(ksq) & to_mask;
 			break;
 		case BISHOP:
-			return get_bishop_atk(ksq, occ & ~from_mask) & to_mask;
+			return attacks::bishop(ksq, occ & ~from_mask) & to_mask;
 			break;
 		case ROOK:
-			return get_rook_atk(ksq, occ & ~from_mask) & to_mask;
+			return attacks::rook(ksq, occ & ~from_mask) & to_mask;
 			break;
 		case QUEEN:
-			return get_queen_atk(ksq, occ & ~from_mask) & to_mask;
+			return attacks::queen(ksq, occ & ~from_mask) & to_mask;
 			break;
 		case KING:
 			return false;
@@ -618,20 +595,20 @@ void Pos::update_pins_and_checks() {
 	int ksq = lsb(get_piece_mask(turn, KING));
 	
 	bool is_pawn_check = false;
-	if (get_pawn_atk(turn, ksq) & get_piece_mask(notturn, PAWN)) {
+	if (attacks::pawn(turn, ksq) & get_piece_mask(notturn, PAWN)) {
         slice->num_checks++;
-        slice->check_blocking_squares &= get_pawn_atk(turn, ksq) & get_piece_mask(notturn, PAWN);
+        slice->check_blocking_squares &= attacks::pawn(turn, ksq) & get_piece_mask(notturn, PAWN);
 		is_pawn_check = true;
 	}
-    else if (get_knight_atk(ksq) & get_piece_mask(notturn, KNIGHT)) {
+    else if (attacks::knight(ksq) & get_piece_mask(notturn, KNIGHT)) {
         slice->num_checks++;
-        slice->check_blocking_squares &= get_knight_atk(ksq) & get_piece_mask(notturn, KNIGHT);
+        slice->check_blocking_squares &= attacks::knight(ksq) & get_piece_mask(notturn, KNIGHT);
     }
 
     BB bishop_sliders = get_piece_mask(notturn, BISHOP) | get_piece_mask(notturn, QUEEN);
-    BB total_bishop_rays = get_bishop_atk(ksq, get_occ());
+    BB total_bishop_rays = attacks::bishop(ksq, get_occ());
     BB bishop_checkers = bishop_sliders & total_bishop_rays;
-    BB notturn_bishop_rays = get_bishop_atk(ksq, get_occ(notturn));
+    BB notturn_bishop_rays = attacks::bishop(ksq, get_occ(notturn));
     BB bishop_pinners = bishop_sliders & notturn_bishop_rays & ~bishop_checkers;
     if (bishop_checkers) {
         for (int d = NORTHEAST; d <= NORTHWEST; d += 2) {
@@ -657,9 +634,9 @@ void Pos::update_pins_and_checks() {
     }
 
 	BB rook_sliders = get_piece_mask(notturn, ROOK) | get_piece_mask(notturn, QUEEN);
-    BB total_rook_rays = get_rook_atk(ksq, get_occ());
+    BB total_rook_rays = attacks::rook(ksq, get_occ());
     BB rook_checkers = rook_sliders & total_rook_rays;
-    BB notturn_rook_rays = get_rook_atk(ksq, get_occ(notturn));
+    BB notturn_rook_rays = attacks::rook(ksq, get_occ(notturn));
     BB rook_pinners = rook_sliders & notturn_rook_rays & ~rook_checkers;
     if (rook_checkers) {
         for (int d = NORTH; d <= WEST; d += 2) {
@@ -685,11 +662,11 @@ void Pos::update_pins_and_checks() {
 
     //EN PASSANT CASE
     if (get_ep() != SQUARE_NONE && slice->num_checks != 2) {
-        BB to_pawns = get_pawn_atk(notturn, get_ep()) & get_piece_mask(turn, PAWN);
+        BB to_pawns = attacks::pawn(notturn, get_ep()) & get_piece_mask(turn, PAWN);
         while (to_pawns) {
             int from = poplsb(to_pawns);
             BB post = (get_occ() | bb_of(get_ep())) & (~bb_of(from)) & (~bb_of(get_ep() - (turn == WHITE ? 8 : -8)));
-            if ((slice->num_checks == 1 && !is_pawn_check) || (get_bishop_atk(ksq, post) & bishop_sliders) || (get_rook_atk(ksq, post) & rook_sliders)) {
+            if ((slice->num_checks == 1 && !is_pawn_check) || (attacks::bishop(ksq, post) & bishop_sliders) || (attacks::rook(ksq, post) & rook_sliders)) {
                 if (slice->pinned & bb_of(from))
                     slice->moveable_squares[from] &= ~bb_of(get_ep());
                 else {

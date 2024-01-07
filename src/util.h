@@ -3,7 +3,6 @@
 #include <string>
 
 #include "types.h"
-#include "move.h"
 
 using namespace std;
 

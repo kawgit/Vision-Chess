@@ -12,15 +12,15 @@
 // #include "nnue.h"
 
 struct Slice {
-	BB 		hashkey = 0;
-	BB 		castle_rooks_bb = 0;
-	Clock 	fifty_move_clock = 0;
-	BB pinned_bb = 0;
-	Square 	ep = FILE_NONE;
-	Move 	move = 0;
-	Piece 	captured = 0;
+	BB 		hashkey;
+	BB 		castle_rooks_bb;
+	Clock 	fifty_move_clock;
+	BB pinned_bb;
+	Square 	ep;
+	Move 	move;
+	Piece 	victim;
 
-	int num_checks = 0;
+	int num_checks;
 	// BB check_blocking_squares = BB_FULL;
     // BB moveable_squares[N_SQUARES] = {};
 };
@@ -118,7 +118,7 @@ class Pos {
 	}
 
 	inline void rem_piece(const Color color, const Piece piece, const Square square) {
-		
+
 		assert(is_okay_color(color));
 		assert(is_okay_piece(piece));
 		assert(is_okay_square(square));

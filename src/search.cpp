@@ -347,7 +347,7 @@ Eval static_exchange_search(Pos& pos, Square target_square, Color turn, Eval cur
 	Square from = SQUARE_NONE;
 	Piece from_piece = PIECE_NONE;
 	for (Piece pt = PAWN; pt <= KING; pt++) {
-		BB attackers = get_piece_atk(pt, target_square, opp(turn), occ)
+		BB attackers = attacks::lookup(pt, target_square, opp(turn), occ)
 			& pos.get_piece_mask(turn, pt)
 			& occ;
 		if (attackers) {

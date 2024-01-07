@@ -104,13 +104,13 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, Searc
     if (false && pos.last_move() != MOVE_NONE) {
         // BB our_threatened = get_threatened(pos, pos.turn);
         // BB their_threatened = get_threatenable(pos, pos.notturn);
-        BB our_threatened = get_piece_atk(pos.last_from_piece(), pos.last_from(), pos.notturn, pos.get_occ()) & pos.get_occ();
+        BB our_threatened = attacks::lookup(pos.last_from_piece(), pos.last_from(), pos.notturn, pos.get_occ()) & pos.get_occ();
         for (Move move : unsorted_boring_moves) {
             // sorted_moves.push_back(unsorted_boring_moves[i]);
             // sorted_scores.push_back(0);
             // si.get_hist(pos, unsorted_boring_moves[i]);
             Score score = 0;
-            BB to_atk = get_piece_atk(pos.get_mailbox(pos.turn, move::from_square(move)), move::to_square(move), pos.turn, pos.get_occ());
+            BB to_atk = attacks::lookup(pos.get_mailbox(pos.turn, move::from_square(move)), move::to_square(move), pos.turn, pos.get_occ());
             if (to_atk & our_threatened) score += 10;
             else if (bb_of(move::from_square(move)) & our_threatened) {
                 if (pos.get_mailbox(pos.turn, move::from_square(move)) > pos.last_from_piece()

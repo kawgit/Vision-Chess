@@ -7,12 +7,14 @@ all: initdir Vision
 initdir:
 	-mkdir build
 
-Vision: build/bits.o build/hash.o build/move.o build/pos.o build/timer.o build/types.o build/util.o src/main.cpp
+Vision: build/attacks.o build/bits.o build/hash.o build/move.o build/pos.o build/timer.o build/types.o build/util.o src/main.cpp
 	$(CXX_COMPILER) $(CXX_FLAGS) -pthread -o Vision.exe src/main.cpp build/*.o
 
 tests: build/bits.o build/eval.o build/hash.o build/movegen.o build/order.o build/pos.o build/search.o build/timer.o build/tt.o build/types.o src/tests.cpp
 	$(CXX_COMPILER) $(CXX_FLAGS) -pthread -o tests.exe src/tests.cpp build/*.o
 
+build/attacks.o: src/attacks.cpp src/attacks.h
+	$(CXX_COMPILER) -c $(CXX_FLAGS) src/attacks.cpp -o build/attacks.o
 build/bits.o: src/bits.cpp src/bits.h
 	$(CXX_COMPILER) -c $(CXX_FLAGS) src/bits.cpp -o build/bits.o
 build/eval.o: src/eval.cpp src/eval.h
