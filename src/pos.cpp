@@ -21,11 +21,11 @@ Pos::Pos(string fen) {
 	// Board
 	Rank rank = RANK_8;
 	File file = FILE_A;
-	size_t i = 0;
+	size_t fen_idx = 0;
 	
 	while (rank != RANK_1 || file != FILE_H + 1) {
 
-		char c = fen[i++];
+		char c = fen[fen_idx++];
 		
 		if (c == '/') {
 		
@@ -54,7 +54,7 @@ Pos::Pos(string fen) {
 
 	}
 
-	fen = fen.substr(i);
+	fen = fen.substr(fen_idx);
 
 	// Turn
 	Color target_turn = fen.find("w") != string::npos ? WHITE : BLACK;
@@ -74,7 +74,7 @@ Pos::Pos(string fen) {
 	if (piece_on(A8) == ROOK && color_on(A8) == BLACK && fen.find("q") != string::npos)
 		switch_cr(A8);
 	
-	for (int i = 0; i < 3; i++)
+	for (size_t i = 0; i < 3; i++)
 		fen = fen.substr(fen.find(" ") + 1);
 
 	// En passant
@@ -115,8 +115,6 @@ void print(Pos& pos, bool meta) {
 
 	cout << "+---+---+---+---+---+---+---+---+" << endl;
 
-	cout << "ayo" << endl;
-
 	if (meta) {
 		cout << "turn: " << (pos.turn() == WHITE ? "WHITE" : "BLACK") << endl;
 		cout << "hashkey: " <<  hex  <<  uppercase  <<  pos.hashkey()  <<  nouppercase  <<  dec  <<  endl;
@@ -133,120 +131,77 @@ void print(Pos& pos, bool meta) {
 
 }
 
-/*
-
 void Pos::do_move(Move move) {
-	assert(move != MOVE_NONE);
+	
+	Square from_square = move::from_square(move);
+	Square to_square = move::to_square(move);
+	Piece from_piece = piece_on(from_square);
+	Piece to_piece = piece_on(to_square);
 
-	// if (move == MOVE_NULL) {
-	// 	do_null_move();
-	// 	return;
-	// }
+	assert(is_okay_square(from_square));
+	assert(is_okay_square(to_square));
+	assert(to_piece != KING);
+	assert(to_piece == PIECE_NONE || move::is_capture(move));
+	assert(from_piece != PIECE_NONE);
+	assert(color_on(from_square) == turn());
+	assert(color_on(to_square) != turn());
+	
+	slice->move     = move;
+	slice->captured = to_piece;
 
-	*(slice + 1) = *slice
+	*(slice + 1) = *slice;
 	slice++;
 
-	slice->has_updated_pins_and_checks = false;
-	slice->has_updated_atks = false;
-	slice->has_updated_sum_mat_squared = false;
+	rem_piece(turn(), from_piece, from_square);
 
-	move_log.push_back(move);
+	slice->fifty_move_clock = !(move::is_capture(move) || from_piece == PAWN) * (slice->fifty_move_clock + 1);
 
-	Square from = get_from(move);
-	Square to = get_to(move);
+	move_clock_ += turn() == BLACK;
 
-	assert(to < 64);
-	assert(from < 64);
+	if (move::is_capture(move)) {
+		Square victim_square = move::capture_square(move);
+		Piece  victim_piece  = piece_on(victim_square);
 
-	Piece from_piece = get_mailbox(turn, from);
-	Piece to_piece = get_mailbox(notturn, to);
-	to_piece_log.push_back(to_piece);
+		rem_piece(!turn(), victim_piece, victim_square);
+	}
+
+	add_piece(turn(), move::is_promotion(move) ? move::promotion_piece(move) : from_piece, to_square);
+
+	bool new_ep = move::is_double_pawn_push(move) && ((shift<WEST>(bb_of(to_square)) | shift<EAST>(bb_of(to_square))) & pieces(!turn(), PAWN));
+	set_ep(new_ep ? (to_square + from_square) / 2 : SQUARE_NONE);
+
+	if (move::is_king_castle(move)) {
+		Square offset = (turn() == BLACK) * (N_FILES * 7);
+		Square rook_from = H1 + offset;
+		Square rook_to   = F1 + offset;
+
+		rem_piece(turn(), ROOK, rook_from);
+		add_piece(turn(), ROOK, rook_to);
+	}
+	else if (move::is_queen_castle(move)) {
+		Square offset = (turn() == BLACK) * (N_FILES * 7);
+		Square rook_from = A1 + offset;
+		Square rook_to   = D1 + offset;
+
+		rem_piece(turn(), ROOK, rook_from);
+		add_piece(turn(), ROOK, rook_to);
+	}
+
+	if (bb_of(from_square) & cr()) switch_cr(from_square);
+	if (bb_of(to_square) & cr()) switch_cr(to_square);
+	if (from_piece == KING) {
+		BB our_castle_rooks = cr() & pieces(turn());
+		while (our_castle_rooks) {
+			Square castle_rook_square = poplsb(our_castle_rooks);
+			switch_cr(castle_rook_square);
+		}
+	}
 	
-	if (to_piece == KING) {
-		print(*this, true);
-		cout << to_string(move_log) << endl;
-	}
-
-	assert(to_piece != KING);
-
-	rem_piece(turn, from, from_piece);
-
-	if (is_capture(move) || from_piece == PAWN) {
-		get_halfmove_clock() = 0;
-		get_repetitions_index() = pi_log.size() - 1;
-	}
-	else get_halfmove_clock()++;
-	if (turn == BLACK) get_move_clock()++;
-
-	if (!is_promotion(move)) add_piece(turn, to, from_piece);
-	else add_piece(turn, to, get_promotion_type(move));
-
-	set_ep(SQUARE_NONE);
-
-	if (get_flags(move)) {
-		if (is_capture(move)) {
-			if (!is_ep(move)) rem_piece(notturn, to, to_piece);
-			else rem_piece(notturn, to + (turn == WHITE ? -8 : 8), PAWN);
-		}
-		else if (is_double_pawn_push(move) && (bb_of_rank(to/8) & get_king_atk(to) & get_piece_mask(notturn, PAWN))) {
-			set_ep(to + (turn == WHITE ? -8 : 8));
-		}
-		else if (is_king_castle(move)) {
-            if (turn == WHITE) {
-                rem_piece(WHITE, H1, ROOK);
-                add_piece(WHITE, F1, ROOK);
-            }
-            else {
-                rem_piece(BLACK, H8, ROOK);
-                add_piece(BLACK, F8, ROOK);
-            }
-		}
-		else if (is_queen_castle(move)) {
-            if (turn == WHITE) {
-                rem_piece(WHITE, A1, ROOK);
-                add_piece(WHITE, D1, ROOK);
-            }
-            else {
-                rem_piece(BLACK, A8, ROOK);
-                add_piece(BLACK, D8, ROOK);
-            }
-        }
-	}
-
-	if (get_cr()) {
-		if (turn == WHITE) {
-			if (from_piece == ROOK) {
-				if (getWK(get_cr()) && from == H1) switch_cr(WKS_I);
-				if (getWQ(get_cr()) && from == A1) switch_cr(WQS_I);
-			}
-			if (from_piece == KING) {
-				if (getWK(get_cr())) switch_cr(WKS_I);
-				if (getWQ(get_cr())) switch_cr(WQS_I);
-			}
-			if (to_piece == ROOK) {
-				if (getBK(get_cr()) && to == H8) switch_cr(BKS_I);
-				if (getBQ(get_cr()) && to == A8) switch_cr(BQS_I);
-			}
-		}
-		else {
-			if (from_piece == ROOK) {
-				if (getBK(get_cr()) && from == H8) switch_cr(BKS_I);
-				if (getBQ(get_cr()) && from == A8) switch_cr(BQS_I);
-			}
-			if (from_piece == KING) {
-				if (getBK(get_cr())) switch_cr(BKS_I);
-				if (getBQ(get_cr())) switch_cr(BQS_I);
-			}
-			if (to_piece == ROOK) {
-				if (getWK(get_cr()) && to == H1) switch_cr(WKS_I);
-				if (getWQ(get_cr()) && to == A1) switch_cr(WQS_I);
-			}
-		}
-    }
-
 	switch_turn();
+
 }
 
+/*
 void Pos::undo_move() {
 	Move move = move_log.back();
 	
@@ -261,26 +216,26 @@ void Pos::undo_move() {
 
 	if (turn == BLACK) get_move_clock()--;
 	
-	Square from = get_from(move);
-	Square to = get_to(move);
+	Square from = move::from_square(move);
+	Square to = move::to_square(move);
 	Piece from_piece = get_mailbox(turn, to);
 	Piece to_piece = slice->to_piece;
 
-	if (!is_promotion(move)) {
+	if (!move::is_promotion(move)) {
 		rem_piece(turn, to, from_piece);
 		add_piece(turn, from, from_piece);
 	}
 	else {
-		rem_piece(turn, to, get_promotion_type(move));
+		rem_piece(turn, to, move::promotion_piece(move));
 		add_piece(turn, from, PAWN);
 	}
 
-	if (get_flags(move)) {
-		if (is_capture(move)) {
-			if (!is_ep(move)) add_piece(notturn, to, to_piece);
+	if (move::flags(move)) {
+		if (move::is_capture(move)) {
+			if (!move::is_ep(move)) add_piece(notturn, to, to_piece);
 			else add_piece(notturn, to + (turn == WHITE ? -8 : 8), PAWN);
 		}
-        else if (is_king_castle(move)) {
+        else if (move::is_king_castle(move)) {
             if (turn == WHITE) {
                 rem_piece(WHITE, F1, ROOK);
                 add_piece(WHITE, H1, ROOK);
@@ -290,7 +245,7 @@ void Pos::undo_move() {
                 add_piece(BLACK, H8, ROOK);
             }
         }
-        else if (is_queen_castle(move)) {
+        else if (move::is_queen_castle(move)) {
             if (turn == WHITE) {
                 rem_piece(WHITE, D1, ROOK);
                 add_piece(WHITE, A1, ROOK);
@@ -506,7 +461,7 @@ bool Pos::do_move(string SAN) {
 	vector<Move> moves = get_legal_moves(*this);
 	Move move = MOVE_NONE;
 	for (Move m : moves) {
-		if (to_san(m) == SAN) move = m;
+		if (move_to_string(m) == SAN) move = m;
 	}
 	if (move == MOVE_NONE) return false;
 	do_move(move);
@@ -563,7 +518,7 @@ bool Pos::insufficient_material() {
 
 bool Pos::causes_check(Move move) {
 
-	if (is_ep(move) || is_king_castle(move) || is_queen_castle(move) || is_promotion(move)) {
+	if (move::is_ep(move) || move::is_king_castle(move) || move::is_queen_castle(move) || move::is_promotion(move)) {
 		do_move(move);
 		bool result = in_check();
 		undo_move();
@@ -574,8 +529,8 @@ bool Pos::causes_check(Move move) {
 	BB occ = get_occ();
 	BB rook_rays = get_rook_atk(ksq, occ);
 	BB bishop_rays = get_bishop_atk(ksq, occ);
-	BB from_mask = bb_of(get_from(move));
-	BB to_mask = bb_of(get_to(move));
+	BB from_mask = bb_of(move::from_square(move));
+	BB to_mask = bb_of(move::to_square(move));
 	
 	if (rook_rays & from_mask
 	 && get_rook_atk(ksq, (occ & ~from_mask) | to_mask) & (get_piece_mask(turn, ROOK) | get_piece_mask(turn, QUEEN))) {
@@ -587,7 +542,7 @@ bool Pos::causes_check(Move move) {
 		return true;
 	}
 
-	Piece piece = get_mailbox(turn, get_from(move));
+	Piece piece = get_mailbox(turn, move::from_square(move));
 
 	switch (piece) {
 		case PAWN:
@@ -640,7 +595,7 @@ void Pos::save(string path) {
 		if (i % 2 == 0) {
 			fs << to_string(i / 2 + 1) + ".";
 		}
-		fs << to_san(move_log_copy[i]);
+		fs << move_to_string(move_log_copy[i]);
 	}
 
 	if (is_mate()) {

@@ -44,7 +44,7 @@ BB perft(Pos& pos, Depth depth, bool divide) {
 		BB n = perft(pos, depth-1, false);
 		pos.undo_move();
 
-		if (divide) cout << to_san(move) << " " << to_string(n) << endl;
+		if (divide) cout << move_to_string(move) << " " << to_string(n) << endl;
 		count += n;
 	}
 
@@ -241,7 +241,7 @@ void SearchInfo::launch(bool verbose) {
     vector<Move> pv = tt.getPV(root_pos);
     vector<Move> moves = get_legal_moves(root_pos);
     print_mutex.lock();
-    cout << "bestmove " + (pv.size() > 0 ? to_san(pv[0]) : (moves.size() ? to_san(moves[0]) : "(none)")) + (pv.size() > 1 ? " ponder " + to_san(pv[1]) : "") << endl;
+    cout << "bestmove " + (pv.size() > 0 ? move_to_string(pv[0]) : (moves.size() ? move_to_string(moves[0]) : "(none)")) + (pv.size() > 1 ? " ponder " + move_to_string(pv[1]) : "") << endl;
     print_mutex.unlock();
     
     for (thread& thr : threads) {
@@ -323,7 +323,7 @@ void timer(bool& target, Timestamp time) {
 Eval sea_gain(Pos& pos, Move move, Eval alpha) {
 	pos.update_atks();
 
-	Eval target_square = get_to(move);
+	Eval target_square = move::to_square(move);
 	Eval target_piece_eval = get_piece_eval(pos.get_mailbox(pos.notturn, target_square));
 	if (!(pos.get_atk(pos.notturn) & bb_of(target_square))) { // hanging
 		return get_piece_eval(pos.get_mailbox(pos.notturn, target_square));
@@ -333,8 +333,8 @@ Eval sea_gain(Pos& pos, Move move, Eval alpha) {
 		target_square, 
 		pos.notturn, 
 		-(target_piece_eval), 
-		pos.get_occ() & ~bb_of(get_from(move)), 
-		get_piece_eval(pos.get_mailbox(pos.turn, get_from(move))), 
+		pos.get_occ() & ~bb_of(move::from_square(move)), 
+		get_piece_eval(pos.get_mailbox(pos.turn, move::from_square(move))), 
 		-INF, 
 		-alpha);
 	return result;

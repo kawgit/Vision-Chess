@@ -1,32 +1,13 @@
 #include "move.h"
+#include "types.h"
 #include "util.h"
 
-const char piece_notations[] = {'p', 'n', 'b', 'r', 'q', 'k'};
-
-string to_san(Move m) {
-    string res = square_to_string(get_from(m)) + square_to_string(get_to(m));
-
-    if (is_promotion(m)) {
-        assert(get_promotion_type(m) - PAWN >= 0);
-        assert(get_promotion_type(m) - PAWN < 6);
-        res += piece_notations[get_promotion_type(m) - PAWN];
+namespace move {
+    
+    Square capture_square(Move move) {
+        Square from_square_ = from_square(move);
+        Square to_square_   = to_square(move);
+        return is_ep(move) ? square_of(rank_of(from_square_), file_of(to_square_)) : to_square_;
     }
 
-    return res;
-}
-
-string to_string(vector<Move> moves) {
-	string result = "";
-	for (Move& m : moves) {
-        result += to_san(m);
-		result += " ";
-    }
-	return result;
-}
-
-void print(vector<Move> moves) {
-    for (Move& m : moves) {
-        cout << to_san(m) << " ";
-    }
-    cout << endl;
 }

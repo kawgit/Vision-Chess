@@ -87,5 +87,5 @@ std::map<Piece, char> piece_to_char_map = {
 };
 
 string move_to_string(Move move) {
-    return square_to_string(get_from(move)) + square_to_string(get_to(move)) + (is_promotion(move) ? "=" + string(1, piece_to_char_map[get_promotion_type(move)]) : "");
+    return square_to_string(move::from_square(move)) + square_to_string(move::to_square(move)) + (move::is_promotion(move) ? "=" + string(1, piece_to_char_map[move::promotion_piece(move)]) : "");
 }

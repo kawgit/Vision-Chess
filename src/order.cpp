@@ -57,13 +57,13 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, Searc
         if (move == entry_move) score = 1000001;
         else if (move == counter_move) score = 1000000;
         else {
-            // if (!(for_qsearch || is_ep(move) || is_king_castle(move) || is_queen_castle(move) || is_promotion(move))) {
+            // if (!(for_qsearch || move::is_ep(move) || move::is_king_castle(move) || move::is_queen_castle(move) || move::is_promotion(move))) {
             //     score += sea_gain(pos, move, -200);
             // }
 
-            if (is_capture(move)) score += 100;
-            if (is_promotion(move)) {
-                switch (get_promotion_type(move)) {
+            if (move::is_capture(move)) score += 100;
+            if (move::is_promotion(move)) {
+                switch (move::promotion_piece(move)) {
                     case QUEEN:
                         score += 900;
                         break;
@@ -110,11 +110,11 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, Searc
             // sorted_scores.push_back(0);
             // si.get_hist(pos, unsorted_boring_moves[i]);
             Score score = 0;
-            BB to_atk = get_piece_atk(pos.get_mailbox(pos.turn, get_from(move)), get_to(move), pos.turn, pos.get_occ());
+            BB to_atk = get_piece_atk(pos.get_mailbox(pos.turn, move::from_square(move)), move::to_square(move), pos.turn, pos.get_occ());
             if (to_atk & our_threatened) score += 10;
-            else if (bb_of(get_from(move)) & our_threatened) {
-                if (pos.get_mailbox(pos.turn, get_from(move)) > pos.last_from_piece()
-                    || !(pos.get_atk(pos.turn) & bb_of(get_from(move)))) {
+            else if (bb_of(move::from_square(move)) & our_threatened) {
+                if (pos.get_mailbox(pos.turn, move::from_square(move)) > pos.last_from_piece()
+                    || !(pos.get_atk(pos.turn) & bb_of(move::from_square(move)))) {
                     score += 20;
                 }
                 else {
@@ -142,7 +142,7 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, Searc
         for (int i = 0; i < unsorted_moves.size(); i++) {
             if (unsorted_scores[i] >= 0) {
                 Move move = unsorted_moves[i];
-                Square from = get_from(move);
+                Square from = move::from_square(move);
                 if (pos.get_mailbox(pos.turn, from) != ROOK) {
                     Rank rank = rank_of(from);
                     if (rank == RANK_1 || rank == RANK_2) {
@@ -150,7 +150,7 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, Searc
                     }
                 }
 
-                if (is_king_castle(move) || is_queen_castle(move)) {
+                if (move::is_king_castle(move) || move::is_queen_castle(move)) {
                     unsorted_scores[i] += 20;
                 }
             }
@@ -164,7 +164,7 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, Searc
         BB passed_pawns = pos.passed_pawns(pos.turn);
         for (int i = 0; i < unsorted_moves.size(); i++) {
             if (unsorted_scores[i] >= 0) {
-                Square from = get_from(unsorted_moves[i]);
+                Square from = move::from_square(unsorted_moves[i]);
                 
                 // push passed pawns
                 if (bb_of(from) & passed_pawns) {
@@ -176,7 +176,7 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, Searc
     */
 
     // for (int i = 0; i < sorted_moves.size(); i++) {
-    //     cout << to_san(sorted_moves[i]) << " " << to_string(sorted_scores[i]) << endl;
+    //     cout << move_to_string(sorted_moves[i]) << " " << to_string(sorted_scores[i]) << endl;
     // }
 
     assert(sorted_moves.size() == unsorted_moves.size());

@@ -1,16 +1,16 @@
 ASM_BUILD_DEST = build
-CXX_FLAGS = -Ofast -DNDEBUG -std=c++20
+CXX_FLAGS = -Ofast -std=c++17 -Wall -Wshadow
 CXX_COMPILER = g++
 
-all: initdir build/bits.o build/eval.o build/hash.o build/move.o build/movegen.o build/order.o build/pos.o build/search.o build/timer.o build/tt.o build/types.o build/uci.o Vision
+all: initdir Vision
 
 initdir:
 	-mkdir build
 
-Vision: build/bits.o build/eval.o build/hash.o build/move.o build/movegen.o build/order.o build/pos.o build/search.o build/timer.o build/tt.o build/types.o build/uci.o src/main.cpp
+Vision: build/bits.o build/hash.o build/move.o build/pos.o build/timer.o build/types.o build/util.o src/main.cpp
 	$(CXX_COMPILER) $(CXX_FLAGS) -pthread -o Vision.exe src/main.cpp build/*.o
 
-tests: build/bits.o build/eval.o build/hash.o build/move.o build/movegen.o build/order.o build/pos.o build/search.o build/timer.o build/tt.o build/types.o src/tests.cpp
+tests: build/bits.o build/eval.o build/hash.o build/movegen.o build/order.o build/pos.o build/search.o build/timer.o build/tt.o build/types.o src/tests.cpp
 	$(CXX_COMPILER) $(CXX_FLAGS) -pthread -o tests.exe src/tests.cpp build/*.o
 
 build/bits.o: src/bits.cpp src/bits.h
@@ -37,6 +37,8 @@ build/types.o: src/types.cpp src/types.h
 	$(CXX_COMPILER) -c $(CXX_FLAGS) src/types.cpp -o build/types.o
 build/uci.o: src/uci.cpp src/uci.h
 	$(CXX_COMPILER) -c $(CXX_FLAGS) -pthread src/uci.cpp -o build/uci.o
+build/util.o: src/util.cpp src/util.h
+	$(CXX_COMPILER) -c $(CXX_FLAGS) -pthread src/util.cpp -o build/util.o
 
 clean:
 	@-rm build/*.o

@@ -143,7 +143,7 @@ vector<Test> tests = {
                 search(pos, depth, -INF, INF, ti, si);
 
                 bool found;
-                string move_str = to_san(si.tt.probe(pos.get_hashkey(), found)->get_move());
+                string move_str = move_to_string(si.tt.probe(pos.get_hashkey(), found)->get_move());
                 bool found_valid_move = false;
                 for (int i = 1; i < test.size(); i++) {
                     if (test[i] == move_str) {
@@ -160,7 +160,7 @@ vector<Test> tests = {
             timer_thread.join();
 
             bool found;
-            require(to_san(si.tt.probe(pos.get_hashkey(), found)->get_move()) == test[1], {
+            require(move_to_string(si.tt.probe(pos.get_hashkey(), found)->get_move()) == test[1], {
                 {"time", to_string(get_time_diff(start)) + "ms"},
                 {"nps", to_string(ti.nodes*1000/(get_time_diff(start)+1))},
                 {"nodes", to_string(ti.nodes)},

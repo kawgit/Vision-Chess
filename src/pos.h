@@ -15,7 +15,6 @@ struct Slice {
 	BB 		hashkey = 0;
 	BB 		castle_rooks_bb = 0;
 	Clock 	fifty_move_clock = 0;
-	Clock 	repetitions_index = 0;
 	BB pinned_bb = 0;
 	Square 	ep = FILE_NONE;
 	Move 	move = 0;
@@ -92,7 +91,6 @@ class Pos {
 	inline BB cr() 			 		 const { return slice->castle_rooks_bb; }
 	inline Square ep() 				 const { return slice->ep; }
 	inline Clock fifty_move_clock()  const { return slice->fifty_move_clock; }
-	inline Clock repetitions_index() const { return slice->repetitions_index; }
 
 	// Modifiers
 	
