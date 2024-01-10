@@ -11,7 +11,7 @@ using namespace std;
 
 extern int lookup67[68];
 
-inline int lsb(BB& n) {
+inline int lsb(const BB n) {
 	#ifdef DONT_USE_BUILTINS
 		return lookup67[(n & -n) % 67];
 	#else
@@ -103,7 +103,7 @@ inline float randf(float lb, float ub) {
 	return lb + (float)rand() / (float)RAND_MAX * (float)(ub-lb);
 }
 
-template <Directions D> BB shift(BB a);
+template <Direction D> BB shift(BB a);
 
 template<> constexpr inline BB shift<NORTH>(BB a) {
     return a << 8;

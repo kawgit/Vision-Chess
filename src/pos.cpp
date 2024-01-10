@@ -681,6 +681,7 @@ void Pos::update_pins_and_checks() {
     }
 }
 
+
 void Pos::update_atks() {
 	if (slice->has_updated_atks) return;
 	slice->has_updated_atks = true;

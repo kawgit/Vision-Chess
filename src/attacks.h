@@ -78,7 +78,7 @@ namespace attacks {
         return attacks::rook(square, occupied) | attacks::bishop(square, occupied);
     }
 
-    inline BB lookup(const Piece piece, const Square square, const Color color, const BB occupied) { 
+    inline BB lookup(const Piece piece, const Square square, const BB occupied = BB_EMPTY, const Color color = WHITE) { 
         
         assert(is_okay_square(square));
         assert(is_okay_piece(piece));
