@@ -17,8 +17,8 @@ void TT::clear() {
 	}
 }
 
-vector<Move> TT::getPV(Pos p) {
-	vector<Move> pv;
+std::vector<Move> TT::getPV(Pos p) {
+	std::vector<Move> pv;
 	addPV(p, pv);
 	return pv;
 }
@@ -32,7 +32,7 @@ int TT::hashfull() {
 	return count;
 }
 
-void TT::addPV(Pos& pos, vector<Move>& pv) {
+void TT::addPV(Pos& pos, std::vector<Move>& pv) {
 	bool found = false;
 	TTEntry* entry = probe(pos.get_hashkey(), found);
 	if (found && (entry->get_bound() != LB || entry->get_eval() >= MINMATE) && entry->get_move() != MOVE_NONE) {

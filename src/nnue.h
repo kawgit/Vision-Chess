@@ -2,7 +2,7 @@
 
 #include "types.h"
 
-using namespace std;
+
 
 inline Square switch_perspective(Square square) {
     return 8 * (7 - square / 8) + (square % 8);
@@ -46,9 +46,9 @@ class NNUE {
     public:
 
     NNUE();
-    NNUE(string path);
+    NNUE(std::string path);
 
-    void save(string path);
+    void save(std::string path);
     int evaluate(Color c);
     void add_blurry_bonus(int sq, int piece, int bonus);
     void print_maps();

@@ -6,7 +6,7 @@
 
 #include "nnue.h"
 
-using namespace std;
+
 
 void forward_pass(char* input_layer, char* output_layer, char* weights, size_t input_size, size_t output_size) {
     for (int o = 0; o < output_size; o++) {
@@ -41,7 +41,7 @@ NNUE::NNUE() {
     l4_l5_w[0] = 1;
 }
 
-NNUE::NNUE(string path) {
+NNUE::NNUE(std::string path) {
     memset(l1, 0, 2 * L1_LEN);
     memset(l2, 0, 2 * L2_LEN);
     memset(l3, 0, 2 * L3_LEN);
@@ -71,12 +71,12 @@ NNUE::NNUE(string path) {
             memset(l2_l3_w, 0, L2_L3_W_LEN);
             memset(l3_l4_w, 0, L3_L4_W_LEN);
             memset(l4_l5_w, 0, L4_L5_W_LEN);
-            cout << "failed to open nnue file " << path << endl;
+            std::cout << "failed to open nnue file " << path << std::endl;
         }
     }
 }
 
-void NNUE::save(string path) {
+void NNUE::save(std::string path) {
     ofstream file;
     file.open(path, ios::binary);
     file.write(&(in_l1_w[0]), IN_L1_W_LEN);
@@ -123,12 +123,12 @@ void NNUE::add_blurry_bonus(int sq, int piece, int bonus) {
 
 void NNUE::print_maps() {
     for (Piece pt = PAWN; pt <= PAWN; pt++) {
-        cout << endl;
+        std::cout << std::endl;
         for (int r = 7; r >= 0; r--) {
             for (int c = 0; c < 8; c++) {
-                cout << setw(5) << (int)in_l1_w[calc_w_index(rc(r, c), pt)] << " ";
+                std::cout << setw(5) << (int)in_l1_w[calc_w_index(rc(r, c), pt)] << " ";
             }
-            cout << endl << endl;
+            std::cout << std::endl << std::endl;
         }
     }
 }

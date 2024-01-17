@@ -7,9 +7,9 @@
 #include <vector>
 #include <cassert>
 
-using namespace std;
 
-typedef int8_t  Square;
+
+typedef int8_t   Square;
 typedef int8_t   File;
 typedef int8_t   Rank;
 typedef uint64_t BB;
@@ -19,7 +19,7 @@ typedef uint8_t  Spiece; // Specific piece - color and piece type
 
 typedef int8_t   Depth;
 typedef uint8_t  Clock;
-typedef uint8_t  Direction;
+typedef uint16_t  Direction;
 
 typedef int      Score;
 typedef int16_t  Eval;
@@ -64,34 +64,45 @@ enum Evals      : Eval      { INF = 32767, MINMATE = 32767 - DEPTH_MAX };
 enum Moves : Move {MOVE_NONE = 0, MOVE_NULL = 0xFFFF};
 enum MoveFlags : MoveFlag {QUIET=0, DOUBLE_PAWN_PUSH, KING_CASTLE, QUEEN_CASTLE, CAPTURE, EP, N_PROM=8, B_PROM, R_PROM, Q_PROM, N_PROM_CAPTURE, B_PROM_CAPTURE, R_PROM_CAPTURE, Q_PROM_CAPTURE};
 
-constexpr inline Color operator!(const Color color) {
+inline constexpr Color operator!(const Color color) {
     return Color(color ^ 1);
 }
 
-constexpr inline Color color_of(Spiece piece) {
+inline constexpr Color color_of(Spiece piece) {
     return Color((piece & COLOR_MASK) >> 3);
 }
 
-constexpr inline Piece type_of(Spiece piece) {
+inline constexpr Piece type_of(Spiece piece) {
     return Piece(piece & TYPE_MASK);
 }
 
-constexpr inline Spiece make_spiece(Color color, Piece piece) {
+inline constexpr Spiece make_spiece(Color color, Piece piece) {
     return Spiece((color << 3) | (piece));
 }
 
-// inline string eval_to_string(Eval eval) {
+inline constexpr bool is_okay_color (const Color color)   { return color == WHITE || color == BLACK; }
+inline constexpr bool is_okay_piece (const Piece piece)   { return piece >= PAWN && piece <= KING; }
+inline constexpr bool is_okay_square(const Square square) { return square >= A1 && square <= H8; }
+
+inline constexpr Square square_of(const Rank rank, const File file) { return rank * N_FILES + file; }
+inline constexpr Rank rank_of(const Square sq) { return sq / N_FILES; }
+inline constexpr File file_of(const Square sq) { return sq % N_FILES; }
+
+constexpr Square DIRECTION_OFFSETS [N_DIRECTIONS][2] = {{ 0,  1}, { 1,  1}, { 1,  0}, { 1, -1}, { 0, -1}, {-1, -1}, {-1,  0}, {-1,  1}};
+constexpr Square KNIGHT_OFFSETS    [           8][2] = {{ 1,  2}, { 2,  1}, { 2, -1}, { 1, -2}, {-1, -2}, {-2, -1}, {-2,  1}, {-1,  2}};
+
+// inline std::string eval_to_string(Eval eval) {
 //     return (abs(eval) >= MINMATE ? ((eval > 0 ? "mate " : "mate -") + to_string(INF-abs(eval))) : ("cp " + to_string(eval)));
 // }
 
-// inline string square_to_string(Square s) {
+// inline std::string square_to_string(Square s) {
 //     if (s == SQUARE_NONE) return "-";
-//     string r = "";
+//     std::string r = "";
 //     r += (s%8 + 'a');
 //     r += (s/8 + '1');
 //     return r;
 // }
 
-// inline Square string_to_square(string notation) {
+// inline Square string_to_square(std::string notation) {
 //     return square_of(notation[1]-'1', notation[0]-'a');
 // }

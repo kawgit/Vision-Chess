@@ -1,58 +1,64 @@
-#include "search.h"
+#include <iostream>
+
+#include "attacks.h"
+#include "move.h"
+#include "movegen.h"
 #include "pos.h"
+#include "util.h"
 #include "bits.h"
 #include "timer.h"
-#include "tt.h"
-#include "movegen.h"
-#include "hash.h"
-#include "eval.h"
-#include "order.h"
-#include "uci.h"
-#include "move.h"
-#include <iostream>
-#include <iomanip>
-#include <thread>
-#include <mutex>
+#include "search.h"
 
-using namespace std;
+template BB perft<true >(Pos& pos, Depth depth);
+template BB perft<false>(Pos& pos, Depth depth);
 
-#define REDUCTION(d, i, f) ((d)-1)
-
-
-ThreadInfo::ThreadInfo(Pos& pos, string id_) {
-	root_ply = pos.move_log.size();
-	id = id_;
-}
-
-BB perft(Pos& pos, Depth depth, bool divide) {
+template<bool DIVIDE>
+BB perft(Pos& pos, Depth depth) {
 
 	if (depth == 0) {
-		if (divide) cout << "divide on depth zero, total: zero" << endl;
+		if constexpr (DIVIDE) std::cout << "divide on depth zero, total: zero" << std::endl;
 		return 1;
 	}
 
-	Timestamp start;
-	if (divide) start = get_current_ms();
+	Timestamp start = 0;
+	if constexpr (DIVIDE) start = get_current_ms();
 
 	BB count = 0;
-	vector<Move> moves = get_legal_moves(pos);
+	std::vector<Move> moves = movegen::generate<movegen::LEGAL>(pos);
 
-	if (depth == 1 && !divide) return moves.size();
+	if (depth == 1 && !DIVIDE) return moves.size();
 
 	for (Move move : moves) {
-		pos.do_move(move);
-		BB n = perft(pos, depth-1, false);
-		pos.undo_move();
 
-		if (divide) cout << move_to_string(move) << " " << to_string(n) << endl;
+		BB hashkey_before = pos.hashkey();
+
+		if constexpr (DIVIDE) std::cout << move_to_string(move) << " ";
+		
+		pos.do_move(move);
+		BB n = perft<false>(pos, depth - 1);
+		
+		if constexpr (DIVIDE) std::cout << std::to_string(n) << std::endl;
+		
+		pos.undo_move();
+		
+		assert(hashkey_before == pos.hashkey());
+
 		count += n;
 	}
 
-	if (divide) cout << "total: " << to_string(count) << endl;
-	if (divide) cout << "time: " << to_string(get_time_diff(start)) <<" ms" << endl;
-	if (divide) cout << "nps: " << to_string(count * 1000 / get_time_diff(start) + 1) << endl;
+	if constexpr (DIVIDE) std::cout << "total: " << std::to_string(count) << std::endl;
+	if constexpr (DIVIDE) std::cout << "time: " << std::to_string(get_time_diff(start)) << " ms" << std::endl;
+	if constexpr (DIVIDE) std::cout << "nps: " << std::to_string(count * 1000 / (get_time_diff(start) + 1)) << std::endl;
 
 	return count;
+}
+
+/*
+
+
+ThreadInfo::ThreadInfo(Pos& pos, std::string id_) {
+	root_ply = pos.move_log.size();
+	id = id_;
 }
 
 Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si) {
@@ -83,7 +89,7 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 		if (alpha >= beta) return beta;
 	}
 
-	vector<Move> moves = get_legal_moves(pos);
+	std::vector<Move> moves = get_legal_moves(pos);
 
 	if (moves.size() == 0) {
 		Eval eval = pos.in_check() ? -INF : 0;
@@ -172,7 +178,7 @@ Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si) {
 		return search(pos, 1, alpha, beta, ti, si);
 	}
 
-    vector<Move> moves = get_legal_moves(pos);
+    std::vector<Move> moves = get_legal_moves(pos);
 
 	if (moves.size() == 0) {
 		if (pos.in_check()) return -INF;
@@ -221,7 +227,7 @@ void SearchInfo::launch(bool verbose) {
         tis.emplace_back(root_pos, "threadname_" + to_string(i));
     }
 
-	vector<thread> threads;
+	std::vector<thread> threads;
     for (int i = 0; i < num_threads; i++) {
         threads.emplace_back(&SearchInfo::worker, this, ref(tis[i]), ref(verbose));
     }
@@ -238,10 +244,10 @@ void SearchInfo::launch(bool verbose) {
     stop();
 	print_uci_info();
 
-    vector<Move> pv = tt.getPV(root_pos);
-    vector<Move> moves = get_legal_moves(root_pos);
+    std::vector<Move> pv = tt.getPV(root_pos);
+    std::vector<Move> moves = get_legal_moves(root_pos);
     print_mutex.lock();
-    cout << "bestmove " + (pv.size() > 0 ? move_to_string(pv[0]) : (moves.size() ? move_to_string(moves[0]) : "(none)")) + (pv.size() > 1 ? " ponder " + move_to_string(pv[1]) : "") << endl;
+    std::cout << "bestmove " + (pv.size() > 0 ? move_to_string(pv[0]) : (moves.size() ? move_to_string(moves[0]) : "(none)")) + (pv.size() > 1 ? " ponder " + move_to_string(pv[1]) : "") << std::endl;
     print_mutex.unlock();
     
     for (thread& thr : threads) {
@@ -281,7 +287,7 @@ void SearchInfo::worker(ThreadInfo& ti, bool verbose) {
         search(root_copy, depth, -INF, INF, ti, *this);
 
 		if (verbose && ti.searching) {
-        	// cout << "thread " << ti.id << ":";
+        	// std::cout << "thread " << ti.id << ":";
         	print_uci_info();
 		}
     }
@@ -296,7 +302,7 @@ void SearchInfo::print_uci_info() {
     BB nodes = get_nodes();
     Timestamp time_elapsed = get_time_diff(start_time);
 
-    string msg = "";
+    std::string msg = "";
     msg += "info";
     msg += " depth " + to_string(entry->get_depth());
 	msg += " seldepth " + to_string(get_seldepth());
@@ -308,7 +314,7 @@ void SearchInfo::print_uci_info() {
     msg += " pv " + to_string(tt.getPV(root_pos)) + "\n";
 
     print_mutex.lock();
-    cout << msg;
+    std::cout << msg;
     print_mutex.unlock();
 }
 
@@ -382,3 +388,5 @@ Move get_best_move(Pos& pos, Depth depth) {
 
 	return si.tt.getPV(pos)[0];
 }
+
+*/

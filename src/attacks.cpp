@@ -8,35 +8,23 @@
 #include "types.h"
 #include "util.h"
 
-using namespace std;
+
 
 namespace attacks {
 
-    BB rays          [N_SQUARES][N_DIRECTIONS];
-
-    BB pawn_atks     [N_COLORS ][N_SQUARES];
-    BB knight_atks              [N_SQUARES];
-    BB bishop_atks              [N_SQUARES];
-    BB rook_atks                [N_SQUARES];
-    BB queen_atks               [N_SQUARES];
-    BB king_atks                [N_SQUARES];
-    
     BB bishop_blockermasks [N_SQUARES];
     BB rook_blockermasks   [N_SQUARES];
 
     BB bishop_magics [N_SQUARES];
     BB rook_magics   [N_SQUARES];
     
-    array<array<BB, MAGIC_ENTRY_SIZE>, N_SQUARES> bishop_table;
-    array<array<BB, MAGIC_ENTRY_SIZE>, N_SQUARES> rook_table;
+    std::array<std::array<BB, MAGIC_ENTRY_SIZE>, N_SQUARES> bishop_table;
+    std::array<std::array<BB, MAGIC_ENTRY_SIZE>, N_SQUARES> rook_table;
 
+    std::array<Square, 2> orthogonal_offsets[N_DIRECTIONS / 2] = {{ 0,  1}, { 1,  0}, { 0, -1}, {-1,  0}};
+    std::array<Square, 2> diagonal_offsets  [N_DIRECTIONS / 2] = {{ 1,  1}, { 1, -1}, {-1, -1}, {-1,  1}};
 
-    array<Square, 2> orthogonal_offsets[N_DIRECTIONS / 2] = {{ 0,  1}, { 1,  0}, { 0, -1}, {-1,  0}};
-    array<Square, 2> diagonal_offsets  [N_DIRECTIONS / 2] = {{ 1,  1}, { 1, -1}, {-1, -1}, {-1,  1}};
-    array<Square, 2> both_offsets      [N_DIRECTIONS    ] = {{ 0,  1}, { 1,  1}, { 1,  0}, { 1, -1}, { 0, -1}, {-1, -1}, {-1,  0}, {-1,  1}};
-    array<Square, 2> knight_offsets    [8               ] = {{ 1,  2}, { 2,  1}, { 2, -1}, { 1, -2}, {-1, -2}, {-2, -1}, {-2,  1}, {-1,  2}};
-
-    BB generate_attacks(const Square square, BB blockerboard, array<Square, 2>* direction_offsets, size_t n_directions) {
+    BB generate_attacks(const Square square, BB blockerboard, std::array<Square, 2>* direction_offsets, size_t n_directions) {
         BB attacks_bb = BB_EMPTY;
         
         Rank rank = rank_of(square);
@@ -49,17 +37,14 @@ namespace attacks {
                 Rank target_rank = rank + direction_offsets[d][1] * m;
                 File target_file = file + direction_offsets[d][0] * m;
 
-                if (target_rank >= RANK_1 && target_rank <= RANK_8 && target_file >= FILE_A && target_file <= FILE_H) {
+                if (target_rank < RANK_1 || target_rank > RANK_8 || target_file < FILE_A || target_file > FILE_H)
+                    break;
+                
+                Square target_square = square_of(target_rank, target_file);
 
-                    Square target_square = square_of(target_rank, target_file);
+                attacks_bb |= bb_of(target_square);
 
-                    attacks_bb |= bb_of(target_square);
-
-                    if (bb_has(blockerboard, target_square))
-                        break;
-
-                }
-                else
+                if (bb_has(blockerboard, target_square))
                     break;
 
             }
@@ -69,7 +54,7 @@ namespace attacks {
         return attacks_bb;
     }
     
-    void generate_blockerboards(vector<BB>* blockerboards, BB* blockermasks) {
+    void generate_blockerboards(std::vector<BB>* blockerboards, BB* blockermasks) {
 
         for (Square square = A1; square <= H8; square++) {
 
@@ -93,7 +78,7 @@ namespace attacks {
         }
     }
         
-    void generate_solutions(vector<BB>* solutions, vector<BB>* blockerboards, array<Square, 2>* direction_offsets, size_t n_directions) {
+    void generate_solutions(std::vector<BB>* solutions, std::vector<BB>* blockerboards, std::array<Square, 2>* direction_offsets, size_t n_directions) {
 
         for (Square square = A1; square <= H8; square++) {
 
@@ -107,7 +92,7 @@ namespace attacks {
         }
     }
 
-    void generate_magics(BB* magics, array<array<BB, MAGIC_ENTRY_SIZE>, N_SQUARES>& table, const vector<BB>* blockerboards, const vector<BB>* solutions) {
+    void generate_magics(BB* magics, std::array<std::array<BB, MAGIC_ENTRY_SIZE>, N_SQUARES>& table, const std::vector<BB>* blockerboards, const std::vector<BB>* solutions) {
 
         for (Square square = A1; square <= H8; square++) {
 
@@ -140,27 +125,6 @@ namespace attacks {
     }
 
     void init() {
-        
-        // Generate rays and atks disregarding blockers
-
-        for (Square square = A1; square <= H8; square++) {
-
-            for (Direction direction = NORTH; direction <= NORTHWEST; direction++)
-                rays[square][direction] = generate_attacks(square, BB_EMPTY, both_offsets + direction, 1);
-            
-            pawn_atks[WHITE][square] = shift<WEST>(shift<NORTH>(bb_of(square))) | shift<EAST>(shift<NORTH>(bb_of(square)));
-            pawn_atks[BLACK][square] = shift<WEST>(shift<SOUTH>(bb_of(square))) | shift<EAST>(shift<SOUTH>(bb_of(square)));
-
-            knight_atks[square] = generate_attacks(square, BB_FULL, knight_offsets, 8);
-
-            bishop_atks[square] = rays[square][NORTHEAST] | rays[square][SOUTHEAST] | rays[square][SOUTHWEST] | rays[square][NORTHWEST];
-            rook_atks  [square] = rays[square][NORTH    ] | rays[square][EAST     ] | rays[square][SOUTH    ] | rays[square][WEST     ];
-            
-            queen_atks [square] = bishop_atks[square] | rook_atks[square];
-
-            king_atks  [square] = generate_attacks(square, BB_FULL, both_offsets, 8);
-
-        }
 
         // Generate blockermasks
 
@@ -181,16 +145,16 @@ namespace attacks {
 
         // Generate blockerboards
 
-        vector<BB> bishop_blockerboards[N_SQUARES];
-        vector<BB> rook_blockerboards  [N_SQUARES];
+        std::vector<BB> bishop_blockerboards[N_SQUARES];
+        std::vector<BB> rook_blockerboards  [N_SQUARES];
 
         generate_blockerboards(bishop_blockerboards, bishop_blockermasks);
         generate_blockerboards(rook_blockerboards,   rook_blockermasks);
         
         // Generate solutions
 
-        vector<BB> bishop_solutions[N_SQUARES];
-        vector<BB> rook_solutions  [N_SQUARES];
+        std::vector<BB> bishop_solutions[N_SQUARES];
+        std::vector<BB> rook_solutions  [N_SQUARES];
 
         generate_solutions(bishop_solutions, bishop_blockerboards, diagonal_offsets,   4);
         generate_solutions(rook_solutions,   rook_blockerboards,   orthogonal_offsets, 4);

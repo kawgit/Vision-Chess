@@ -70,12 +70,12 @@ class TT {
 	TTEntry* probe(BB hashkey, bool& found);
 
 	void clear();
-	vector<Move> getPV(Pos p);
-	void addPV(Pos& p, vector<Move>& pv);
+	std::vector<Move> getPV(Pos p);
+	void addPV(Pos& p, std::vector<Move>& pv);
 	int hashfull();
 
 	Gen gen = 0;
-	vector<TTEntry> table;
+	std::vector<TTEntry> table;
 
 	TT() : table(TABLESIZE) {}
 };

@@ -10,9 +10,9 @@
 #include <functional>
 #include <iomanip>
 
-using namespace std;
 
-vector<Eval> piece_eval = {0, 100, 320, 330, 500, 900, 10000};
+
+std::vector<Eval> piece_eval = {0, 100, 320, 330, 500, 900, 10000};
 
 const Eval psqt_early[6][64] = {
     {
@@ -148,8 +148,8 @@ Eval eval_pos(Pos& pos, Eval lb, Eval ub, bool debug) {
     if (debug) print(pos, true);
 
     if (debug) {
-        cout << "white perspective early weight: " << to_string(get_early_weight(pos, WHITE)) << endl;
-        cout << "black perspective early weight: " << to_string(get_early_weight(pos, BLACK)) << endl;
+        std::cout << "white perspective early weight: " << to_string(get_early_weight(pos, WHITE)) << std::endl;
+        std::cout << "black perspective early weight: " << to_string(get_early_weight(pos, BLACK)) << std::endl;
     }
 
     // tempo bonus

@@ -4,7 +4,7 @@
 #include <iostream>
 #include <cstdlib>
 
-using namespace std;
+
 
 int lookup67[68] = {
 	64,  0,  1, 39,  2, 15, 40, 23,
@@ -23,14 +23,14 @@ void print(BB bb) {
 
 		for (File file = FILE_A; file <= FILE_H; file++) {
 
-			cout << (bb_has(bb, square_of(rank, file)) ? "O" : "-") << " ";
+			std::cout << (bb_has(bb, square_of(rank, file)) ? "O" : "-") << " ";
 
 		}
 
-		cout << endl;
+		std::cout << std::endl;
 
 	}
 
-	cout << endl;
+	std::cout << std::endl;
 
 }

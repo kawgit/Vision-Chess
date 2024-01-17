@@ -7,7 +7,7 @@
 #include <vector>
 #include <cassert>
 
-using namespace std;
+
 
 namespace movegen {
 
@@ -18,12 +18,12 @@ namespace movegen {
         FLAG_CHECKS    = 0b0100, // garuantees all checks will be generated, regardless of quiet and capture flags, abiding by legal flag (TODO)
         FLAG_LEGAL     = 0b1000, // garuantees all moves will be legal, i.e. not placing our king in check
 
-        PSEUDO          = FLAG_QUIETS | FLAG_TACTICALS | FLAG_CHECKS,
-        LOUDS           = FLAG_LEGAL  | FLAG_TACTICALS | FLAG_CHECKS,
-        ALL             = FLAG_QUIETS | FLAG_TACTICALS | FLAG_CHECKS | FLAG_LEGAL,
+        LEGAL           = FLAG_LEGAL | FLAG_TACTICALS | FLAG_CHECKS | FLAG_QUIETS,
+        PSEUDO          = LEGAL & ~FLAG_LEGAL,
+        LOUDS           = LEGAL & ~FLAG_QUIETS,
     };
 
     template<GenType GENTYPE>
-    vector<Move> generate(Pos& pos);
+    std::vector<Move> generate(Pos& pos);
 
 }

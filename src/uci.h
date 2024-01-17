@@ -6,12 +6,12 @@
 #include <string>
 
 struct UCI_Option {
-    string name;
-    string type;
-    string default_setting;
-    string value;
-    string init;
-    UCI_Option(string name_, string type_, string default_, string init_) {
+    std::string name;
+    std::string type;
+    std::string default_setting;
+    std::string value;
+    std::string init;
+    UCI_Option(std::string name_, std::string type_, std::string default_, std::string init_) {
         name = name_;
         type = type_;
         default_setting = default_;
@@ -20,7 +20,7 @@ struct UCI_Option {
     }
 };
 
-void process_command(string cmd);
+void process_command(std::string cmd);
 
 void print_uci_info(SearchInfo& si);
 

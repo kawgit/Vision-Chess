@@ -8,7 +8,7 @@
 #include "move.h"
 #include <vector>
 
-void insert_to_sorted(Move move, Score score, vector<Move>& moves, vector<Score>& scores, int lb) {
+void insert_to_sorted(Move move, Score score, std::vector<Move>& moves, std::vector<Score>& scores, int lb) {
     moves.push_back(move);
     scores.push_back(score);
     for (int i = scores.size() - 2; i >= lb; i--) {
@@ -26,22 +26,22 @@ void insert_to_sorted(Move move, Score score, vector<Move>& moves, vector<Score>
     scores[lb] = score;
 }
 
-vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, SearchInfo& si, int& num_good, int& num_boring, int& num_bad, bool for_qsearch) {
+std::vector<Move> order(std::vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, SearchInfo& si, int& num_good, int& num_boring, int& num_bad, bool for_qsearch) {
     Move counter_move = si.get_cm(pos);
 
     bool found = false;
 	TTEntry* entry = si.tt.probe(pos.get_hashkey(), found);
 	Move entry_move = found ? entry->get_move() : MOVE_NONE;
 
-    vector<Score> unsorted_boring_moves;
-    vector<Score> unsorted_bad_moves;
+    std::vector<Score> unsorted_boring_moves;
+    std::vector<Score> unsorted_bad_moves;
     if (!for_qsearch) {
         unsorted_boring_moves.reserve(unsorted_moves.size());
         unsorted_bad_moves.reserve(unsorted_moves.size());
     }
 
-    vector<Move> sorted_moves;
-    vector<Score> sorted_scores;
+    std::vector<Move> sorted_moves;
+    std::vector<Score> sorted_scores;
     sorted_moves.reserve(unsorted_moves.size());
     sorted_scores.reserve(unsorted_moves.size());
 
@@ -176,7 +176,7 @@ vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, Searc
     */
 
     // for (int i = 0; i < sorted_moves.size(); i++) {
-    //     cout << move_to_string(sorted_moves[i]) << " " << to_string(sorted_scores[i]) << endl;
+    //     std::cout << move_to_string(sorted_moves[i]) << " " << to_string(sorted_scores[i]) << std::endl;
     // }
 
     assert(sorted_moves.size() == unsorted_moves.size());

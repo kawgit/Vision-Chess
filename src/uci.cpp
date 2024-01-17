@@ -15,17 +15,17 @@
 #include <iostream>
 #include <cstdlib>
 
-using namespace std;
 
 
-vector<UCI_Option> uci_options = {
+
+std::vector<UCI_Option> uci_options = {
     UCI_Option("Ponder", "check", "true", "option name Ponder type check default true"),
     UCI_Option("Hash", "spin", "512", "option name Hash type spin default 512 min 16 max 1024"),
     UCI_Option("OwnBook", "check", "false", "option name OwnBook type check default false"),
     UCI_Option("Threads", "spin", "1", "option name Threads type spin default 1 min 1 max 8"),
 };
 
-UCI_Option* get_uci_option(string name) {
+UCI_Option* get_uci_option(std::string name) {
     for (UCI_Option& uci_option : uci_options) {
         if (uci_option.name == name) return &uci_option;
     }
@@ -33,28 +33,28 @@ UCI_Option* get_uci_option(string name) {
 }
 
 void uci() {
-    cout.setf(ios::unitbuf);
+    std::cout.setf(ios::unitbuf);
 
     SearchInfo uci_si;
     
-    string token;
+    std::string token;
     while (true) {
         loop_start_pre_cin:
         cin >> token;
         loop_start_post_cin:
 
         if (token == "uci") {
-            cout << "id name VisionChess" << endl;
-            cout << "id author Kenneth Wilber" << endl;
+            std::cout << "id name VisionChess" << std::endl;
+            std::cout << "id author Kenneth Wilber" << std::endl;
 
             for (UCI_Option option : uci_options) {
-                cout << option.init << endl;
+                std::cout << option.init << std::endl;
             }
 
-            cout << "uciok" << endl;
+            std::cout << "uciok" << std::endl;
         }
         else if (token == "isready") {
-            cout << "readyok" << endl;
+            std::cout << "readyok" << std::endl;
         }
         else if (token == "setoption") {
             cin >> token;
@@ -72,7 +72,7 @@ void uci() {
             }
 
             if (!found) {
-                cout << "no option named " << token << endl;
+                std::cout << "no option named " << token << std::endl;
             }
         }
         else if (token == "ucinewgame") {
@@ -80,14 +80,14 @@ void uci() {
             uci_si.clear();
         }
         else if (token == "position") {
-            string line;
+            std::string line;
             getline(cin, line);
             istringstream iss(line);
             
             iss >> token;
             if (token == "fen") {
-                string part;
-                string fen = "";
+                std::string part;
+                std::string fen = "";
                 for (int i = 0; i < 6; i++) {
                     iss >> part;
                     fen += part + " ";
@@ -112,7 +112,7 @@ void uci() {
             uci_si.tt.gen++;
         }
         else if (token == "go") {
-            string line;
+            std::string line;
             getline(cin, line);
             istringstream iss(line);
 
@@ -188,7 +188,7 @@ void uci() {
         }
         else if (token == "r") {
             Eval eval = eval_pos(uci_si.root_pos, -INF, INF, true);
-            cout << "Eval: " << eval_to_string(eval) << endl;
+            std::cout << "Eval: " << eval_to_string(eval) << std::endl;
         }
         else if (token == "quit") {
             uci_si.stop();

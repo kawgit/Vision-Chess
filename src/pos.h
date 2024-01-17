@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <string>
 #include <cassert>
+#include "attacks.h"
 #include "bits.h"
 #include "types.h"
 #include "hash.h"
@@ -12,17 +13,18 @@
 // #include "nnue.h"
 
 struct Slice {
-	BB 		hashkey;
-	BB 		castle_rooks_bb;
-	Clock 	fifty_move_clock;
-	BB pinned_bb;
-	Square 	ep;
-	Move 	move;
-	Piece 	victim;
+	BB 		hashkey = 0;
+	BB 		castle_rooks_bb = BB_EMPTY;
+	Clock 	fifty_move_clock = 0;
+	Square 	ep = SQUARE_NONE;
+	Move 	move = MOVE_NONE;
+	Piece 	victim = PIECE_NONE;
 
-	int num_checks;
-	// BB check_blocking_squares = BB_FULL;
-    // BB moveable_squares[N_SQUARES] = {};
+	// the below default values indicate that the bb has not yet been calculated
+	BB attacked_bb = BB_EMPTY;
+	BB checkers_bb = BB_FULL;
+	BB pinned_bb   = BB_FULL;
+	BB moveable_bb = BB_EMPTY;
 };
 
 class Pos {
@@ -30,6 +32,7 @@ class Pos {
 	private:
 
 	Color turn_ = BLACK;
+	Color notturn_ = !turn_;
 
 	Clock move_clock_ = 1;
 	
@@ -46,7 +49,8 @@ class Pos {
 
 	// Pos accessors
 
-	inline Color turn() const { return turn_; }
+	inline Color turn()    const { return turn_; }
+	inline Color notturn() const { return notturn_; }
 
 	inline Clock move_clock() const { return move_clock_; }
 
@@ -91,6 +95,25 @@ class Pos {
 	inline BB cr() 			 		 const { return slice->castle_rooks_bb; }
 	inline Square ep() 				 const { return slice->ep; }
 	inline Clock fifty_move_clock()  const { return slice->fifty_move_clock; }
+	inline BB attacked() 			 const { return slice->attacked_bb; }
+	inline BB checkers() 			 const { return slice->checkers_bb; }
+	inline BB pinned() 			     const { return slice->pinned_bb; }
+	inline BB moveable() 			 const { return slice->moveable_bb; }
+
+	// Calculated accessors
+
+	inline BB attackers_to(Square square, BB occupied) const {
+		
+		assert(is_okay_square(square));
+
+		return (attacks::pawn  (square, WHITE)    & pieces(BLACK, PAWN))
+			 | (attacks::pawn  (square, BLACK)    & pieces(WHITE, PAWN))
+			 | (attacks::knight(square)           & pieces(KNIGHT))
+			 | (attacks::bishop(square, occupied) & pieces(BISHOP))
+			 | (attacks::rook  (square, occupied) & pieces(ROOK))
+			 | (attacks::queen (square, occupied) & pieces(QUEEN))
+			 | (attacks::king  (square)           & pieces(KING));
+	}
 
 	// Modifiers
 	
@@ -141,37 +164,36 @@ class Pos {
 	}
 
 	inline void switch_turn() {
+		notturn_ = turn_;
 		turn_ = !turn_;
 		slice->hashkey ^= zobrist::wtm;
 	}
 
 	inline void switch_cr(Square square) {
+		assert(is_okay_square(square));
+
 		slice->castle_rooks_bb ^= bb_of(square);
 		slice->hashkey ^= zobrist::cr[square];
 	}
 
 	inline void set_ep(Square square) {
+		assert(is_okay_square(square) || square == SQUARE_NONE);
+
 		slice->hashkey ^= zobrist::ep[slice->ep];
 		slice->ep = square;
 		slice->hashkey ^= zobrist::ep[slice->ep];
 	}
 
-	Pos(string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+	Pos(std::string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+	
 	void do_move(Move m);
 	void undo_move();
-	bool do_move(string SAN);
-	void update_pins_and_checks();
-	void update_atks();
-	void update_sum_mat_squared();
 
-	BB get_atk_mask(Color color);
-	BB get_pawn_atk_mask(Color color);
-	BB get_knight_atk_mask(Color color);
-	BB get_bishop_atk_mask(Color color);
-	BB get_rook_atk_mask(Color color);
-	BB get_queen_atk_mask(Color color);
-	BB get_king_atk_mask(Color color);
+	void update_legal_info();
+	bool is_legal(const Move move) const;
 
+	bool do_move(std::string SAN);
+	
 	bool in_check();
 	bool three_repetitions();
 	bool one_repetition(int root);
@@ -196,6 +218,8 @@ class Pos {
 	// }
 };
 
-void print(Pos& pos, bool meta = false);
+void print(const Pos& pos, bool meta = false);
 
-string get_fen(Pos& p);
+void assert_okay_pos(const Pos& pos);
+
+std::string get_fen(Pos& p);

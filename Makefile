@@ -1,5 +1,5 @@
 ASM_BUILD_DEST = build
-CXX_FLAGS = -Ofast -std=c++17 -Wall -Wshadow
+CXX_FLAGS = -O3 -std=c++17 -Wall -Wshadow
 CXX_COMPILER = g++
 
 all: initdir Vision
@@ -7,7 +7,7 @@ all: initdir Vision
 initdir:
 	-mkdir build
 
-Vision: build/attacks.o build/bits.o build/hash.o build/move.o build/movegen.o build/pos.o build/timer.o build/types.o build/util.o src/main.cpp
+Vision: build/attacks.o build/bits.o build/hash.o build/move.o build/movegen.o build/pos.o build/search.o build/timer.o build/types.o build/util.o src/main.cpp
 	$(CXX_COMPILER) $(CXX_FLAGS) -pthread -o Vision.exe src/main.cpp build/*.o
 
 tests: build/bits.o build/eval.o build/hash.o build/movegen.o build/order.o build/pos.o build/search.o build/timer.o build/tt.o build/types.o src/tests.cpp

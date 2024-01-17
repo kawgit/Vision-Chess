@@ -5,10 +5,10 @@
 #include "move.h"
 #include <vector>
 
-using namespace std;
 
-void insert_to_sorted(Move move, Score score, vector<Move>& moves, vector<Score>& scores, int lb);
 
-vector<Move> order(vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, SearchInfo& si, int& num_good, int& num_boring, int& num_bad, bool for_qsearch = false);
+void insert_to_sorted(Move move, Score score, std::vector<Move>& moves, std::vector<Score>& scores, int lb);
+
+std::vector<Move> order(std::vector<Move>& unsorted_moves, Pos& pos, ThreadInfo& ti, SearchInfo& si, int& num_good, int& num_boring, int& num_bad, bool for_qsearch = false);
 
 //bool keeps_tempo(Move& move, Pos& pos, ThreadInfo& ti);

@@ -1,13 +1,13 @@
 #include <functional>
 #include <string>
 
-using namespace std;
+
 
 struct Test {
-    string name;
+    std::string name;
     function<void()> func;
 
-    Test(string n, function<void()> f) {
+    Test(std::string n, function<void()> f) {
         name = n;
         func = f;
     }

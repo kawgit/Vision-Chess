@@ -4,9 +4,9 @@
 #include "pos.h"
 #include <functional>
 
-using namespace std;
 
-extern vector<Eval> piece_eval;
+
+extern std::vector<Eval> piece_eval;
 
 const Eval STARTPOS_SUM_MAT_SQUARED = 17748;
 const Eval WINNING_THRESHOLD = 900;
@@ -38,10 +38,10 @@ inline int sqMapTrans(Color& color, int sq) { return color == WHITE ? sqMapTrans
 Eval eval_pos(Pos& p, Eval LB, Eval UB, bool debug = false);
 
 struct Factor {
-    string name;
+    std::string name;
     function<Eval(Pos&, Color)> func;
 
-    Factor(string n, function<Eval(Pos&, Color)> f) {
+    Factor(std::string n, function<Eval(Pos&, Color)> f) {
         name = n;
         func = f;
     }
