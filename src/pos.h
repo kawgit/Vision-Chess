@@ -4,13 +4,14 @@
 #include <stdint.h>
 #include <string>
 #include <cassert>
+
 #include "attacks.h"
 #include "bits.h"
-#include "types.h"
 #include "hash.h"
 #include "move.h"
+#include "nnue.h"
+#include "types.h"
 #include "util.h"
-// #include "nnue.h"
 
 struct Slice {
 	BB 		hashkey = 0;
@@ -138,6 +139,7 @@ class Pos {
 
 		slice->hashkey ^= zobrist::psqt[color][piece][square];
 
+		nnue::add_piece(color, piece, square);
 	}
 
 	inline void rem_piece(const Color color, const Piece piece, const Square square) {
@@ -161,6 +163,7 @@ class Pos {
 
 		slice->hashkey ^= zobrist::psqt[color][piece][square];
 
+		nnue::rem_piece(color, piece, square);
 	}
 
 	inline void switch_turn() {

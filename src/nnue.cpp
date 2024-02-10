@@ -1,134 +1,185 @@
+#include <immintrin.h>
+#include <algorithm>
 #include <cstring>
 #include <fstream>
-#include <vector>
-#include <math.h>
-#include <iomanip>
 
 #include "nnue.h"
 
+namespace nnue {
 
+ALIGN64 float accumulator[N_COLORS][L1_LEN];
 
-void forward_pass(char* input_layer, char* output_layer, char* weights, size_t input_size, size_t output_size) {
-    for (int o = 0; o < output_size; o++) {
-        *(output_layer + o) = 0;
-        for (int i = 0; i < input_size; i++) {
-            *(output_layer + o) += *(input_layer + i) * *(weights + o * input_size + i);
+ALIGN64 float in_l1_weights[IN_LEN * L1_LEN];
+ALIGN64 float l1_l2_weights[L1_LEN * L2_LEN];
+ALIGN64 float l2_l3_weights[L2_LEN * L3_LEN];
+ALIGN64 float l3_op_weights[L3_LEN * OP_LEN];
+
+ALIGN64 float l1_biases[L1_LEN];
+ALIGN64 float l2_biases[L2_LEN];
+ALIGN64 float l3_biases[L3_LEN];
+ALIGN64 float op_biases[OP_LEN];
+
+size_t get_file_size(std::ifstream& file) {
+    file.seekg(0,std::ios_base::end);
+    size_t file_size = file.tellg();
+    file.seekg(0,std::ios_base::beg);
+    return file_size;
+}
+
+template <typename T>
+static size_t read_contents(const char* data, T* output, size_t count) {
+
+    for (size_t i = 0; i < count; i++)
+        output[i] = *((T*)(data + sizeof(T) * i));
+
+    return sizeof(T) * count;
+}
+
+void read_network(std::string path) {
+
+    std::ifstream file(path, std::ios::binary);
+
+    if (!file.is_open()) {
+        std::cout << "Could not open network file" << std::endl;
+        return;
+    }
+
+    const size_t file_size = get_file_size(file);
+    char* buff = new char[file_size];
+    file.read(buff, file_size);
+
+    char* curr = buff;
+
+    curr += read_contents<float>(curr, in_l1_weights, IN_LEN * L1_LEN);
+    curr += read_contents<float>(curr, l1_biases,     L1_LEN);
+
+    curr += read_contents<float>(curr, l1_l2_weights, L1_LEN * L2_LEN);
+    curr += read_contents<float>(curr, l2_biases,     L2_LEN);
+
+    curr += read_contents<float>(curr, l2_l3_weights, L2_LEN * L3_LEN);
+    curr += read_contents<float>(curr, l3_biases,     L3_LEN);
+
+    curr += read_contents<float>(curr, l3_op_weights, L3_LEN * OP_LEN);
+    curr += read_contents<float>(curr, op_biases,     OP_LEN);
+
+    assert((curr - buff) == file_size);
+
+    delete [] buff;
+
+	std::memcpy(accumulator, l1_biases, sizeof(accumulator[0]));
+
+}
+
+inline size_t feature_index(const bool ours, const Piece piece, const Square square) {
+    return ours * N_PIECES * N_SQUARES + piece * N_SQUARES + square;
+}
+
+void add_feature(const Color color, const size_t index) {
+    float* src = in_l1_weights + index * L1_LEN;
+    float* dst = accumulator[color];
+    
+    for (size_t i = 0; i < L1_LEN / simd_size; i++) {
+        __m256 vsrc = _mm256_load_ps(src + i * simd_size);
+        __m256 vdst = _mm256_load_ps(dst + i * simd_size);
+    
+        vdst = _mm256_add_ps(vdst, vsrc);
+
+        _mm256_store_ps(dst + i * simd_size, vdst);
+    }
+}
+
+void rem_feature(const Color color, const size_t index) {
+    float* src = in_l1_weights + index * L1_LEN;
+    float* dst = accumulator[color];
+    
+    for (size_t i = 0; i < L1_LEN / simd_size; i++) {
+        __m256 vsrc = _mm256_load_ps(src + i * simd_size);
+        __m256 vdst = _mm256_load_ps(dst + i * simd_size);
+    
+        vdst = _mm256_sub_ps(vdst, vsrc);
+
+        _mm256_store_ps(dst + i * simd_size, vdst);
+    }
+}
+
+void add_piece(const Color color, const Piece piece, const Square square) {
+    for (const Color side : {WHITE, BLACK}) {
+        const bool ours = color == side;
+        const size_t index = feature_index(ours, piece, square);
+        add_feature(side, index);
+    }
+}
+
+void rem_piece(const Color color, const Piece piece, const Square square) {
+    for (const Color side : {WHITE, BLACK}) {
+        const bool ours = color == side;
+        const size_t index = feature_index(ours, piece, square);
+        rem_feature(side, index);
+    }
+}
+
+template <size_t SRC_LEN, size_t DST_LEN>
+void forward_pass(const float* src, float* dst, const float* weights, const float* biases) {
+
+    if constexpr (DST_LEN == 1) {
+
+        assert(SRC_LEN % simd_size == 0);
+
+        __m256 vacc = _mm256_set1_ps(0);
+
+        for (size_t i = 0; i < SRC_LEN / simd_size; i++) {
+            
+            __m256 vsrc = _mm256_load_ps(src + i * simd_size);
+            __m256 vwgt = _mm256_load_ps(weights + i * simd_size);
+
+            vacc = _mm256_fmadd_ps(vsrc, vwgt, vacc); 
+
         }
-    }
-}
 
-NNUE::NNUE() {
-    memset(l1, 0, 2 * L1_LEN);
-    memset(l2, 0, 2 * L2_LEN);
-    memset(l3, 0, 2 * L3_LEN);
-    memset(l4, 0, 2 * L4_LEN);
-    memset(l5, 0, 2 * L5_LEN);
+        _mm256_store_ps(dst, vacc);
 
-    memset(in_l1_w, 0, IN_L1_W_LEN);
-    memset(l1_l2_w, 0, L1_L2_W_LEN);
-    memset(l2_l3_w, 0, L2_L3_W_LEN);
-    memset(l3_l4_w, 0, L3_L4_W_LEN);
-    memset(l4_l5_w, 0, L4_L5_W_LEN);
+        for (size_t i = 1; i < simd_size; i++) {
+            dst[0] += dst[i];
+        }
 
-    for (Piece pt = PAWN; pt <= KING; pt++) {
-        int pt_i = pt - PAWN;
-        
-    }
-
-    l1_l2_w[0] = 1;
-    l2_l3_w[0] = 1;
-    l3_l4_w[0] = 1;
-    l4_l5_w[0] = 1;
-}
-
-NNUE::NNUE(std::string path) {
-    memset(l1, 0, 2 * L1_LEN);
-    memset(l2, 0, 2 * L2_LEN);
-    memset(l3, 0, 2 * L3_LEN);
-    memset(l4, 0, 2 * L4_LEN);
-    memset(l5, 0, 2 * L5_LEN);
-    if (path.length() == 0) {
-        memset(in_l1_w, 0, IN_L1_W_LEN);
-        memset(l1_l2_w, 0, L1_L2_W_LEN);
-        memset(l2_l3_w, 0, L2_L3_W_LEN);
-        memset(l3_l4_w, 0, L3_L4_W_LEN);
-        memset(l4_l5_w, 0, L4_L5_W_LEN);
     }
     else {
-        ifstream file;
-        file.open(path, ios::binary);
-        if (file.is_open()) {
-            file.read(&(in_l1_w[0]), IN_L1_W_LEN);
-            file.read(&(l1_l2_w[0]), L1_L2_W_LEN);
-            file.read(&(l2_l3_w[0]), L2_L3_W_LEN);
-            file.read(&(l3_l4_w[0]), L3_L4_W_LEN);
-            file.read(&(l4_l5_w[0]), L4_L5_W_LEN);
-            file.close();
-        }
-        else { // todo fix this shitty code later
-            memset(in_l1_w, 0, IN_L1_W_LEN);
-            memset(l1_l2_w, 0, L1_L2_W_LEN);
-            memset(l2_l3_w, 0, L2_L3_W_LEN);
-            memset(l3_l4_w, 0, L3_L4_W_LEN);
-            memset(l4_l5_w, 0, L4_L5_W_LEN);
-            std::cout << "failed to open nnue file " << path << std::endl;
-        }
-    }
-}
+        
+        assert(SRC_LEN % simd_size == 0);
+        assert(DST_LEN % simd_size == 0);
 
-void NNUE::save(std::string path) {
-    ofstream file;
-    file.open(path, ios::binary);
-    file.write(&(in_l1_w[0]), IN_L1_W_LEN);
-    file.write(&(l1_l2_w[0]), L1_L2_W_LEN);
-    file.write(&(l2_l3_w[0]), L2_L3_W_LEN);
-    file.write(&(l3_l4_w[0]), L3_L4_W_LEN);
-    file.write(&(l4_l5_w[0]), L4_L5_W_LEN);
-    file.close();
-}
+        for (size_t o = 0; o < DST_LEN / simd_size; o++) {
+        
+            __m256 vacc = _mm256_load_ps(biases + o * simd_size);
+        
+            for (size_t i = 0; i < SRC_LEN / simd_size; i++) {
+                
+                __m256 vsrc = _mm256_load_ps(src + i * simd_size);
+                __m256 vwgt = _mm256_load_ps(weights + i * simd_size * DST_LEN + o * simd_size);
 
-int NNUE::evaluate(Color c) {
-    c-=BLACK;
-    forward_pass(&(l1[c][0]), &(l2[c][0]), &(l1_l2_w[0]), L1_LEN, L2_LEN);
-    forward_pass(&(l2[c][0]), &(l3[c][0]), &(l2_l3_w[0]), L2_LEN, L3_LEN);
-    forward_pass(&(l3[c][0]), &(l4[c][0]), &(l3_l4_w[0]), L3_LEN, L4_LEN);
-    forward_pass(&(l4[c][0]), &(l5[c][0]), &(l4_l5_w[0]), L4_LEN, L5_LEN);
-    c+=BLACK;
+                vacc = _mm256_fmadd_ps(vsrc, vwgt, vacc); 
 
-    c = opp(c);
-
-    c-=BLACK;
-    forward_pass(&(l1[c][0]), &(l2[c][0]), &(l1_l2_w[0]), L1_LEN, L2_LEN);
-    forward_pass(&(l2[c][0]), &(l3[c][0]), &(l2_l3_w[0]), L2_LEN, L3_LEN);
-    forward_pass(&(l3[c][0]), &(l4[c][0]), &(l3_l4_w[0]), L3_LEN, L4_LEN);
-    forward_pass(&(l4[c][0]), &(l5[c][0]), &(l4_l5_w[0]), L4_LEN, L5_LEN);
-    c+=BLACK;
-
-    c = opp(c);
-    return l5[c - BLACK][0] - l5[opp(c) - BLACK][0];
-}
-
-void NNUE::add_blurry_bonus(int sq, int piece, int bonus) {
-    int t_r = sq / 8;
-    int t_c = sq % 8;
-    for (int r = 0; r < 8; r++) {
-        for (int c = 0; c < 8; c++) {
-            int rel_row = t_r - r;
-            int rel_col = t_c - c;
-            double dist = sqrt(rel_row * rel_row + rel_col * rel_col);
-            in_l1_w[calc_w_index(rc(r, c), piece)] += bonus * exp(-(dist / 2) * (dist / 2));
-        }
-    }
-}
-
-void NNUE::print_maps() {
-    for (Piece pt = PAWN; pt <= PAWN; pt++) {
-        std::cout << std::endl;
-        for (int r = 7; r >= 0; r--) {
-            for (int c = 0; c < 8; c++) {
-                std::cout << setw(5) << (int)in_l1_w[calc_w_index(rc(r, c), pt)] << " ";
             }
-            std::cout << std::endl << std::endl;
+
+            _mm256_store_ps(dst + o * simd_size, vacc);
         }
+
     }
+
+}
+
+float evaluate(Color color) {
+
+    constexpr size_t MAX_LEN = L1_LEN;
+    
+    ALIGN64 float floats_0[MAX_LEN];
+    ALIGN64 float floats_1[MAX_LEN];
+
+    forward_pass<L1_LEN, L2_LEN>(accumulator[color], floats_0, l1_l2_weights, l2_biases);
+    forward_pass<L2_LEN, L3_LEN>(floats_0,           floats_1, l2_l3_weights, l3_biases);
+    forward_pass<L3_LEN, OP_LEN>(floats_1,           floats_0, l3_op_weights, op_biases);
+
+    return floats_0[0];
+}
+
 }

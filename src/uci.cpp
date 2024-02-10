@@ -1,3 +1,4 @@
+/*
 #include "search.h"
 #include "bits.h"
 #include "types.h"
@@ -15,24 +16,23 @@
 #include <iostream>
 #include <cstdlib>
 
+namespace uci {
 
-
-
-std::vector<UCI_Option> uci_options = {
+std::vector<Option> uci_options = {
     UCI_Option("Ponder", "check", "true", "option name Ponder type check default true"),
     UCI_Option("Hash", "spin", "512", "option name Hash type spin default 512 min 16 max 1024"),
     UCI_Option("OwnBook", "check", "false", "option name OwnBook type check default false"),
     UCI_Option("Threads", "spin", "1", "option name Threads type spin default 1 min 1 max 8"),
 };
 
-UCI_Option* get_uci_option(std::string name) {
-    for (UCI_Option& uci_option : uci_options) {
+Option* get_uci_option(std::string name) {
+    for (Option& uci_option : uci_options) {
         if (uci_option.name == name) return &uci_option;
     }
     return nullptr;
 }
 
-void uci() {
+void mainloop() {
     std::cout.setf(ios::unitbuf);
 
     SearchInfo uci_si;
@@ -47,7 +47,7 @@ void uci() {
             std::cout << "id name VisionChess" << std::endl;
             std::cout << "id author Kenneth Wilber" << std::endl;
 
-            for (UCI_Option option : uci_options) {
+            for (Option option : uci_options) {
                 std::cout << option.init << std::endl;
             }
 
@@ -197,3 +197,6 @@ void uci() {
     }
 
 }
+
+} // namespace uci
+*/

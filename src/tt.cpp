@@ -34,7 +34,7 @@ int TT::hashfull() {
 
 void TT::addPV(Pos& pos, std::vector<Move>& pv) {
 	bool found = false;
-	TTEntry* entry = probe(pos.get_hashkey(), found);
+	TTEntry* entry = probe(pos.hashkey(), found);
 	if (found && (entry->get_bound() != LB || entry->get_eval() >= MINMATE) && entry->get_move() != MOVE_NONE) {
 		pos.do_move(entry->get_move());
 		pv.push_back(entry->get_move());

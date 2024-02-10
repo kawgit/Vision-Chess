@@ -15,6 +15,33 @@
 template<bool DIVIDE>
 BB perft(Pos& pos, Depth depth);
 
+namespace search {
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // void perftTest();
 
 // struct ThreadInfo {

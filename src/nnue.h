@@ -1,74 +1,45 @@
 #pragma once
 
+#include <immintrin.h>
+
 #include "types.h"
 
+#define ALIGN64 alignas(64)
 
+class Accumulator {
 
-inline Square switch_perspective(Square square) {
-    return 8 * (7 - square / 8) + (square % 8);
-}
-
-inline int calc_w_index(Square s, Piece p) {
-    return (p - PAWN) * 64 + s;
-}
-
-void forward_pass(char* input_layer, char* output_layer, char* weights, size_t input_size, size_t output_size);
-
-const int IN_LEN = 64 * 13;
-const int L1_LEN = 1;
-const int L2_LEN = 1;
-const int L3_LEN = 1;
-const int L4_LEN = 1;
-const int L5_LEN = 1;
-
-const int IN_L1_W_LEN = IN_LEN * L1_LEN;
-const int L1_L2_W_LEN = L1_LEN * L2_LEN;
-const int L2_L3_W_LEN = L2_LEN * L3_LEN;
-const int L3_L4_W_LEN = L3_LEN * L4_LEN;
-const int L4_L5_W_LEN = L4_LEN * L5_LEN;
-
-class NNUE {
-
-    private:
-    char in_l1_w[IN_L1_W_LEN];
-    char l1_l2_w[L1_L2_W_LEN];
-    char l2_l3_w[L2_L3_W_LEN];
-    char l3_l4_w[L3_L4_W_LEN];
-    char l4_l5_w[L4_L5_W_LEN];
-
-    char in[2][L1_LEN];
-    char l1[2][L1_LEN];
-    char l2[2][L2_LEN];
-    char l3[2][L3_LEN];
-    char l4[2][L4_LEN];
-    char l5[2][L5_LEN];
-
-    public:
-
-    NNUE();
-    NNUE(std::string path);
-
-    void save(std::string path);
-    int evaluate(Color c);
-    void add_blurry_bonus(int sq, int piece, int bonus);
-    void print_maps();
-
-    inline void add_piece(Color c, Square s, Piece p) {
-        if (c == WHITE) {
-            l1[WHITE - BLACK][0] += in_l1_w[calc_w_index(s, p)];
-        }
-        else {
-            l1[BLACK - BLACK][0] += in_l1_w[calc_w_index(switch_perspective(s), p)];
-        }
-    }
-
-	inline void rem_piece(Color c, Square s, Piece p) {
-        if (c == WHITE) {
-            l1[WHITE - BLACK][0] -= in_l1_w[calc_w_index(s, p)];
-        }
-        else {
-            l1[BLACK - BLACK][0] -= in_l1_w[calc_w_index(switch_perspective(s), p)];
-        }
-    }
 };
 
+namespace nnue {
+
+    const size_t simd_size = 256 / (8 * sizeof(float));
+
+    const size_t IN_LEN = N_COLORS * N_PIECES * N_SQUARES;
+    const size_t L1_LEN = 1024;
+    const size_t L2_LEN = 16;
+    const size_t L3_LEN = 16;
+    const size_t OP_LEN = 1;
+
+    extern float accumulator[N_COLORS][L1_LEN];
+
+    extern float in_l1_weights[IN_LEN * L1_LEN];
+    extern float l1_l2_weights[L1_LEN * L2_LEN];
+    extern float l2_l3_weights[L2_LEN * L3_LEN];
+    extern float l3_op_weights[L3_LEN * OP_LEN];
+
+    extern float l1_biases[L1_LEN];
+    extern float l2_biases[L2_LEN];
+    extern float l3_biases[L3_LEN];
+    extern float op_biases[OP_LEN];
+
+    void read_network(std::string path);
+
+	void add_piece(const Color color, const Piece piece, const Square square);
+
+	void rem_piece(const Color color, const Piece piece, const Square square);
+
+    template <size_t SRC_LEN, size_t DST_LEN>
+    void forward_pass(const float* src, float* dst, const float* weights, const float* biases);
+
+    float evaluate(Color color);
+}

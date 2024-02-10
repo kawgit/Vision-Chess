@@ -77,5 +77,5 @@ class TT {
 	Gen gen = 0;
 	std::vector<TTEntry> table;
 
-	TT() : table(TABLESIZE) {}
+	TT(size_t tt_size) : table(tt_size) {}
 };

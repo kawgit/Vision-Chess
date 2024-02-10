@@ -10,6 +10,7 @@
 #include "pos.h"
 #include "search.h"
 #include "util.h"
+#include "nnue.h"
 
 
 
@@ -17,8 +18,13 @@ int main() {
 
 	zobrist::init();
 	attacks::init();
-	
-	Pos pos("r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1 ");
+
+	nnue::read_network("../scripts/kwnnue.kwnnue");
+
+	Pos pos("r1bq1rk1/ppp2ppp/3n4/8/8/2N1B3/PPP2PPP/R2QRBK1 b - - 1 14");
+
+	float eval = nnue::evaluate(pos.turn());
+	std::cout << eval << std::endl;
 
 	print(pos, true);
 
