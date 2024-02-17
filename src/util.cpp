@@ -86,6 +86,13 @@ std::map<Piece, char> piece_to_char_map = {
     {KING, 'k'},
 };
 
-std::string move_to_string(Move move) {
+std::string move_to_string(const Move move) {
     return square_to_string(move::from_square(move)) + square_to_string(move::to_square(move)) + (move::is_promotion(move) ? "=" + std::string(1, piece_to_char_map[move::promotion_piece(move)]) : "");
+}
+
+std::string movelist_to_string(const std::vector<Move> moves) {
+    std::string result = "";
+    for (size_t i = 0; i < moves.size(); i++)
+        result += (i ? " " : "") + move_to_string(moves[i]);
+    return result;
 }

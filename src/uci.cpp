@@ -6,7 +6,6 @@
 #include "tt.h"
 #include "movegen.h"
 #include "uci.h"
-#include "eval.h"
 #include <sstream>
 #include <cassert>
 #include <map>
@@ -187,7 +186,7 @@ void mainloop() {
             print(uci_si.root_pos, true);
         }
         else if (token == "r") {
-            Eval eval = eval_pos(uci_si.root_pos, -INF, INF, true);
+            Eval eval = eval_pos(uci_si.root_pos, EVAL_MIN, EVAL_MAX, true);
             std::cout << "Eval: " << eval_to_string(eval) << std::endl;
         }
         else if (token == "quit") {

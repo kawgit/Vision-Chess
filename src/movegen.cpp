@@ -141,8 +141,7 @@ namespace movegen {
         BB to_squares = attacks::king(from_square) & ~pos.pieces(COLOR);
         
         if constexpr (GENTYPE & FLAG_LEGAL) {
-            assert(pos.attacked() != BB_EMPTY);
-            to_squares &= ~pos.attacked();
+            to_squares &= ~pos.attacked_by(pos.notturn());
         }
 
         if constexpr (GENTYPE & FLAG_TACTICALS) {
@@ -174,10 +173,10 @@ namespace movegen {
             constexpr Square GX = COLOR == WHITE ? G1 : G8;
             constexpr Square HX = COLOR == WHITE ? H1 : H8;
             
-            if (bb_has(pos.cr(), HX) && !((pos.attacked() & bb_segment(DX, HX)) || (pos.pieces() & bb_segment(EX, HX))))
+            if (bb_has(pos.cr(), HX) && !((pos.attacked_by(pos.notturn()) & bb_segment(DX, HX)) || (pos.pieces() & bb_segment(EX, HX))))
                 moves.push_back(make_move(EX, GX, KING_CASTLE));
 
-            if (bb_has(pos.cr(), AX) && !((pos.attacked() & bb_segment(FX, BX)) || (pos.pieces() & bb_segment(EX, AX))))
+            if (bb_has(pos.cr(), AX) && !((pos.attacked_by(pos.notturn()) & bb_segment(FX, BX)) || (pos.pieces() & bb_segment(EX, AX))))
                 moves.push_back(make_move(EX, CX, QUEEN_CASTLE));
         }
 
@@ -190,7 +189,7 @@ namespace movegen {
             pos.update_legal_info();
         }
 
-        if (!((GENTYPE & FLAG_LEGAL) && bb_has_multiple(pos.checkers()))) {
+        if (!(GENTYPE & FLAG_LEGAL) || !bb_has_multiple(pos.checkers())) {
 
             add_pawn_moves <GENTYPE, COLOR>         (moves, pos);
             add_piece_moves<GENTYPE, COLOR, KNIGHT> (moves, pos);
@@ -224,6 +223,7 @@ namespace movegen {
 
     template std::vector<Move> generate<PSEUDO>(Pos& pos);
     template std::vector<Move> generate<LEGAL >(Pos& pos);
+    template std::vector<Move> generate<LOUDS >(Pos& pos);
 
     template<GenType GENTYPE>
     std::vector<Move> generate(Pos& pos) {

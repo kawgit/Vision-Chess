@@ -12,29 +12,33 @@ add_executable(Vision
         attacks.cpp 
         bits.cpp 
         hash.cpp 
+        history.cpp 
         main.cpp
         move.cpp 
         movegen.cpp 
+        movepicker.cpp 
         nnue.cpp
         pos.cpp 
         search.cpp 
+        thread.cpp
         timer.cpp 
+        tt.cpp 
         types.cpp 
         util.cpp 
     )
 
-add_executable(tests 
-    tests.cpp
-    bits.cpp
-    eval.cpp 
-    hash.cpp
-    movegen.cpp
-    # nnue.cpp
-    order.cpp
-    pos.cpp
-    search.cpp
-    timer.cpp
-    tt.cpp
-    types.cpp
-    uci.cpp
-    )
+# add_executable(tests 
+#     tests.cpp
+#     bits.cpp
+#     eval.cpp 
+#     hash.cpp
+#     movegen.cpp
+#     # nnue.cpp
+#     order.cpp
+#     pos.cpp
+#     search.cpp
+#     timer.cpp
+#     tt.cpp
+#     types.cpp
+#     uci.cpp
+#     )

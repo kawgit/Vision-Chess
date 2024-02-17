@@ -12,8 +12,8 @@
 
 Pos::Pos(std::string fen) {
 
-	std::memset(piece_bbs, BB_EMPTY, sizeof(piece_bbs));
-	std::memset(color_bbs, BB_EMPTY, sizeof(color_bbs));
+	std::memset(piece_bbs, 0, sizeof(piece_bbs));
+	std::memset(color_bbs, 0, sizeof(color_bbs));
 	std::memset(piece_mailboxes, PIECE_NONE, sizeof(piece_mailboxes));
 	std::memset(color_mailboxes, COLOR_NONE, sizeof(color_mailboxes));
 
@@ -97,6 +97,12 @@ Pos::Pos(std::string fen) {
 	assert_okay_pos(*this);
 }
 
+void Pos::operator=(const Pos& pos) {
+	std::memcpy(this, &pos, sizeof(pos));
+	size_t offset = pos.slice - pos.slice_stack;
+	slice = slice_stack + offset;
+}
+
 void print(const Pos& pos, bool meta) {
 
 	for (Rank rank = RANK_8; rank >= RANK_1; rank--) {
@@ -130,14 +136,26 @@ void print(const Pos& pos, bool meta) {
 		std::cout << "ep: " << square_to_string(pos.ep()) << std::endl;
 		std::cout << "halfmove clock: " << std::to_string(pos.fifty_move_clock()) << std::endl;
 		std::cout << "move clock: " << std::to_string(pos.move_clock()) << std::endl;
+		std::cout << "move log:";
+
+		for (size_t i = 1; i < 5; i++) {
+			std::cout << move_to_string(pos.slice_stack[i].move) << std::endl;
+		}
 	}
 
 }
 
 void Pos::do_move(Move move) {
-	Square from_square = move::from_square(move);
-	Square to_square = move::to_square(move);
-	Piece moving = piece_on(from_square);
+	
+	Slice* prev = slice;
+	slice++;
+
+	const Square from_square = move::from_square(move);
+	const Square to_square = move::to_square(move);
+	const Square victim_square = move::capture_square(move);
+	const Piece moving = piece_on(from_square);
+	const Piece victim = piece_on(victim_square);
+	const Piece placed = move::is_promotion(move) ? move::promotion_piece(move) : moving;
 
 	assert(is_okay_square(from_square));
 	assert(is_okay_square(to_square));
@@ -148,39 +166,36 @@ void Pos::do_move(Move move) {
 	assert(color_on(from_square) == turn());
 	assert(color_on(to_square) != turn());
 	
-	slice->move = move;
-
-	Slice* prev = slice;
-	slice++;
-	
 	slice->hashkey = prev->hashkey;
 	slice->castle_rooks_bb = prev->castle_rooks_bb;
 	slice->fifty_move_clock = !(move::is_capture(move) || moving == PAWN) * (prev->fifty_move_clock + 1);
 	slice->ep = prev->ep;
 	
-	slice->attacked_bb = BB_EMPTY;
+	// set bbs to signal that they have not yet been calculated
+	slice->attacked_by[WHITE][PIECE_ALL] = BB_EMPTY;
+	slice->attacked_by[BLACK][PIECE_ALL] = BB_EMPTY;
 	slice->checkers_bb = BB_FULL;
-	slice->pinned_bb   = BB_FULL;
-	slice->moveable_bb = BB_EMPTY;
+
+	slice->moving = moving;
+	slice->victim = victim;
+	slice->move   = move;
 
 	rem_piece(turn(), moving, from_square);
 
 	move_clock_ += turn() == BLACK;
 
-	if (move::is_capture(move)) {
-		Square victim_square = move::capture_square(move);
-		prev->victim  = piece_on(victim_square);
+	if (move::is_capture(move))
+		rem_piece(notturn(), victim, victim_square);
 
-		rem_piece(notturn(), prev->victim, victim_square);
-	}
-
-	add_piece(turn(), move::is_promotion(move) ? move::promotion_piece(move) : moving, to_square);
+	add_piece(turn(), placed, to_square);
 
 	bool new_ep = move::is_double_pawn_push(move) && (shift<SOUTH>(attacks::pawn(to_square, WHITE)) & pieces(notturn(), PAWN));
 	set_ep(new_ep ? (to_square + from_square) / 2 : SQUARE_NONE);
 
-	if (bb_of(from_square) & cr()) switch_cr(from_square);
-	if (bb_of(to_square) & cr()) switch_cr(to_square);
+	if (bb_of(from_square) & cr())
+		switch_cr(from_square);
+	if (bb_of(to_square)   & cr())
+		switch_cr(to_square);
 	if (moving == KING) {
 		BB our_castle_rooks = cr() & pieces(turn());
 		while (our_castle_rooks) {
@@ -214,9 +229,7 @@ void Pos::do_move(Move move) {
 void Pos::undo_move() {
 	assert(slice != slice_stack);
 
-	Slice* prev = slice - 1;
-
-	Move move = prev->move;
+	Move move = slice->move;
 	
 	assert(move != MOVE_NONE);
 
@@ -233,7 +246,7 @@ void Pos::undo_move() {
 	add_piece(turn(), is_promotion ? PAWN 						 : moving, from_square);
 
 	if (move::is_capture(move))
-		add_piece(notturn(), prev->victim, move::capture_square(move));
+		add_piece(notturn(), slice->victim, move::capture_square(move));
 	else if (move::is_king_castle(move)) {
 		Square offset = (turn() == BLACK) * (N_FILES * 7);
 		Square rook_from = H1 + offset;
@@ -256,82 +269,60 @@ void Pos::undo_move() {
 	assert_okay_pos(*this);
 }
 
-void Pos::update_legal_info() {
+void Pos::update_attacks(Color color) {
+
+	if (attacks_updated(color)) return;
 
 	const Square king_square = lsb(pieces(turn(), KING));
+	const BB occupied = pieces() & ~bb_of(king_square);
 	
-	/// attacked_bb
+	slice->attacked_by[color][PAWN]   = attacks::pawns  (pieces(color, PAWN  ), color    );
+	slice->attacked_by[color][KNIGHT] = attacks::knights(pieces(color, KNIGHT)		     );
+	slice->attacked_by[color][BISHOP] = attacks::bishops(pieces(color, BISHOP), occupied );
+	slice->attacked_by[color][ROOK]   = attacks::rooks  (pieces(color, ROOK  ), occupied );
+	slice->attacked_by[color][QUEEN]  = attacks::queens (pieces(color, QUEEN ), occupied );
+	slice->attacked_by[color][KING]   = attacks::king   (lsb(pieces(color, KING))        );
 	
-	BB attacked_bb = BB_EMPTY;
+	slice->attacked_by[color][PIECE_ALL] = slice->attacked_by[color][PAWN]
+										 | slice->attacked_by[color][KNIGHT]
+										 | slice->attacked_by[color][BISHOP]
+										 | slice->attacked_by[color][ROOK]
+										 | slice->attacked_by[color][QUEEN]
+										 | slice->attacked_by[color][KING];
 
-	// add pawns
-	const BB pawns = pieces(notturn(), PAWN);
-	const BB we_pawns = shift<WEST>(pawns) | shift<EAST>(pawns);
+}
 
-	attacked_bb |= turn() == WHITE ? shift<SOUTH>(we_pawns) : shift<NORTH>(we_pawns);
+void Pos::update_legal_info() {
 
-	// add knights
+	if (legal_updated()) return;
 
-	const BB knights = pieces(notturn(), KNIGHT);
-	const BB we_knights = shift<WEST>(knights) | shift<EAST>(knights);
-	const BB ns_knights = shift<NORTH>(knights) | shift<SOUTH>(knights);
-	
-	attacked_bb |= shift<NORTH>(shift<NORTH>(we_knights));
-	attacked_bb |= shift<SOUTH>(shift<SOUTH>(we_knights));
-	attacked_bb |= shift<EAST>(shift<EAST>(ns_knights));
-	attacked_bb |= shift<WEST>(shift<WEST>(ns_knights));
+	update_attacks(notturn());
 
-	// add sliders
+	const Square king_square = lsb(pieces(turn(), KING));
+
+	slice->checkers_bb = (attacks::pawn(king_square, turn()) & pieces(notturn(), PAWN))
+			           | (attacks::knight(king_square)       & pieces(notturn(), KNIGHT));
+	slice->pinned_bb   = BB_EMPTY;
+	slice->moveable_bb = slice->checkers_bb ? slice->checkers_bb : BB_FULL;
+
+	BB sliding_checkers = ((pieces(notturn(), BISHOP) | pieces(notturn(), QUEEN)) & attacks::bishop(king_square, pieces(notturn())))
+			   | ((pieces(notturn(), ROOK  ) | pieces(notturn(), QUEEN)) & attacks::rook  (king_square, pieces(notturn())));
 
 	const BB occupied = pieces() & ~bb_of(king_square);
 
-	for (const Piece piece : {BISHOP, ROOK, QUEEN}) {
-
-		BB piece_squares = pieces(notturn(), piece);
-
-		while (piece_squares) {
-
-			const Square piece_square = poplsb(piece_squares);
-
-			attacked_bb |= attacks::lookup(piece, piece_square, occupied);
-
-		}
-
-	}
-
-	// add king
-
-	attacked_bb |= attacks::king(lsb(pieces(notturn(), KING)));
-	
-	slice->attacked_bb = attacked_bb;
-
-	/// checkers_bb, pinned_bb, moveable_bb
-	
-	BB checkers_bb = (attacks::pawn(king_square, turn()) & pieces(notturn(), PAWN))
-			       | (attacks::knight(king_square)           & pieces(notturn(), KNIGHT));
-	BB pinned_bb   = BB_EMPTY;
-	BB moveable_bb = checkers_bb ? checkers_bb : BB_FULL;
-
-	BB sliders = ((pieces(notturn(), BISHOP) | pieces(notturn(), QUEEN)) & attacks::bishop(king_square, pieces(notturn())))
-			   | ((pieces(notturn(), ROOK  ) | pieces(notturn(), QUEEN)) & attacks::rook  (king_square, pieces(notturn())));
-
-	while (sliders) {
+	while (sliding_checkers) {
 		
-		const Square slider = poplsb(sliders);
-		BB blockers = bb_segment(king_square, slider) & occupied;
+		const Square checker = poplsb(sliding_checkers);
+		BB blockers = bb_segment(king_square, checker) & occupied;
 
 		const bool is_check = !blockers;                                  // 0 blockers
 		const bool is_pin   = !is_check && !bb_has_multiple(blockers);    // 1 blocker
 
-		checkers_bb |= bb_of(slider) * is_check;
-		pinned_bb   |= blockers * is_pin;
-		moveable_bb &= ((bb_segment(king_square, slider) | bb_of(slider)) * is_check) | (BB_FULL * !is_check);
+		slice->checkers_bb |= bb_of(checker) * is_check;
+		slice->pinned_bb   |= blockers       * is_pin;
+		slice->moveable_bb &= is_check ? bb_segment(king_square, checker) | bb_of(checker) : BB_FULL;
 
 	}
-
-	slice->checkers_bb = checkers_bb;
-	slice->pinned_bb   = pinned_bb;
-	slice->moveable_bb = moveable_bb;
 }
 
 bool Pos::is_legal(const Move move) const {
@@ -370,7 +361,7 @@ bool Pos::is_legal(const Move move) const {
 
 bool Pos::do_move(std::string move_string) {
 	
-	std::vector<Move> legal_moves = movegen::generate<movegen::LEGAL>(*this);
+	std::vector<Move> legal_moves = movegen::generate<LEGAL>(*this);
 	
 	for (Move legal_move : legal_moves) {
 		if (move_to_string(legal_move) == move_string) {

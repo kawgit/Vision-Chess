@@ -187,6 +187,75 @@ namespace attacks {
         return attacks::rook(square, occupied) | attacks::bishop(square, occupied);
     }
 
+    inline constexpr BB pawns(BB squares, Color color) { 
+
+        assert(is_okay_color(color));
+
+        squares = shift<WEST>(squares) | shift<EAST>(squares);
+
+        return color == WHITE ? shift<NORTH>(squares) : shift<SOUTH>(squares);
+    }
+
+    inline constexpr BB knights(BB squares) {
+
+        BB result = BB_EMPTY;
+
+        while (squares) {
+            const Square square = poplsb(squares);
+            result |= knight(square);
+        }
+
+        return result;
+    }
+
+    inline constexpr BB bishops(BB squares, BB occupied) {
+        
+        BB result = BB_EMPTY;
+
+        while (squares) {
+            const Square square = poplsb(squares);
+            result |= bishop(square, occupied);
+        }
+
+        return result;
+    }
+
+    inline constexpr BB rooks(BB squares, BB occupied) {
+        
+        BB result = BB_EMPTY;
+
+        while (squares) {
+            const Square square = poplsb(squares);
+            result |= rook(square, occupied);
+        }
+
+        return result;
+    }
+
+    inline constexpr BB queens(BB squares, BB occupied) {
+        
+        BB result = BB_EMPTY;
+
+        while (squares) {
+            const Square square = poplsb(squares);
+            result |= bishop(square, occupied) | rook(square, occupied);
+        }
+
+        return result;
+    }
+
+    inline constexpr BB kings(BB squares) {
+        
+        BB result = BB_EMPTY;
+
+        while (squares) {
+            const Square square = poplsb(squares);
+            result |= king(square);
+        }
+
+        return result;
+    }
+
     inline BB lookup(const Piece piece, const Square square, const BB occupied, const Color color) { 
         
         assert(is_okay_square(square));

@@ -15,6 +15,7 @@ namespace move {
     inline bool is_king_castle(Move move)      { return flags(move) == KING_CASTLE; }
     inline bool is_promotion(Move move)        { return flags(move) & N_PROM; }
     inline bool is_queen_castle(Move move)     { return flags(move) == QUEEN_CASTLE; }
+    inline bool is_quiet(Move move)            { return !is_capture(move) && !is_promotion(move); }
 
     inline Square to_square(Move move)         { return move & 0b111111; }
     inline Square from_square(Move move)       { return (move >> 6) & 0b111111; }

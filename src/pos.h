@@ -9,7 +9,6 @@
 #include "bits.h"
 #include "hash.h"
 #include "move.h"
-#include "nnue.h"
 #include "types.h"
 #include "util.h"
 
@@ -20,12 +19,13 @@ struct Slice {
 	Square 	ep = SQUARE_NONE;
 	Move 	move = MOVE_NONE;
 	Piece 	victim = PIECE_NONE;
+	Piece 	moving = PIECE_NONE;
 
-	// the below default values indicate that the bb has not yet been calculated
-	BB attacked_bb = BB_EMPTY;
-	BB checkers_bb = BB_FULL;
-	BB pinned_bb   = BB_FULL;
-	BB moveable_bb = BB_EMPTY;
+	BB attacked_by[N_COLORS][N_PIECES + 1] = { BB_EMPTY }; // BB_EMPTY in PIECE_ALL index signals that attacks for that color have not yet been updated
+
+	BB checkers_bb = BB_FULL; // BB_FULL signals that legal info (checkers_bb, pinned_bb, and moveable_bb) has not yet been updated
+	BB pinned_bb;
+	BB moveable_bb;
 };
 
 class Pos {
@@ -43,10 +43,11 @@ class Pos {
 	Color color_mailboxes[N_SQUARES] = { COLOR_NONE };
 	Piece piece_mailboxes[N_SQUARES] = { PIECE_NONE };
 
+	public:
+
 	Slice  slice_stack[256];
 	Slice* slice;
 
-	public:
 
 	// Pos accessors
 
@@ -92,14 +93,21 @@ class Pos {
 
 	// Slice accessors
 
-	inline BB hashkey() 			 const { return slice->hashkey; }
-	inline BB cr() 			 		 const { return slice->castle_rooks_bb; }
-	inline Square ep() 				 const { return slice->ep; }
-	inline Clock fifty_move_clock()  const { return slice->fifty_move_clock; }
-	inline BB attacked() 			 const { return slice->attacked_bb; }
-	inline BB checkers() 			 const { return slice->checkers_bb; }
-	inline BB pinned() 			     const { return slice->pinned_bb; }
-	inline BB moveable() 			 const { return slice->moveable_bb; }
+	inline bool legal_updated() 				   const { return slice->checkers_bb 				   != BB_FULL;  }
+	inline bool attacks_updated(const Color color) const { return slice->attacked_by[color][PIECE_ALL] != BB_EMPTY; }
+
+	inline BB hashkey() 			const { return slice->hashkey; }
+	inline BB cr() 			 		const { return slice->castle_rooks_bb; }
+	inline Square ep() 				const { return slice->ep; }
+	inline Clock fifty_move_clock() const { return slice->fifty_move_clock; }
+	inline BB checkers() 			const { assert(legal_updated()); return slice->checkers_bb; }
+	inline BB pinned() 			    const { assert(legal_updated()); return slice->pinned_bb; }
+	inline BB moveable() 			const { assert(legal_updated()); return slice->moveable_bb; }
+
+	inline BB attacked_by(const Color color, const Piece piece = PIECE_ALL) const {
+		assert(attacks_updated(color));
+		return slice->attacked_by[color][piece];
+	}
 
 	// Calculated accessors
 
@@ -139,7 +147,6 @@ class Pos {
 
 		slice->hashkey ^= zobrist::psqt[color][piece][square];
 
-		nnue::add_piece(color, piece, square);
 	}
 
 	inline void rem_piece(const Color color, const Piece piece, const Square square) {
@@ -163,7 +170,6 @@ class Pos {
 
 		slice->hashkey ^= zobrist::psqt[color][piece][square];
 
-		nnue::rem_piece(color, piece, square);
 	}
 
 	inline void switch_turn() {
@@ -188,10 +194,12 @@ class Pos {
 	}
 
 	Pos(std::string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+	void operator=(const Pos& pos);
 	
-	void do_move(Move m);
+	void do_move(Move move);
 	void undo_move();
 
+	void update_attacks(const Color color);
 	void update_legal_info();
 	bool is_legal(const Move move) const;
 
