@@ -97,6 +97,10 @@ Pos::Pos(std::string fen) {
 	assert_okay_pos(*this);
 }
 
+Pos::Pos(const Pos& pos) {
+	*this = pos;
+}
+
 void Pos::operator=(const Pos& pos) {
 	std::memcpy(this, &pos, sizeof(pos));
 	size_t offset = pos.slice - pos.slice_stack;
@@ -380,7 +384,7 @@ bool Pos::in_check() {
 
 bool Pos::three_repetitions() {
 	size_t count = 1;
-	for (Slice* curr = slice - 5; curr >= slice_stack; curr -= 2) {
+	for (Slice* curr = slice - 4; curr >= slice_stack; curr -= 2) {
 		if (curr->hashkey == slice->hashkey) {
 			count++;
 			if (count == 3)

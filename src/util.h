@@ -20,3 +20,5 @@ Square string_to_move(std::string str); // no flags save for promotion or castle
 std::string move_to_string(const Move move);
 
 std::string movelist_to_string(const std::vector<Move> moves);
+
+std::vector<std::string> split(const std::string& str);

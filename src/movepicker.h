@@ -22,7 +22,7 @@ class MovePicker {
     Move piece_to_counter;
     Move piece_from_counter;
 
-    BB hanging_bbs[N_COLORS];
+    BB undefended_bbs[N_COLORS];
     BB tempo_bbs  [N_PIECES];
     BB check_bbs  [N_PIECES];
     BB unsafe_bbs [N_PIECES];
@@ -33,7 +33,7 @@ class MovePicker {
     const History* history;
 
     public:
-    MovePicker(Pos* pos_, const std::vector<Move>& moves_, const Move tt_move_, const History* history_);
+    MovePicker(Pos* pos_, const Move tt_move_, const History* history_);
     
     template<MovePickerStage STAGE>
     Score score_move(const Move move);

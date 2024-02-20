@@ -1,5 +1,7 @@
 #include <string>
 #include <map>
+#include <vector>
+#include <sstream>
 
 #include "types.h"
 #include "util.h"
@@ -95,4 +97,12 @@ std::string movelist_to_string(const std::vector<Move> moves) {
     for (size_t i = 0; i < moves.size(); i++)
         result += (i ? " " : "") + move_to_string(moves[i]);
     return result;
+}
+
+std::vector<std::string> split(const std::string& str) {
+	std::vector<std::string> result;
+	std::istringstream iss(str);
+	for (std::string s; iss >> s; )
+		result.push_back(s);
+	return result;
 }

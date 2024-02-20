@@ -1,28 +1,24 @@
 #pragma once
 
-#include "search.h"
-#include <vector>
-#include <map>
+#include <optional>
 #include <string>
+#include <vector>
+
+#include "search.h"
 
 namespace uci {
 
 struct Option {
     std::string name;
     std::string type;
-    std::string default_setting;
+    std::string def;
+    
+    std::optional<int> min;
+    std::optional<int> max;
+    
     std::string value;
-    std::string init;
-    Option(std::string name_, std::string type_, std::string default_, std::string init_) {
-        name = name_;
-        type = type_;
-        default_setting = default_;
-        value = default_setting;
-        init = init_;
-    }
+    
 };
-
-// void print_uci_info(SearchInfo& si);
 
 void mainloop();
 

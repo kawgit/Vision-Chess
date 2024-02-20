@@ -1,3 +1,200 @@
+#include <iostream>
+#include <cassert>
+#include <memory>
+#include <string>
+
+#include "uci.h"
+
+#define uci_assert(assertion) {                                                                                       \
+    if (!(assertion)) {                                                                                               \
+        std::cout << "UCI assertion \"" << #assertion << "\" failed at " << __FILE__ << ":" << __LINE__ << std::endl; \
+        goto uci_error_out;                                                                                           \
+    }                                                                                                                 \
+}
+
+namespace uci {
+
+std::vector<Option> options;
+std::unique_ptr<Pool> pool;
+std::unique_ptr<Pos>  pos;
+
+std::string head;
+std::vector<std::string> subcommands;
+
+std::string pop_subcommand() {
+    
+    if (!subcommands.size())
+        return "";
+    
+    head = subcommands[0];
+    subcommands.erase(subcommands.begin());
+    
+    return head;
+}
+
+std::string peak_subcommand() {
+    
+    if (!subcommands.size())
+        return "";
+    
+    return subcommands[0];
+}
+
+void mainloop() {
+    
+    pool = std::make_unique<Pool>(1, 64*1000000);
+    pos  = std::make_unique<Pos >();
+
+    pool->reset(*pos.get());
+
+    uci_error_out:
+    await_command:
+    
+    std::string command;
+    getline(std::cin, command);
+
+    process_command:
+
+    subcommands = split(command);
+
+    process_subcommand:
+
+    pop_subcommand();
+
+    if (head == "uci") {
+        std::cout << "id name Vision" << std::endl;
+        std::cout << "id author Kenneth Wilber" << std::endl;
+
+        for (Option& option : options) {
+            std::cout << "option name " << option.name << " type " << option.type;
+            if (option.type == "check" ) uci_assert(false);
+            if (option.type == "spin"  ) uci_assert(false);
+            if (option.type == "combo" ) uci_assert(false);
+            if (option.type == "button") uci_assert(false);
+            if (option.type == "string") uci_assert(false);
+        }
+
+        std::cout << "uciok" << std::endl;
+    }
+    else if (head == "debug") {
+        uci_assert(false);
+    }
+    else if (head == "isready") {
+        std::cout << "readyok" << std::endl;
+    }
+    else if (head == "setoption") {
+        uci_assert(pop_subcommand() == "name");
+
+        uci_assert(false);
+    }
+    else if (head == "register") {
+        uci_assert(false);
+    }
+    else if (head == "ucinewgame") {
+        
+    }
+    else if (head == "position") {
+        pop_subcommand();
+        if (head == "fen") {
+            
+            std::string fen = "";
+            
+            while (subcommands.size() && peak_subcommand() != "moves") {
+                fen += pop_subcommand() + " ";
+            }
+
+            std::cout << "fen: " << fen << std::endl;
+
+            pos = std::make_unique<Pos>(fen);
+        }
+        else if (head == "startpos") {
+            pos = std::make_unique<Pos>();
+        }
+
+        if (pop_subcommand() == "moves") {
+            while (subcommands.size())
+                uci_assert(pos->do_move(pop_subcommand()));
+        }
+
+        pool->reset(*pos.get());
+        pool->tt->gen++;
+    }
+    else if (head == "go") {
+
+        // reset limits
+        pool->max_time = TIME_MAX;
+
+        while (subcommands.size()) {
+
+            pop_subcommand();
+
+            if (head == "searchmoves") {
+                uci_assert(false);
+            }
+            else if (head == "ponder") {
+                pool->max_time = TIME_MAX;
+            }
+            else if (head == "wtime") {
+                uci_assert(false);
+            }
+            else if (head == "btime") {
+                uci_assert(false);
+            }
+            else if (head == "winc") {
+                uci_assert(false);
+            }
+            else if (head == "binc") {
+                uci_assert(false);
+            }
+            else if (head == "movestogo") {
+                uci_assert(false);
+            }
+            else if (head == "depth") {
+                uci_assert(false);
+            }
+            else if (head == "nodes") {
+                uci_assert(false);
+            }
+            else if (head == "mate") {
+                uci_assert(false);
+            }
+            else if (head == "movetime") {
+                uci_assert(subcommands.size());
+                pool->max_time = std::stoi(pop_subcommand());
+            }
+            else if (head == "infinite") {
+                pool->max_time = TIME_MAX;
+            }
+
+        }
+
+        pool->go();
+
+    }
+    else if (head == "stop") {
+        pool->stop();
+    }
+    else if (head == "ponderhit") {
+        uci_assert(false);
+    }
+    else if (head == "quit") {
+        pool->stop();
+        return;
+    }
+
+    goto await_command;
+}
+
+}
+
+
+
+
+
+
+
+
+
 /*
 #include "search.h"
 #include "bits.h"

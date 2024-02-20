@@ -99,19 +99,30 @@ std::vector<Move> TT::probe_pv(Pos& pos) {
 
 void TT::add_pv(Pos& pos, std::vector<Move>& pv) {
 
+	if (pos.three_repetitions())
+		return;
+
 	bool found = false;
 	const TTEntry* entry = probe(pos.hashkey(), found);
 
-	if (found && (entry->get_bound() != LB || entry->eval >= MINMATE) && entry->move != MOVE_NONE) {
+	if (!found)
+		return;
 
-		pv.push_back(entry->move);
+	std::vector<Move> legal_moves = movegen::generate<LEGAL>(pos);
+	for (Move legal_move : legal_moves) {
+		if (legal_move == entry->move) {
+			pv.push_back(legal_move);
 
-		pos.do_move(entry->move);
+			pos.do_move(legal_move);
 
-		add_pv(pos, pv);
+			add_pv(pos, pv);
 
-		pos.undo_move();
-	
+			pos.undo_move();
+
+			return;
+		}
 	}
+
+	
 
 }

@@ -11,6 +11,7 @@
 #include "search.h"
 #include "movepicker.h"
 #include "util.h"
+#include "uci.h"
 // #include "nnue.h"
 // #include "thread.h"
 
@@ -25,9 +26,9 @@ int main() {
 
 	// perft<true>(pos, 6);
 
-	Pos pos("3q1rk1/4ppbp/p1bp1np1/8/1r2P1PP/4BP2/NPPQB3/1K1R3R b - - 1 17");
+	// Pos pos("rnbqkb1r/pp2ppp1/2p2n1p/6N1/5P2/3B4/PPP3PP/RNBQK2R w KQkq - 0 7");
 
-	print(pos, true);
+	// print(pos, true);
 
 
 
@@ -53,16 +54,20 @@ int main() {
 	// }
 
 	// for (Color color : {WHITE, BLACK}) {
-	// 	print(mp.hanging_bbs[color]);
+	// 	print(mp.undefended_bbs[color]);
 	// }
 
-	Pool pool(1, 64*1000000);
+	// Pool pool(1, 64*1000000);
 
-	pool.reset(pos);
+	// pool.reset(pos);
 
-	pool.wake();
+	// pool.go();
 
-	sleep_ms(6000);
+	// pool.max_time = 2000;
+
+	// sleep_ms(pool.max_time + 1000);
+
+	uci::mainloop();
 
 	// Accumulator acc;
 	// acc.reset(pos);
@@ -84,7 +89,7 @@ int main() {
 
 	// perft<true>(pos, 6);
 
-	// pool.wake();
+	// pool.go();
 
 	// perft<true>(pos, 6);
 	// perft<true>(pos, 6);

@@ -8,6 +8,8 @@
 
 typedef uint64_t Timestamp;
 
+const Timestamp TIME_MAX = 0xFFFFFFFFFFFFFFFF;
+
 Timestamp get_current_ms();
 
 Timestamp get_time_diff(Timestamp start);

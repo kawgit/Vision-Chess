@@ -68,8 +68,10 @@ Eval Thread::search(Depth depth, Eval alpha, Eval beta) {
 
 	if (state != ACTIVE)
 		return 0;
+	
+	nodes++;
 
-	if (depth == 0)
+	if (depth <= 0)
 		return qsearch<PVNODE>(alpha, beta);
 
 	bool found = false;
@@ -82,34 +84,21 @@ Eval Thread::search(Depth depth, Eval alpha, Eval beta) {
 
 	if (found && tt_depth >= depth) {
 		
-		if (tt_bound == EXACT) {
+		if (tt_bound == EXACT)
 			return tt_eval;
-		}
 
-		if (tt_bound == UB) {
+		if (tt_bound == UB && tt_eval < beta)
 			beta = tt_eval;
 
-			if (beta <= alpha) {
-				return alpha;
-			}
-		}
-
-		if (tt_bound == LB) {
+		if (tt_bound == LB && tt_eval > alpha)
 			alpha = tt_eval;
 
-			if (alpha >= beta) {
-				return beta;
-			}
-		}
+		if (alpha >= beta)
+			return beta;
 	}
 
-	std::vector<Move> moves = movegen::generate<LEGAL>(pos);
+	MovePicker mp(&pos, tt_move, &history);
 
-	if (!moves.size())
-		return EVAL_MIN;
-
-	MovePicker mp(&pos, moves, tt_move, &history);
-	
 	Move best_move = MOVE_NONE;
 	Eval best_eval = EVAL_MIN;
 
@@ -117,13 +106,18 @@ Eval Thread::search(Depth depth, Eval alpha, Eval beta) {
 
 		Move move = mp.pop();
 
-		if (NODETYPE == ROOT) {
-			std::cout << "currmove " << move_to_string(move) << " mp stage " << int(mp.stage) << std::endl;
+		if (NODETYPE == ROOT && state == ACTIVE) {
+			std::cout << "currmove " << move_to_string(move) << std::endl;
 		}
 
 		do_move(move);
 
-		Eval eval = -search<PVNODE>(depth - 1, -beta, -std::max(alpha, best_eval));
+		Eval eval;
+		
+		if ((NODETYPE == ROOT || NODETYPE == PVNODE) && move == tt_move)
+			eval = -search<PVNODE>(depth - 1, -beta, -std::max(alpha, best_eval));
+		else
+			eval = -search<CUTNODE>(depth - 2, -beta, -std::max(alpha, best_eval));
 
 		undo_move();
 
@@ -155,59 +149,57 @@ Eval Thread::search(Depth depth, Eval alpha, Eval beta) {
 
 }
 
-template Eval Thread::search <ROOT>(Depth depth, Eval alpha, Eval beta);
-template Eval Thread::search <PVNODE>(Depth depth, Eval alpha, Eval beta);
-template Eval Thread::qsearch<PVNODE>(Eval alpha, Eval beta);
-
 template<NodeType NODETYPE>
-Eval Thread::qsearch(Eval alpha, Eval beta) {
+Eval Thread::qsearch(Depth depth, Eval alpha, Eval beta) {
 
 	if (state != ACTIVE)
 		return 0;
+	
+	nodes++;
 
-	std::vector<Move> moves = movegen::generate<LOUDS>(pos);
+	if (depth <= 0)
+		return nnue::evaluate(accumulator, pos);
 
 	bool found = false;
 	TTEntry* entry = tt->probe(pos.hashkey(), found);
 
-	Move  tt_move  = entry->move;
+	Move  tt_move  = found ? entry->move : MOVE_NONE;
 	Eval  tt_eval  = entry->eval;
 	Depth tt_depth = entry->depth;
 	Bound tt_bound = entry->get_bound();
 
-	if (found) {
+	if (found && tt_depth >= depth) {
 		
-		if (tt_bound == EXACT) {
+		if (tt_bound == EXACT)
 			return tt_eval;
-		}
 
-		if (tt_bound == UB) {
+		if (tt_bound == UB && tt_eval < beta)
 			beta = tt_eval;
 
-			if (beta <= alpha) {
-				return alpha;
-			}
-		}
-
-		if (tt_bound == LB) {
+		if (tt_bound == LB && tt_eval > alpha)
 			alpha = tt_eval;
 
-			if (alpha >= beta) {
-				return beta;
-			}
-		}
+		if (alpha >= beta)
+			return beta;
 	}
 
 	Eval stand_pat = nnue::evaluate(accumulator, pos);
 
+	if (stand_pat >= beta)
+		return beta;
+
+	MovePicker mp(&pos, tt_move, &history);
+
 	Move best_move = MOVE_NONE;
 	Eval best_eval = stand_pat;
 
-	for (Move move : moves) {
+	while (mp.has_move() && mp.stage != STAGE_QUIETS) {
+
+		Move move = mp.pop();
 
 		do_move(move);
 
-		Eval eval = -qsearch<PVNODE>(-beta, -std::max(alpha, best_eval));
+		Eval eval = -qsearch<PVNODE>(depth - 1, -beta, -std::max(alpha, best_eval));
 
 		undo_move();
 
@@ -219,19 +211,28 @@ Eval Thread::qsearch(Eval alpha, Eval beta) {
 				break;
 		}
 
+
 	}
 
 	if (state != ACTIVE)
 		return 0;
 
-	const Bound bound = LB;
-	
-	tt->save(entry, best_move, best_eval, 0, pos.hashkey(), bound);
+	tt->save(entry, best_move, best_eval, 0, pos.hashkey(), LB);
+
+	history.update_bonus(best_move, pos, 20);
 
 	return best_eval;
 
 }
 
+template<NodeType NODETYPE>
+Eval Thread::qsearch(Eval alpha, Eval beta) {
+	return qsearch<NODETYPE>(16, alpha, beta);
+}
+
+template Eval Thread::search <ROOT>(Depth depth, Eval alpha, Eval beta);
+template Eval Thread::search <PVNODE>(Depth depth, Eval alpha, Eval beta);
+template Eval Thread::qsearch<PVNODE>(Depth depth, Eval alpha, Eval beta);
 
 
 

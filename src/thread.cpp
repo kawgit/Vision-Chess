@@ -34,8 +34,9 @@ void Pool::set_num_threads(size_t num_threads) {
 
 }
 
-void Pool::wake() {
+void Pool::go() {
 
+    active = true;
     root_depth = 0;
 
     for (Thread* thread : threads)
@@ -46,27 +47,40 @@ void Pool::wake() {
 
 }
 
+void Pool::stop() {
+    active = false;
+}
+
 void Pool::manage() {
     
+    reset_nodes();
     Timestamp start_time = get_current_ms();
     Pos pos_copy = root_pos;
 
-    std::cout << size_t(pos_copy.hashkey()) << std::endl;
-    std::cout << size_t(root_pos.hashkey()) << std::endl;
-    
-    while (get_current_ms() - start_time < 5000) {
+    bool found;
+    TTEntry* entry;
+    std::vector<Move> pv;
+    Timestamp time = get_current_ms() - start_time;
+
+    while (active && get_current_ms() - start_time < max_time) {
         sleep_ms(100);
-        bool found = false;
-        const TTEntry* entry = tt->probe(pos_copy.hashkey(), found);
+
+        time = get_current_ms() - start_time;
+        entry = tt->probe(pos_copy.hashkey(), found);
 
         if (found) {
-            std::vector<Move> pv = tt->probe_pv(pos_copy);
+
+            pv = tt->probe_pv(pos_copy);
+
             std::cout << "info" 
-                    << " depth " << int(entry->depth)
-                    << " eval "  << int(entry->eval)
-                    << " pv "    << movelist_to_string(pv)
-                    << " hashfull " << tt->hashfull() 
-                    << std::endl;
+                      << " depth "     << int(entry->depth)
+                      << " score cp "  << int(entry->eval)
+                      << " time "      << int(time)
+                      << " nodes "     << nodes()
+                      << " nps "       << (nodes() * 1000 / time)
+                      << " hashfull "  << tt->hashfull()
+                      << " pv "        << movelist_to_string(pv)
+                      << std::endl;
         }
         else {
             std::cout << "info no entry found " << tt->hashfull() << std::endl;
@@ -75,6 +89,10 @@ void Pool::manage() {
 
     for (Thread* thread : threads)
         thread->state = IDLE;
+
+    active = false;
+
+    std::cout << "bestmove " << (pv.size() ? move_to_string(pv[0]) : "(none)") << " ponder " << (pv.size() >= 2 ? move_to_string(pv[1]) : "(none)") << std::endl;
 
 }
 
@@ -97,6 +115,19 @@ Depth Pool::pop_depth() {
     depth_mutex.unlock();
     return result;
 }
+
+size_t Pool::nodes() {
+    size_t nodes = 0;
+    for (const Thread* thread : threads)
+        nodes += thread->nodes;
+    return nodes;
+}
+
+void Pool::reset_nodes() {
+    for (Thread* thread : threads)
+        thread->nodes = 0;
+}
+
 
 Thread::Thread(Pool* pool_) {
 
@@ -133,7 +164,6 @@ void Thread::work() {
 
     while (get_state() == ACTIVE) {
         Depth depth = pool->pop_depth();
-        std::cout << "searching depth " << int(depth) << std::endl;
         Eval eval = search<ROOT>(depth, EVAL_MIN, EVAL_MAX);
 
         if (depth == DEPTH_MAX)

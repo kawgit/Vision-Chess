@@ -1,19 +1,29 @@
 #include <cassert>
 
 #include "movepicker.h"
+#include "movegen.h"
 
-MovePicker::MovePicker(Pos* pos_, const std::vector<Move>& moves_, const Move tt_move_, const History* history_) {
+MovePicker::MovePicker(Pos* pos_, const Move tt_move_, const History* history_) {
 
-    // pos, moves, xcores, tt_move, history
+    // pos, tt_move, history
 
     pos     = pos_;
-    moves   = moves_;
-    scores  = std::vector<Score>(moves.size(), SCORE_UNKNOWN);
     tt_move = tt_move_;
     history = history_;
 
-    num_left = moves.size();
+    // moves, scores, num_left, num_left_in_stage
+
     num_left_in_stage = 0;
+
+    moves = movegen::generate<LEGAL>(*pos);
+
+    num_left = moves.size();
+
+    if (!num_left)
+        return;
+
+    scores = std::vector<Score>(moves.size(), SCORE_UNKNOWN);
+
 
     // from_to_counter, piece_to_counter, piece_from_counter
 
@@ -31,10 +41,10 @@ MovePicker::MovePicker(Pos* pos_, const std::vector<Move>& moves_, const Move tt
     pos->update_attacks(WHITE);
     pos->update_attacks(BLACK);
 
-    // hanging_bbs
+    // undefended_bbs
 
-    hanging_bbs[WHITE] = pos->pieces(WHITE) & ~pos->attacked_by(WHITE);
-    hanging_bbs[BLACK] = pos->pieces(BLACK) & ~pos->attacked_by(BLACK);
+    undefended_bbs[WHITE] = pos->pieces(WHITE) & ~pos->attacked_by(WHITE);
+    undefended_bbs[BLACK] = pos->pieces(BLACK) & ~pos->attacked_by(BLACK);
 
     // unsafe_bbs
 
@@ -55,11 +65,13 @@ MovePicker::MovePicker(Pos* pos_, const std::vector<Move>& moves_, const Move tt
     unsafe_bbs[QUEEN] = hanging_destinations | cum_attacks;
     cum_attacks |= pos->attacked_by(pos->notturn(), KING) & ~pos->attacked_by(pos->turn());
 
+    unsafe_bbs[KING] = pos->attacked_by(pos->notturn());
+
     // tempo_bbs
 
     const BB occupied = pos->pieces() & ~pos->pieces(pos->notturn(), KING);
 
-    BB cum_victims = hanging_bbs[pos->notturn()];
+    BB cum_victims = undefended_bbs[pos->notturn()];
 
     tempo_bbs[KING]   = attacks::kings  (cum_victims          ) &~ cum_attacks;
     cum_victims |= pos->pieces(pos->notturn(), KING);
@@ -90,7 +102,7 @@ MovePicker::MovePicker(Pos* pos_, const std::vector<Move>& moves_, const Move tt
 
     // critical_situation
 
-    critical_situation = hanging_bbs[pos->turn()] & pos->attacked_by(pos->notturn());
+    critical_situation = undefended_bbs[pos->turn()] & pos->attacked_by(pos->notturn());
 }
 
 template<MovePickerStage STAGE>
@@ -118,20 +130,20 @@ Score MovePicker::score_move(const Move move) {
         const bool is_check     = (check_bbs[moving] & bb_of(to_square)) || is_revealed_check;
         const bool is_capture   = move::is_capture(move);
         const bool is_promotion = move::is_promotion(move);
+        const bool is_hanging   = unsafe_bbs[moving] & bb_of(from_square);
 
-        if (!is_check && !is_capture && !is_promotion) {
+        if (!is_check && !is_capture && !is_promotion && !is_hanging) {
             return SCORE_UNKNOWN;
         }
 
-        const bool is_unsafe  = unsafe_bbs[moving]       & bb_of(to_square);
-        const bool is_tempo   = tempo_bbs [moving]       & bb_of(to_square);
-        const bool is_hanging = hanging_bbs[pos->turn()] & bb_of(from_square);
+        const bool is_unsafe  = unsafe_bbs[moving] & bb_of(to_square);
+        const bool is_tempo   = tempo_bbs [moving] & bb_of(to_square);
 
         const Score capture_value   = capture_values[victim] - capture_values[moving] * is_unsafe;
         const Score promotion_value = move::is_promotion(move) ? promotion_values[move::promotion_piece(move)] : 0;
         const Score quiet_value     = 10 * is_tempo + capture_values[moving] * is_hanging;
 
-        return 1000 * (is_check || is_capture || is_promotion) + capture_value + promotion_value + quiet_value;
+        return 10000 * (is_check || is_capture || is_promotion || is_hanging) + capture_value + promotion_value + quiet_value;
     }
 
     if constexpr (STAGE == STAGE_QUIETS) {
@@ -141,14 +153,14 @@ Score MovePicker::score_move(const Move move) {
         const Piece  moving      = pos->piece_on(from_square);
         const Piece  victim      = pos->piece_on(move::capture_square(move));
 
-        const bool is_unsafe  = unsafe_bbs[moving]       & bb_of(to_square);
-        const bool is_tempo   = tempo_bbs [moving]       & bb_of(to_square);
-        const bool is_hanging = hanging_bbs[pos->turn()] & bb_of(from_square);
+        const bool is_unsafe  = unsafe_bbs[moving] & bb_of(to_square);
+        const bool is_tempo   = tempo_bbs [moving] & bb_of(to_square);
+        const bool is_hanging = unsafe_bbs[moving] & bb_of(from_square);
 
         const Score quiet_value   = 100 * is_tempo + capture_values[moving] * is_hanging;
-        const Score history_value = critical_situation ? 0 : history->score_move(from_square, to_square, moving, pos->turn());
+        // const Score history_value = critical_situation ? 0 : history->score_move(from_square, to_square, moving, pos->turn());
 
-        return 1000 + quiet_value + history_value;
+        return std::max(quiet_value, Score(SCORE_MIN));
     }
 
 }
@@ -194,6 +206,7 @@ Move MovePicker::pop() {
 void MovePicker::next_stage() {
 
     assert(num_left_in_stage == 0);
+    assert(num_left != 0);
     assert(stage != STAGE_QUIETS);
 
     stage++;

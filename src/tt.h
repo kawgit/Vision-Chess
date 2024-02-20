@@ -34,12 +34,12 @@ class TT {
 
     private:
 
-        Gen gen = 0;
         TTBucket* buckets;
         size_t num_buckets;
 
     public:
 
+        Gen gen = 0;
 	    TT(size_t size);
         void clear();
         TTEntry* probe(BB hashkey, bool& found);

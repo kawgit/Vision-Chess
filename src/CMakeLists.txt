@@ -24,6 +24,7 @@ add_executable(Vision
         timer.cpp 
         tt.cpp 
         types.cpp 
+        uci.cpp 
         util.cpp 
     )
 

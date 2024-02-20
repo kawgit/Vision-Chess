@@ -8,6 +8,7 @@
 #include "tt.h"
 #include "nnue.h"
 #include "history.h"
+#include "timer.h"
 
 // struct SliceData {
 
@@ -21,7 +22,9 @@ class Pool {
 
     Pos   root_pos;
     Depth root_depth;
+    bool  active;
     
+    Timestamp max_time;
     std::mutex depth_mutex;
     TT* tt;
     std::vector<Thread*> threads;
@@ -32,7 +35,9 @@ class Pool {
 
     void set_num_threads(size_t num_threads);
 
-    void wake();
+    void go();
+
+    void stop();
 
     void manage();
 
@@ -40,6 +45,9 @@ class Pool {
 
     Depth get_depth();
     Depth pop_depth();
+
+    size_t nodes();
+    void reset_nodes();
 
 };
 
@@ -52,7 +60,7 @@ class Thread {
     TT* tt;
 
     ThreadState state;
-    BB nodes = 0;
+    size_t nodes = 0;
     Depth root_depth;
     Depth root_pos;
 
@@ -80,6 +88,9 @@ class Thread {
 
     template<NodeType NODETYPE>
     Eval search(Depth depth, Eval alpha, Eval beta);
+
+    template<NodeType NODETYPE>
+    Eval qsearch(Depth depth, Eval alpha, Eval beta);
 
     template<NodeType NODETYPE>
     Eval qsearch(Eval alpha, Eval beta);
