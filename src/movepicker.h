@@ -34,7 +34,7 @@ class MovePicker {
 
     public:
     MovePicker(Pos* pos_, const Move tt_move_, const History* history_);
-    
+
     template<MovePickerStage STAGE>
     Score score_move(const Move move);
 

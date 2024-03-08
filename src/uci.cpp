@@ -4,13 +4,7 @@
 #include <string>
 
 #include "uci.h"
-
-#define uci_assert(assertion) {                                                                                       \
-    if (!(assertion)) {                                                                                               \
-        std::cout << "UCI assertion \"" << #assertion << "\" failed at " << __FILE__ << ":" << __LINE__ << std::endl; \
-        goto uci_error_out;                                                                                           \
-    }                                                                                                                 \
-}
+#include "movepicker.h"
 
 namespace uci {
 
@@ -20,6 +14,13 @@ std::unique_ptr<Pos>  pos;
 
 std::string head;
 std::vector<std::string> subcommands;
+
+std::mutex print_mutex;
+void print(std::string message) {
+    print_mutex.lock();
+    std::cout << message << std::endl;
+    print_mutex.unlock();
+}
 
 std::string pop_subcommand() {
     
@@ -41,13 +42,15 @@ std::string peak_subcommand() {
 }
 
 void mainloop() {
+
+    std::cout.setf(std::ios::unitbuf);
     
-    pool = std::make_unique<Pool>(1, 64*1000000);
+    pool = std::make_unique<Pool>(1, 64 * 1000 * 1000);
     pos  = std::make_unique<Pos >();
 
     pool->reset(*pos.get());
 
-    uci_error_out:
+    handled_assert_out:
     await_command:
     
     std::string command;
@@ -67,31 +70,31 @@ void mainloop() {
 
         for (Option& option : options) {
             std::cout << "option name " << option.name << " type " << option.type;
-            if (option.type == "check" ) uci_assert(false);
-            if (option.type == "spin"  ) uci_assert(false);
-            if (option.type == "combo" ) uci_assert(false);
-            if (option.type == "button") uci_assert(false);
-            if (option.type == "string") uci_assert(false);
+            if (option.type == "check" ) handled_assert(false);
+            if (option.type == "spin"  ) handled_assert(false);
+            if (option.type == "combo" ) handled_assert(false);
+            if (option.type == "button") handled_assert(false);
+            if (option.type == "string") handled_assert(false);
         }
 
         std::cout << "uciok" << std::endl;
     }
     else if (head == "debug") {
-        uci_assert(false);
+        handled_assert(false);
     }
     else if (head == "isready") {
         std::cout << "readyok" << std::endl;
     }
     else if (head == "setoption") {
-        uci_assert(pop_subcommand() == "name");
+        handled_assert(pop_subcommand() == "name");
 
-        uci_assert(false);
+        handled_assert(false);
     }
     else if (head == "register") {
-        uci_assert(false);
+        handled_assert(false);
     }
     else if (head == "ucinewgame") {
-        
+        pool->clear();
     }
     else if (head == "position") {
         pop_subcommand();
@@ -103,8 +106,6 @@ void mainloop() {
                 fen += pop_subcommand() + " ";
             }
 
-            std::cout << "fen: " << fen << std::endl;
-
             pos = std::make_unique<Pos>(fen);
         }
         else if (head == "startpos") {
@@ -113,7 +114,7 @@ void mainloop() {
 
         if (pop_subcommand() == "moves") {
             while (subcommands.size())
-                uci_assert(pos->do_move(pop_subcommand()));
+                handled_assert(pos->do_move(pop_subcommand()));
         }
 
         pool->reset(*pos.get());
@@ -129,37 +130,37 @@ void mainloop() {
             pop_subcommand();
 
             if (head == "searchmoves") {
-                uci_assert(false);
+                handled_assert(false);
             }
             else if (head == "ponder") {
                 pool->max_time = TIME_MAX;
             }
             else if (head == "wtime") {
-                uci_assert(false);
+                handled_assert(false);
             }
             else if (head == "btime") {
-                uci_assert(false);
+                handled_assert(false);
             }
             else if (head == "winc") {
-                uci_assert(false);
+                handled_assert(false);
             }
             else if (head == "binc") {
-                uci_assert(false);
+                handled_assert(false);
             }
             else if (head == "movestogo") {
-                uci_assert(false);
+                handled_assert(false);
             }
             else if (head == "depth") {
-                uci_assert(false);
+                handled_assert(false);
             }
             else if (head == "nodes") {
-                uci_assert(false);
+                handled_assert(false);
             }
             else if (head == "mate") {
-                uci_assert(false);
+                handled_assert(false);
             }
             else if (head == "movetime") {
-                uci_assert(subcommands.size());
+                handled_assert(subcommands.size());
                 pool->max_time = std::stoi(pop_subcommand());
             }
             else if (head == "infinite") {
@@ -175,12 +176,39 @@ void mainloop() {
         pool->stop();
     }
     else if (head == "ponderhit") {
-        uci_assert(false);
+        handled_assert(false);
     }
     else if (head == "quit") {
         pool->stop();
         return;
     }
+    else if (head == "d") {
+        print(*pos.get(), true);
+    }
+    else if (head == "r") {
+        Accumulator accumulator;
+        accumulator.reset(*pos.get());
+        Eval eval = nnue::evaluate(accumulator, *pos.get());
+        std::cout << eval << std::endl;
+    }
+    else if (head == "m") {
+        
+        bool found;
+        TTEntry* tt_entry = pool.get()->tt->probe(pos.get()->hashkey(), found);
+        Move     tt_move  = tt_entry->move;
+
+        MovePicker mp(pos.get(), tt_move, &pool.get()->threads[0]->history);
+        
+        while (mp.has_move()) {
+
+            const Move  move  = mp.pop();
+            const Score score = 0;
+            
+            std::cout << std::to_string(mp.stage) << " " << move_to_string(move) << " " << score << std::endl;
+
+        }
+    }
+
 
     goto await_command;
 }

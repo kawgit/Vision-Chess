@@ -42,8 +42,8 @@ TTEntry* TT::probe(BB hashkey, bool& found) {
 
 	found = false;
 
-	TTEntry* worst_entry = &bucket->entries[0];
-	Score    worst_score = EVAL_MAX;
+	TTEntry* worst_entry;
+	Score    worst_score = SCORE_MAX;
 
 	for (size_t i = 0; i < TTBucket::BUCKET_SIZE; i++) {
 
@@ -80,15 +80,25 @@ void TT::save(TTEntry* entry, Move move, Eval eval, Depth depth, BB hashkey, Bou
 
 }
 
+void TT::forcesave(TTEntry* entry, Move move, Eval eval, Depth depth, BB hashkey, Bound bound) {
+	entry->move = move;
+	entry->eval = eval;
+	entry->depth = depth;
+	entry->hashkey32 = hashkey >> 32;
+	entry->set_bound(bound);
+	entry->set_gen(gen);
+}
+
 size_t TT::hashfull() {
 	size_t count = 0;
-	for (size_t i = 0; i < 1000; i++) {
+	size_t viewed = std::min(num_buckets, size_t(1000));
+	for (size_t i = 0; i < viewed; i++) {
 		for (size_t j = 0; j < TTBucket::BUCKET_SIZE; j++) {
 			if (buckets[i].entries[j].hashkey32)
 				count++;
 		}
 	}
-	return count / TTBucket::BUCKET_SIZE;
+	return count * 1000 / (viewed * TTBucket::BUCKET_SIZE);
 }
 
 std::vector<Move> TT::probe_pv(Pos& pos) {

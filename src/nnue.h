@@ -4,38 +4,18 @@
 
 #include "types.h"
 #include "pos.h"
+#include "accumulator.h"
 
 #define ALIGN64 alignas(64)
 
-struct AccumulatorSlice {
-    bool accurate = false;
-    Eval white_ps;
-
-    void add_piece(const Color color, const Piece piece, const Square square);
-
-    void rem_piece(const Color color, const Piece piece, const Square square);
-};
-
-struct Accumulator {
-
-    AccumulatorSlice slice_stack[256];
-    AccumulatorSlice* slice;
-
-    Accumulator();
-
-    void reset(const Pos& pos);
-
-    void push();
-    
-    void pop();
-
-    void recursively_update(const Pos& pos, size_t offset = 0);
-
-};
-
 namespace nnue {
 
-    extern Eval ps_weights[N_PIECES][N_SQUARES];
+    const size_t N_FBUCKETS = 8;
+    const size_t N_KBUCKETS = 32;
+
+    extern Eval fkps_weights[N_FBUCKETS][N_KBUCKETS][N_COLORS][N_PIECES][N_SQUARES];
+
+    void init(std::string path);
 
 /*
     const size_t simd_size = 256 / (8 * sizeof(float));

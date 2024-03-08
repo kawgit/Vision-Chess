@@ -79,8 +79,8 @@ enum BBs        : BB        { BB_EMPTY = 0ULL, BB_FULL = ~0ULL };
 enum Depths     : Depth     { DEPTH_MAX = 127 };
 enum Clocks     : Clock     { CLOCK_MAX = DEPTH_MAX };
 
-enum Scores     : Score     { SCORE_MAX = 32000, SCORE_MIN = -SCORE_MAX, SCORE_UNKNOWN = SCORE_MIN - 1, SCORE_USED = SCORE_MIN - 2 };
-enum Evals      : Eval      { EVAL_MAX  = 32767, EVAL_MIN  = -EVAL_MAX, MINMATE = EVAL_MAX - DEPTH_MAX };
+enum Scores     : Score     { SCORE_MAX = 32767, SCORE_MIN = -SCORE_MAX, SCORE_ZERO = 0 };
+enum Evals      : Eval      { EVAL_MAX  = 32767, EVAL_MIN  = -EVAL_MAX, MINMATE = EVAL_MAX - DEPTH_MAX, EVAL_CHECKMATE = MINMATE};
 
 enum Moves      : Move       { MOVE_NONE = 0, MOVE_NULL = 0xFFFF };
 enum MoveFlags  : MoveFlag   { QUIET = 0, DOUBLE_PAWN_PUSH, KING_CASTLE, QUEEN_CASTLE, CAPTURE, EP, N_PROM = 8, B_PROM, R_PROM, Q_PROM, N_PROM_CAPTURE, B_PROM_CAPTURE, R_PROM_CAPTURE, Q_PROM_CAPTURE };
@@ -104,10 +104,6 @@ inline constexpr Spiece make_spiece(Color color, Piece piece) {
 inline constexpr bool is_okay_color (const Color color)   { return color == WHITE || color == BLACK; }
 inline constexpr bool is_okay_piece (const Piece piece)   { return piece >= PAWN && piece <= KING; }
 inline constexpr bool is_okay_square(const Square square) { return square >= A1 && square <= H8; }
-
-inline constexpr Square square_of(const Rank rank, const File file) { return rank * N_FILES + file; }
-inline constexpr Rank rank_of(const Square sq) { return sq / N_FILES; }
-inline constexpr File file_of(const Square sq) { return sq % N_FILES; }
 
 constexpr Square DIRECTION_OFFSETS [N_DIRECTIONS][2] = {{ 0,  1}, { 1,  1}, { 1,  0}, { 1, -1}, { 0, -1}, {-1, -1}, {-1,  0}, {-1,  1}};
 constexpr Square KNIGHT_OFFSETS    [           8][2] = {{ 1,  2}, { 2,  1}, { 2, -1}, { 1, -2}, {-1, -2}, {-2, -1}, {-2,  1}, {-1,  2}};

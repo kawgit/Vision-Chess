@@ -41,6 +41,8 @@ class Pool {
 
     void manage();
 
+    void clear();
+
     void reset(Pos& new_pos);
 
     Depth get_depth();
@@ -59,16 +61,17 @@ class Thread {
     Pool* pool;
     TT* tt;
 
-    ThreadState state;
+    ThreadState requested_state;
+    ThreadState current_state;
     size_t nodes = 0;
     Depth root_depth;
     Depth root_pos;
 
     Pos pos;
     Accumulator accumulator;
+
     History history;
 
-    std::mutex state_mutex;
     std::thread pthread;
 
 
@@ -76,24 +79,16 @@ class Thread {
 
     ~Thread();
 
-    ThreadState get_state();
-
-    void set_state(ThreadState state);
-
     void reset(Pos& new_pos);
     
     void idle();
     
     void work();
 
+    void kill();
+
     template<NodeType NODETYPE>
     Eval search(Depth depth, Eval alpha, Eval beta);
-
-    template<NodeType NODETYPE>
-    Eval qsearch(Depth depth, Eval alpha, Eval beta);
-
-    template<NodeType NODETYPE>
-    Eval qsearch(Eval alpha, Eval beta);
 
     void do_move(Move move);
     

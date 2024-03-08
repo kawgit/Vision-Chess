@@ -22,6 +22,8 @@ int main() {
 	zobrist::init();
 	attacks::init();
 
+	nnue::init("../scripts/psfk.kwnnue");
+
 	// Pos pos;
 
 	// perft<true>(pos, 6);

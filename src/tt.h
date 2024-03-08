@@ -43,7 +43,8 @@ class TT {
 	    TT(size_t size);
         void clear();
         TTEntry* probe(BB hashkey, bool& found);
-        void save(TTEntry* entry, Move move, Eval eval, Depth depth, BB hashkey, Bound bound);
+        void forcesave(TTEntry* entry, Move move, Eval eval, Depth depth, BB hashkey, Bound bound);
+        void save     (TTEntry* entry, Move move, Eval eval, Depth depth, BB hashkey, Bound bound);
         size_t hashfull();
         std::vector<Move> probe_pv(Pos& pos);
 

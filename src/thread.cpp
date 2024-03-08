@@ -1,7 +1,9 @@
 #include <cassert>
 #include <thread>
 #include <iostream>
+#include <algorithm>
 
+#include "uci.h"
 #include "types.h"
 #include "thread.h"
 #include "pos.h"
@@ -22,7 +24,7 @@ Pool::~Pool() {
 void Pool::set_num_threads(size_t num_threads) {
 
     for (Thread* thread : threads)
-        assert(thread->get_state() == IDLE);
+        assert(thread->current_state == IDLE);
 
     while (threads.size() < num_threads)
         threads.push_back(new Thread(this));
@@ -40,7 +42,7 @@ void Pool::go() {
     root_depth = 0;
 
     for (Thread* thread : threads)
-        thread->set_state(ACTIVE);
+        thread->requested_state = ACTIVE;
     
     std::thread manager (&Pool::manage, this);
     manager.detach();
@@ -57,45 +59,66 @@ void Pool::manage() {
     Timestamp start_time = get_current_ms();
     Pos pos_copy = root_pos;
 
-    bool found;
-    TTEntry* entry;
     std::vector<Move> pv;
-    Timestamp time = get_current_ms() - start_time;
+
+    Timestamp         last_time  = 0;
+    Depth             last_depth = -1;
+    Eval              last_eval  = EVAL_MIN;
+    std::vector<Move> last_pv;
 
     while (active && get_current_ms() - start_time < max_time) {
-        sleep_ms(100);
+        sleep_ms(10);
 
-        time = get_current_ms() - start_time;
-        entry = tt->probe(pos_copy.hashkey(), found);
+        bool found;
+        TTEntry* entry = tt->probe(pos_copy.hashkey(), found);
 
-        if (found) {
+        if (!found)
+            continue;
 
-            pv = tt->probe_pv(pos_copy);
+        Timestamp time  = get_current_ms() - start_time;
+        Depth     depth = entry->depth;
+        Eval      eval  = entry->eval;
+                  pv    = tt->probe_pv(pos_copy);
 
-            std::cout << "info" 
-                      << " depth "     << int(entry->depth)
-                      << " score cp "  << int(entry->eval)
-                      << " time "      << int(time)
-                      << " nodes "     << nodes()
-                      << " nps "       << (nodes() * 1000 / time)
-                      << " hashfull "  << tt->hashfull()
-                      << " pv "        << movelist_to_string(pv)
-                      << std::endl;
+        if (time > last_time + 3000
+            || depth != last_depth
+            || eval  != last_eval
+            || pv    != last_pv) {
+
+            uci::print("info depth " + std::to_string(depth)
+                     + " score cp "  + std::to_string(eval)
+                     + " time "      + std::to_string(time)
+                     + " nodes "     + std::to_string(nodes())
+                     + " nps "       + std::to_string(nodes() * 1000 / time)
+                     + " hashfull "  + std::to_string(tt->hashfull())
+                     + " pv "        + movelist_to_string(pv));
+
+            last_time  = time;
+            last_depth = depth;
+            last_eval  = eval;
+            if (pv.size()) last_pv = pv;
+        
         }
-        else {
-            std::cout << "info no entry found " << tt->hashfull() << std::endl;
-        }
+
+        handled_assert_out:
+
+        continue;
+
     }
 
     for (Thread* thread : threads)
-        thread->state = IDLE;
+        thread->requested_state = IDLE;
 
     active = false;
 
-    std::cout << "bestmove " << (pv.size() ? move_to_string(pv[0]) : "(none)") << " ponder " << (pv.size() >= 2 ? move_to_string(pv[1]) : "(none)") << std::endl;
+    std::cout << "bestmove " << (pv.size() ? move_to_string(pv[0]) : "(none)") << (pv.size() >= 2 ? " ponder " + move_to_string(pv[1]) : "") << std::endl;
 
 }
 
+void Pool::clear() {
+    tt->clear();
+}
+ 
 void Pool::reset(Pos& new_pos) {
     root_pos = new_pos;
     for (Thread* thread : threads)
@@ -110,6 +133,10 @@ Depth Pool::get_depth() {
 }
 
 Depth Pool::pop_depth() {
+
+    if (root_depth == DEPTH_MAX)
+        return root_depth;
+
     depth_mutex.lock();
     Depth result = ++root_depth;
     depth_mutex.unlock();
@@ -131,7 +158,7 @@ void Pool::reset_nodes() {
 
 Thread::Thread(Pool* pool_) {
 
-    set_state(IDLE);
+    current_state = IDLE;
     pool = pool_;
     tt = pool->tt;
     pthread = std::thread(&Thread::idle, this);
@@ -140,49 +167,71 @@ Thread::Thread(Pool* pool_) {
 
 Thread::~Thread() {
 
-    set_state(KILLED);
+    current_state = KILLED;
     pthread.join();
 
     std::cout << "thread joined" << std::endl;
 
 }
 
-ThreadState Thread::get_state() {
-    state_mutex.lock();
-    ThreadState result = state;
-    state_mutex.unlock();
-    return result;
-}
-
-void Thread::set_state(ThreadState new_state) {
-    state_mutex.lock();
-    state = new_state;
-    state_mutex.unlock();
-}
-
 void Thread::work() {
 
-    while (get_state() == ACTIVE) {
-        Depth depth = pool->pop_depth();
-        Eval eval = search<ROOT>(depth, EVAL_MIN, EVAL_MAX);
+    Eval alpha = EVAL_MIN;
+    Eval beta  = EVAL_MAX;
+    Eval delta = 100;
 
-        if (depth == DEPTH_MAX)
-            set_state(IDLE);
+    Timestamp start_time = get_current_ms();
+
+    while (requested_state == ACTIVE) {
+        Depth depth = pool->pop_depth();
+
+        std::cout << "info string " << int(depth) << " " << int(alpha) << " " << int(beta) << " " << int(delta) << std::endl;
+
+        Eval eval = search<ROOT>(depth, alpha, beta);
+
+        if (eval <= alpha || eval >= beta)
+            delta += 50;
+        else if (delta >= 50)
+            delta -= 10;
+
+        alpha = Eval(std::max(int(eval) - int(delta), int(EVAL_MIN)));
+        beta  = Eval(std::min(int(eval) + int(delta), int(EVAL_MAX)));
+
+        while (depth == DEPTH_MAX && requested_state == ACTIVE)
+            sleep_ms(10);
+
+        bool found;
+        TTEntry* entry = tt->probe(pos.hashkey(), found);
+
+        if (requested_state == ACTIVE && found) {
+
+            uci::print("info depth " + std::to_string(entry->depth)
+                     + " score cp "  + std::to_string(entry->eval)
+                     + " time "      + std::to_string(get_current_ms() - start_time)
+                     + " hashfull "  + std::to_string(tt->hashfull())
+                     + " pv "        + movelist_to_string(tt->probe_pv(pos)));
+        }
 
     }
 
+
+}
+
+void Thread::kill() {
+    current_state = KILLED;
+    return;
 }
 
 void Thread::idle() {
 
-    while (true) {
+    while (current_state == IDLE) {
         sleep_ms(10);
 
-        if (get_state() == ACTIVE)
+        if (requested_state == ACTIVE)
             work();
 
-        if (get_state() == KILLED)
-            return;
+        if (requested_state == KILLED)
+            kill();
     }
 
 }

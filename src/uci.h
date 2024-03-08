@@ -8,6 +8,8 @@
 
 namespace uci {
 
+void print(std::string message);
+
 struct Option {
     std::string name;
     std::string type;

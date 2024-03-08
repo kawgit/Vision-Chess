@@ -12,12 +12,12 @@
 
 Pos::Pos(std::string fen) {
 
+	slice = slice_stack;
+
 	std::memset(piece_bbs, 0, sizeof(piece_bbs));
 	std::memset(color_bbs, 0, sizeof(color_bbs));
 	std::memset(piece_mailboxes, PIECE_NONE, sizeof(piece_mailboxes));
 	std::memset(color_mailboxes, COLOR_NONE, sizeof(color_mailboxes));
-
-	slice = slice_stack;
 
 	// Board
 	Rank rank = RANK_8;
@@ -140,11 +140,13 @@ void print(const Pos& pos, bool meta) {
 		std::cout << "ep: " << square_to_string(pos.ep()) << std::endl;
 		std::cout << "halfmove clock: " << std::to_string(pos.fifty_move_clock()) << std::endl;
 		std::cout << "move clock: " << std::to_string(pos.move_clock()) << std::endl;
-		std::cout << "move log:";
+		std::cout << "move log: ";
 
-		for (size_t i = 1; i < 5; i++) {
-			std::cout << move_to_string(pos.slice_stack[i].move) << std::endl;
+		for (const Slice* curr = pos.slice_stack + 1; curr <= pos.slice; curr++) {
+			std::cout << move_to_string(curr->move) << " ";
 		}
+
+		std::cout << std::endl;
 	}
 
 }

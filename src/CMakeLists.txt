@@ -9,6 +9,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 
 add_executable(Vision
+        accumulator.cpp 
         attacks.cpp 
         bits.cpp 
         hash.cpp 
