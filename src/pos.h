@@ -45,7 +45,7 @@ class Pos {
 
 	public:
 
-	Slice  slice_stack[256];
+	Slice  slice_stack[INTERNAL_PLY_LIMIT];
 	Slice* slice;
 
 

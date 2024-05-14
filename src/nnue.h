@@ -10,10 +10,26 @@
 
 namespace nnue {
 
-    const size_t N_FBUCKETS = 8;
-    const size_t N_KBUCKETS = 32;
+    constexpr size_t L0_LEN = N_COLORS * N_PIECES * N_SQUARES;
+    constexpr size_t L1_LEN = 1024;
+    constexpr size_t L2_LEN = 32;
+    constexpr size_t L3_LEN = 16;
+    constexpr size_t L4_LEN = 1;
 
-    extern Eval fkps_weights[N_FBUCKETS][N_KBUCKETS][N_COLORS][N_PIECES][N_SQUARES];
+    // presuming AVX-256 build
+    constexpr size_t N_REGISTERS = 16;
+    constexpr size_t SIMD_WIDTH_EPI32 = 8;
+    constexpr size_t SIMD_WIDTH_EPI16 = 16;
+    constexpr size_t SIMD_WIDTH_EPI8  = 32;
+
+    extern int16_t l1_weights[L0_LEN][L1_LEN];
+    extern int16_t l1_biases [L1_LEN];
+    extern int8_t  l2_weights[L1_LEN][L2_LEN];
+    extern int16_t l2_biases [L2_LEN];
+    extern int8_t  l3_weights[L2_LEN][L3_LEN];
+    extern int16_t l3_biases [L3_LEN];
+    extern int8_t  l3_weights[L3_LEN][L4_LEN];
+    extern int16_t l3_biases [L4_LEN];
 
     void init(std::string path);
 

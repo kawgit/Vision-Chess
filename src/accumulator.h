@@ -1,50 +1,46 @@
 #pragma once
 
+#include "nnue.h"
 #include "pos.h"
 #include "types.h"
 
+namespace nnue {
 
 struct AccumulatorSlice {
 
-    bool accurate = false;
-    uint8_t phase;
+    bool accurate[N_COLORS] = { false };
+    bool flipped[N_COLORS];
+    int16_t values[N_COLORS][L1_LEN / 2];
 
-    BB                  color_piece_bbs[N_COLORS][N_PIECES];
+    BB vcp_bbs[N_COLORS][N_COLORS][N_PIECES];
 
-    size_t              fbucket;
-    size_t              kbucket[N_COLORS];
-    bool                flipped[N_COLORS];
-    Eval                values [N_COLORS];
+    void add_piece(const Color view, const Color color, const Piece piece, const Square square);
+    void rem_piece(const Color view, const Color color, const Piece piece, const Square square);
 
-    void add_piece(const Color color, const Piece piece, const Square square);
-
-    void rem_piece(const Color color, const Piece piece, const Square square);
-
-    void add_values(const Color color, const Piece piece, const Square square);
-
-    void rem_values(const Color color, const Piece piece, const Square square);
+    void add_feature(const Color view, const size_t idx);
+    void rem_feature(const Color view, const size_t idx);    
 
     void reset(const Pos& pos);
-    
-    void reset_values(const Color view);
-
-    void rebucket(const Color view);
-    
-    void update_buckets(const Color view);
 
 };
 
 struct Accumulator {
 
-    AccumulatorSlice slice_stack[256];
+    AccumulatorSlice  slice_stack[INTERNAL_PLY_LIMIT];
     AccumulatorSlice* slice;
 
-    void reset(const Pos& pos);
+    const AccumulatorSlice* find_best_parent(const Color view, const Pos& pos);
+    void update_view(const Color view, const Pos& pos);
+    void update(const Pos& pos);
 
-    void push();
-    
-    void pop();
+    // void reset(const Pos& pos);
 
-    void recursively_update(const Pos& pos, size_t offset = 0);
+    // void push();
+    // void pop();
+
+    // void update_static(const Pos& pos);
+    // void update_recursively(const Pos& pos, size_t offset = 0);
 
 };
+
+}

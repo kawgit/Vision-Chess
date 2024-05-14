@@ -18,7 +18,7 @@ struct HistorySlice {
 
 struct History {
 
-    HistorySlice  history_slice_stack[256 + 6 + 2];
+    HistorySlice  history_slice_stack[INTERNAL_PLY_LIMIT + 6 + 2];
     HistorySlice* history_slice;
 
     History();

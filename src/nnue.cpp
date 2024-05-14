@@ -10,17 +10,14 @@
 
 namespace nnue {
 
-ALIGN64 Eval fkps_weights[N_FBUCKETS][N_KBUCKETS][N_COLORS][N_PIECES][N_SQUARES];
-
-// ALIGN64 float in_l1_weights[IN_LEN * L1_LEN];
-// ALIGN64 float l1_l2_weights[L1_LEN * L2_LEN];
-// ALIGN64 float l2_l3_weights[L2_LEN * L3_LEN];
-// ALIGN64 float l3_op_weights[L3_LEN * OP_LEN];
-
-// ALIGN64 float l1_biases[L1_LEN];
-// ALIGN64 float l2_biases[L2_LEN];
-// ALIGN64 float l3_biases[L3_LEN];
-// ALIGN64 float op_biases[OP_LEN];
+ALIGN64 int16_t l1_weights[L0_LEN][L1_LEN];
+ALIGN64 int16_t l1_biases [L1_LEN];
+ALIGN64 int8_t  l2_weights[L1_LEN][L2_LEN];
+ALIGN64 int16_t l2_biases [L2_LEN];
+ALIGN64 int8_t  l3_weights[L2_LEN][L3_LEN];
+ALIGN64 int16_t l3_biases [L3_LEN];
+ALIGN64 int8_t  l3_weights[L3_LEN][L4_LEN];
+ALIGN64 int16_t l3_biases [L4_LEN];
 
 size_t get_file_size(std::ifstream& file) {
     file.seekg(0,std::ios_base::end);
@@ -53,7 +50,14 @@ void init(std::string path) {
     
     char* curr = buff;
 
-    curr += read_contents<Eval>(curr, (Eval*) fkps_weights, N_FBUCKETS * N_KBUCKETS * N_COLORS * N_PIECES * N_SQUARES);
+    curr += read_contents<int16_t>(curr, &l1_weights[0][0], L0_LEN * L1_LEN);
+    curr += read_contents<int16_t>(curr, &l1_biases [0],             L1_LEN);
+    curr += read_contents<int8_t >(curr, &l2_weights[0][0], L1_LEN * L2_LEN);
+    curr += read_contents<int16_t>(curr, &l2_biases [0],             L2_LEN);
+    curr += read_contents<int8_t >(curr, &l3_weights[0][0], L2_LEN * L3_LEN);
+    curr += read_contents<int16_t>(curr, &l3_biases [0],             L3_LEN);
+    curr += read_contents<int8_t >(curr, &l3_weights[0][0], L3_LEN * L4_LEN);
+    curr += read_contents<int16_t>(curr, &l3_biases [0],             L4_LEN);
 
     assert((curr - buff) == file_size);
 

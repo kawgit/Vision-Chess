@@ -7,7 +7,7 @@
 #include <vector>
 #include <cassert>
 
-
+constexpr size_t INTERNAL_PLY_LIMIT = 512;
 
 typedef int8_t   Square;
 typedef int8_t   File;
