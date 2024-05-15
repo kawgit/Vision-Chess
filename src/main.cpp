@@ -12,8 +12,7 @@
 #include "movepicker.h"
 #include "util.h"
 #include "uci.h"
-// #include "nnue.h"
-// #include "thread.h"
+#include "thread.h"
 
 
 
@@ -21,8 +20,6 @@ int main() {
 
 	zobrist::init();
 	attacks::init();
-
-	nnue::init("../scripts/psfk.kwnnue");
 
 	// Pos pos;
 

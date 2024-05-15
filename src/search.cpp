@@ -82,7 +82,7 @@ Eval Thread::search(Depth depth, Eval alpha, Eval beta) {
     }
     else {
         if (depth <= -16)
-            return nnue::evaluate(accumulator, pos);
+            return evaluator.evaluate(pos);
     }
 
 	bool found = false;
@@ -122,7 +122,7 @@ Eval Thread::search(Depth depth, Eval alpha, Eval beta) {
     if (!mp.has_move())
         best_eval = -EVAL_CHECKMATE;
     else if constexpr (is_qs) {
-        best_eval = nnue::evaluate(accumulator, pos);
+        best_eval = evaluator.evaluate(pos);
         if (best_eval >= beta) {
 		    tt->save(entry, best_move, best_eval, depth, pos.hashkey(), LB);
             return best_eval;

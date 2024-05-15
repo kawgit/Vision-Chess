@@ -238,17 +238,17 @@ void Thread::idle() {
 
 void Thread::reset(Pos& new_pos) {
     pos = new_pos;
-    accumulator.reset(new_pos);
+    evaluator.reset(new_pos);
 }
 
 void Thread::do_move(Move move) {
     pos.do_move(move);
-    accumulator.push();
+    evaluator.push();
     history.push();
 }
 
 void Thread::undo_move() {
     pos.undo_move();
-    accumulator.pop();
+    evaluator.pop();
     history.pop();
 }

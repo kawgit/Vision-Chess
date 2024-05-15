@@ -4,9 +4,9 @@
 #include <mutex>
 #include <thread>
 
+#include "evaluator.h"
 #include "pos.h"
 #include "tt.h"
-#include "nnue.h"
 #include "history.h"
 #include "timer.h"
 
@@ -68,12 +68,11 @@ class Thread {
     Depth root_pos;
 
     Pos pos;
-    Accumulator accumulator;
+    Evaluator evaluator;
 
     History history;
 
     std::thread pthread;
-
 
     Thread(Pool* pool_);
 
