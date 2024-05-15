@@ -11,9 +11,31 @@
 #include "pos.h"
 #include "util.h"
 #include "bits.h"
+#include "thread.h"
 
 template<bool DIVIDE>
 BB perft(Pos& pos, Depth depth);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // void perftTest();
 

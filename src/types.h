@@ -7,7 +7,7 @@
 #include <vector>
 #include <cassert>
 
-
+constexpr size_t INTERNAL_PLY_LIMIT = 512;
 
 typedef int8_t   Square;
 typedef int8_t   File;
@@ -19,20 +19,41 @@ typedef uint8_t  Spiece; // Specific piece - color and piece type
 
 typedef int8_t   Depth;
 typedef uint8_t  Clock;
-typedef uint16_t  Direction;
+typedef uint8_t  Direction;
 
-typedef int      Score;
+typedef int16_t  Score;
 typedef int16_t  Eval;
 
 typedef uint16_t Move;
-typedef uint8_t MoveFlag;
+typedef uint8_t  MoveFlag;
+
+typedef uint8_t  Gen;
+typedef uint8_t  Bound;
+typedef uint8_t  MovePickerStage;
 
 enum Squares     : Square     { A1, B1, C1, D1, E1, F1, G1, H1, A2, B2, C2, D2, E2, F2, G2, H2, A3, B3, C3, D3, E3, F3, G3, H3, A4, B4, C4, D4, E4, F4, G4, H4, A5, B5, C5, D5, E5, F5, G5, H5, A6, B6, C6, D6, E6, F6, G6, H6, A7, B7, C7, D7, E7, F7, G7, H7, A8, B8, C8, D8, E8, F8, G8, H8, N_SQUARES, SQUARE_NONE = N_SQUARES };
 enum Files       : File       { FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H, N_FILES, FILE_NONE = N_FILES };
 enum Ranks       : Rank       { RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, N_RANKS, RANK_NONE = N_RANKS };
 enum Color       : uint8_t    { BLACK, WHITE, N_COLORS, COLOR_NONE = N_COLORS };
-enum Pieces      : Piece      { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, N_PIECES, PIECE_NONE = N_PIECES };
+enum Pieces      : Piece      { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, N_PIECES, PIECE_NONE = N_PIECES, PIECE_ALL = N_PIECES };
 enum Directions  : Direction  { NORTH, NORTHEAST, EAST, SOUTHEAST, SOUTH, SOUTHWEST, WEST, NORTHWEST, N_DIRECTIONS };
+enum Bounds      : Bound      { UB, EXACT, LB };
+
+enum MovePickerStages : MovePickerStage { STAGE_NONE, STAGE_TT_COUNTERS, STAGE_LOUDS, STAGE_QUIETS };
+
+enum NodeType        { ROOT, PVNODE, CUTNODE, QSNODE };
+enum ThreadState     { IDLE, ACTIVE, KILLED };
+
+enum GenType {
+    FLAG_QUIETS    = 0b0001, // garuantees all quiet moves will be generated, abiding by legal flag
+    FLAG_TACTICALS = 0b0010, // garuantees all captures and promotions will be generated, abiding by legal flag
+    FLAG_CHECKS    = 0b0100, // garuantees all checks will be generated, regardless of quiet and capture flags, abiding by legal flag (TODO)
+    FLAG_LEGAL     = 0b1000, // garuantees all moves will be legal, i.e. not placing our king in check
+
+    LEGAL           = FLAG_LEGAL | FLAG_TACTICALS | FLAG_CHECKS | FLAG_QUIETS,
+    PSEUDO          = LEGAL & ~FLAG_LEGAL,
+    LOUDS           = LEGAL & ~FLAG_QUIETS,
+};
 
 enum Spieces : Spiece { 
     COLOR_MASK = 0b1000, 
@@ -58,11 +79,11 @@ enum BBs        : BB        { BB_EMPTY = 0ULL, BB_FULL = ~0ULL };
 enum Depths     : Depth     { DEPTH_MAX = 127 };
 enum Clocks     : Clock     { CLOCK_MAX = DEPTH_MAX };
 
-enum Scores     : Score     { SCORE_MAX = (1ULL << 31) - 1 };
-enum Evals      : Eval      { INF = 32767, MINMATE = 32767 - DEPTH_MAX };
+enum Scores     : Score     { SCORE_MAX = 32767, SCORE_MIN = -SCORE_MAX, SCORE_ZERO = 0 };
+enum Evals      : Eval      { EVAL_MAX  = 32767, EVAL_MIN  = -EVAL_MAX, MINMATE = EVAL_MAX - DEPTH_MAX, EVAL_CHECKMATE = MINMATE};
 
-enum Moves : Move {MOVE_NONE = 0, MOVE_NULL = 0xFFFF};
-enum MoveFlags : MoveFlag {QUIET=0, DOUBLE_PAWN_PUSH, KING_CASTLE, QUEEN_CASTLE, CAPTURE, EP, N_PROM=8, B_PROM, R_PROM, Q_PROM, N_PROM_CAPTURE, B_PROM_CAPTURE, R_PROM_CAPTURE, Q_PROM_CAPTURE};
+enum Moves      : Move       { MOVE_NONE = 0, MOVE_NULL = 0xFFFF };
+enum MoveFlags  : MoveFlag   { QUIET = 0, DOUBLE_PAWN_PUSH, KING_CASTLE, QUEEN_CASTLE, CAPTURE, EP, N_PROM = 8, B_PROM, R_PROM, Q_PROM, N_PROM_CAPTURE, B_PROM_CAPTURE, R_PROM_CAPTURE, Q_PROM_CAPTURE };
 
 inline constexpr Color operator!(const Color color) {
     return Color(color ^ 1);
@@ -84,15 +105,11 @@ inline constexpr bool is_okay_color (const Color color)   { return color == WHIT
 inline constexpr bool is_okay_piece (const Piece piece)   { return piece >= PAWN && piece <= KING; }
 inline constexpr bool is_okay_square(const Square square) { return square >= A1 && square <= H8; }
 
-inline constexpr Square square_of(const Rank rank, const File file) { return rank * N_FILES + file; }
-inline constexpr Rank rank_of(const Square sq) { return sq / N_FILES; }
-inline constexpr File file_of(const Square sq) { return sq % N_FILES; }
-
 constexpr Square DIRECTION_OFFSETS [N_DIRECTIONS][2] = {{ 0,  1}, { 1,  1}, { 1,  0}, { 1, -1}, { 0, -1}, {-1, -1}, {-1,  0}, {-1,  1}};
 constexpr Square KNIGHT_OFFSETS    [           8][2] = {{ 1,  2}, { 2,  1}, { 2, -1}, { 1, -2}, {-1, -2}, {-2, -1}, {-2,  1}, {-1,  2}};
 
 // inline std::string eval_to_string(Eval eval) {
-//     return (abs(eval) >= MINMATE ? ((eval > 0 ? "mate " : "mate -") + to_string(INF-abs(eval))) : ("cp " + to_string(eval)));
+//     return (abs(eval) >= MINMATE ? ((eval > 0 ? "mate " : "mate -") + to_string(EVAL_MAX-abs(eval))) : ("cp " + to_string(eval)));
 // }
 
 // inline std::string square_to_string(Square s) {

@@ -1,81 +1,56 @@
 #pragma once
 
+#include <algorithm>
+
 #include "pos.h"
 #include "bits.h"
 #include "move.h"
 #include "types.h"
 
-enum Bound : uint8_t {LB, EXACT, UB};
-typedef uint8_t Gen;
-
-//16 bits for eval
-//16 bits for move
-//8 bits for depth
-//8 bits for gen
-//2 bits for bound
-
-//32 bits for hashkey
-
 struct TTEntry {
-	uint64_t s1 = 0;
-	uint32_t s2 = 0;
+    Move move;
+    Eval eval;
+    Depth depth;
+	uint32_t hashkey32;
+	uint8_t genbound;
 
-	inline Eval get_eval() { return (s1) & 0xFFFF; }
-	inline Move get_move() { return (s1 >> 16) & 0xFFFF; }
-	inline Depth get_depth() { return (s1 >> 32) & 0xFF; }
-	inline Gen get_gen() { return (s1 >> 40) & 0xFF; }
-	inline Bound get_bound() { return (Bound)((s1 >> 48) & 0b11); }
-	inline uint32_t get_hashkey32() { return s2; }
+	inline Gen get_gen()     const { return genbound & 0b111111; }
+	inline Bound get_bound() const { return genbound >> 6;}
 
-	inline void set_eval(BB eval)   { s1 &=           ~0xFFFFULL; s1 |= (eval & 0xFFFF); }
-	inline void set_move(BB move)   { s1 &=       ~0xFFFF0000ULL; s1 |= (move & 0xFFFF) << 16; }
-	inline void set_depth(BB depth) { s1 &=     ~0xFF00000000ULL; s1 |= (depth & 0xFF) << 32; }
-	inline void set_gen(BB gen)     { s1 &=   ~0xFF0000000000ULL; s1 |= (gen & 0xFF) << 40; }
-	inline void set_bound(BB bound) { s1 &= ~0xFF000000000000ULL; s1 |= (bound & 0b11) << 48; }
-	inline void set_hashkey32(BB hashkey) { s2 = hashkey >> 32; }
+	inline void set_gen(Gen gen)       { genbound &= ~0b00111111; genbound |= gen; }
+	inline void set_bound(Bound bound) { genbound &= ~0b11000000; genbound |= bound << 6; }
 
-	inline bool matches(BB hashkey) { return get_hashkey32() == (hashkey >> 32); }
-
-	inline void save(BB hashkey, Eval eval, Bound bound, Depth depth, Move move, Gen gen) {
-		if (get_gen() < gen
-			|| (get_bound() != EXACT && (bound == EXACT || get_depth() <= depth))
-			|| (get_bound() == EXACT && (bound == EXACT && get_depth() <= depth))) {
-			forcesave(hashkey, eval, bound, depth, move, gen);
-		}
-	}
-	
-	inline void forcesave(BB hashkey, Eval eval, Bound bound, Depth depth, Move move, Gen gen) {
-		set_hashkey32(hashkey);
-		set_eval(eval);
-		set_bound(bound);
-		set_depth(depth);
-		set_move(move);
-		set_gen(gen);
-	}
-
-	inline void set_zero() {
-		s1 = 0;
-		s2 = 0;
-	}
+	inline bool matches(BB hashkey) { return hashkey32 == hashkey >> 32; }
+    inline bool is_empty()          { return !move; }
 	
 };
 
+struct TTBucket {
+    static const size_t BUCKET_SIZE = 3;
+    TTEntry entries[BUCKET_SIZE];
+};
+
 class TT {
-	const static int HASHLENGTH = 23;
-	const static BB TABLESIZE = (1ULL<<HASHLENGTH);
-	const static BB HASHMASK = TABLESIZE-1;
-	const static int tableSizeInMb = TABLESIZE*sizeof(TTEntry)/1000000;
-	
-	public:
-	TTEntry* probe(BB hashkey, bool& found);
 
-	void clear();
-	std::vector<Move> getPV(Pos p);
-	void addPV(Pos& p, std::vector<Move>& pv);
-	int hashfull();
+    private:
 
-	Gen gen = 0;
-	std::vector<TTEntry> table;
+        TTBucket* buckets;
+        size_t num_buckets;
 
-	TT() : table(TABLESIZE) {}
+    public:
+
+        Gen gen = 0;
+	    TT(size_t size);
+        void clear();
+        TTEntry* probe(BB hashkey, bool& found);
+        void forcesave(TTEntry* entry, Move move, Eval eval, Depth depth, BB hashkey, Bound bound);
+        void save     (TTEntry* entry, Move move, Eval eval, Depth depth, BB hashkey, Bound bound);
+        size_t hashfull();
+        std::vector<Move> probe_pv(Pos& pos);
+
+    private:
+
+        void add_pv(Pos& pos, std::vector<Move>& pv);
+
+
 };

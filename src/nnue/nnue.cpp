@@ -20,9 +20,9 @@ ALIGN64 int8_t  l3_weights[L3_LEN][L4_LEN];
 ALIGN64 int16_t l3_biases [L4_LEN];
 
 size_t get_file_size(std::ifstream& file) {
-    file.seekg(0,std::ios_base::end);
+    file.seekg(0, std::ios_base::end);
     size_t file_size = file.tellg();
-    file.seekg(0,std::ios_base::beg);
+    file.seekg(0, std::ios_base::beg);
     return file_size;
 }
 
@@ -62,6 +62,23 @@ void init(std::string path) {
     assert((curr - buff) == file_size);
 
     delete [] buff;
+}
+
+
+void NNUE::reset(const Pos& pos) {
+
+}
+
+void NNUE::push() {
+    accum.push();
+}
+
+void NNUE::pop() {
+
+}
+
+void NNUE::evaluate(const Pos& pos) {
+
 }
 
 // void read_network(std::string path) {
@@ -194,10 +211,5 @@ void init(std::string path) {
 
 //     return floats_0[0];
 // }
-
-Eval evaluate(Accumulator& accumulator, Pos& pos) {
-    accumulator.recursively_update(pos);
-    return (accumulator.slice->values[pos.turn()] - accumulator.slice->values[pos.notturn()]) / 2;
-}
 
 }

@@ -8,6 +8,9 @@
 #include "bits.h"
 #include "timer.h"
 #include "search.h"
+#include "tt.h"
+#include "movepicker.h"
+#include "uci.h"
 
 template BB perft<true >(Pos& pos, Depth depth);
 template BB perft<false>(Pos& pos, Depth depth);
@@ -16,28 +19,33 @@ template<bool DIVIDE>
 BB perft(Pos& pos, Depth depth) {
 
 	if (depth == 0) {
-		if constexpr (DIVIDE) std::cout << "divide on depth zero, total: zero" << std::endl;
+		if constexpr (DIVIDE)
+			std::cout << "divide on depth zero, total: 1" << std::endl;
 		return 1;
 	}
 
 	Timestamp start = 0;
-	if constexpr (DIVIDE) start = get_current_ms();
+	if constexpr (DIVIDE)
+		start = get_current_ms();
 
 	BB count = 0;
-	std::vector<Move> moves = movegen::generate<movegen::LEGAL>(pos);
+	std::vector<Move> moves = movegen::generate<LEGAL>(pos);
 
-	if (depth == 1 && !DIVIDE) return moves.size();
+	if (depth == 1 && !DIVIDE)
+		return moves.size();
 
 	for (Move move : moves) {
 
 		BB hashkey_before = pos.hashkey();
 
-		if constexpr (DIVIDE) std::cout << move_to_string(move) << " ";
+		if constexpr (DIVIDE)
+			std::cout << move_to_string(move) << " ";
 		
 		pos.do_move(move);
 		BB n = perft<false>(pos, depth - 1);
 		
-		if constexpr (DIVIDE) std::cout << std::to_string(n) << std::endl;
+		if constexpr (DIVIDE)
+			std::cout << std::to_string(n) << std::endl;
 		
 		pos.undo_move();
 		
@@ -46,15 +54,172 @@ BB perft(Pos& pos, Depth depth) {
 		count += n;
 	}
 
-	if constexpr (DIVIDE) std::cout << "total: " << std::to_string(count) << std::endl;
-	if constexpr (DIVIDE) std::cout << "time: " << std::to_string(get_time_diff(start)) << " ms" << std::endl;
-	if constexpr (DIVIDE) std::cout << "nps: " << std::to_string(count * 1000 / (get_time_diff(start) + 1)) << std::endl;
+	if constexpr (DIVIDE) {
+		std::cout << "total: " << std::to_string(count) << std::endl;
+		std::cout << "time: " << std::to_string(get_time_diff(start)) << " ms" << std::endl;
+		std::cout << "knps: " << std::to_string(count / (get_time_diff(start) + 1)) << std::endl;
+	}
 
 	return count;
 }
 
-/*
 
+template<NodeType NODETYPE>
+Eval Thread::search(Depth depth, Eval alpha, Eval beta) {
+
+	if (requested_state != ACTIVE)
+		return 0;
+	
+	nodes++;
+
+	constexpr bool is_qs   = NODETYPE == QSNODE;
+	constexpr bool is_root = NODETYPE == ROOT;
+	constexpr bool is_pv   = NODETYPE == ROOT || NODETYPE == PVNODE;
+
+	if constexpr (!is_qs) {
+        if (depth <= 0)
+		    return search<QSNODE>(depth, alpha, beta);
+    }
+    else {
+        if (depth <= -16)
+            return evaluator.evaluate(pos);
+    }
+
+	bool found = false;
+	TTEntry* entry = tt->probe(pos.hashkey(), found);
+
+	Move  tt_move  = found ? entry->move : MOVE_NONE;
+	Eval  tt_eval  = entry->eval;
+	Depth tt_depth = entry->depth;
+	Bound tt_bound = entry->get_bound();
+
+	if (found && tt_depth >= depth) {
+		
+		if (tt_bound == EXACT)
+			return tt_eval;
+
+		if (tt_bound == UB && tt_eval < beta)
+			beta = tt_eval;
+
+		if (tt_bound == LB && tt_eval > alpha)
+			alpha = tt_eval;
+
+		if (alpha >= beta)
+			return beta;
+	}
+
+	// if constexpr (NODETYPE == CUTNODE) {
+	// 	constexpr Eval alpha_reduction = 100;
+	// 	Eval eval = search<CUTNODE>(depth - 2, alpha - alpha_reduction, alpha - (alpha_reduction - 1));
+	// 	if (eval <= alpha - alpha_reduction) return alpha - alpha_reduction;
+	// }
+
+	MovePicker mp(&pos, tt_move, &history);
+
+	Move best_move = MOVE_NONE;
+	Eval best_eval = EVAL_MIN;
+
+    if (!mp.has_move())
+        best_eval = -EVAL_CHECKMATE;
+    else if constexpr (is_qs) {
+        best_eval = evaluator.evaluate(pos);
+        if (best_eval >= beta) {
+		    tt->save(entry, best_move, best_eval, depth, pos.hashkey(), LB);
+            return best_eval;
+        }
+    }
+
+	while (mp.has_move() && (!is_qs || pos.checkers() || mp.stage != STAGE_QUIETS)) {
+
+		Move move = mp.pop();
+
+		if (is_root && requested_state == ACTIVE)
+			uci::print("currmove " + move_to_string(move) + " " + std::to_string(mp.stage));
+
+		do_move(move);
+
+		Eval eval;
+		
+		if (is_qs)
+			eval = -search<QSNODE >(depth - 1, -beta, -std::max(alpha, best_eval));
+		else if (is_pv && move == tt_move)
+			eval = -search<PVNODE >(depth - (1 + (mp.stage == STAGE_QUIETS)), -beta, -std::max(alpha, best_eval));
+		else
+			eval = -search<CUTNODE>(depth - (1 + 2 * (mp.stage == STAGE_QUIETS)), -beta, -std::max(alpha, best_eval));
+
+		undo_move();
+
+		if (eval > best_eval) {
+			best_move = move;
+			best_eval = eval;
+
+			if (best_eval >= beta)
+				break;
+		}
+
+	}
+
+	if (requested_state != ACTIVE)
+		return 0;
+
+	const Bound bound = is_qs ?              LB :
+                        best_eval <= alpha ? UB :
+						best_eval >= beta  ? LB :
+											 EXACT;
+	
+	if constexpr (is_root || is_pv)
+		tt->forcesave(entry, best_move, best_eval, depth, pos.hashkey(), bound);
+	else
+		tt->save     (entry, best_move, best_eval, depth, pos.hashkey(), bound);
+
+	// if (bound != UB) {
+	// 	const Score bonus = 10 * depth * depth + 50 * depth + 20;
+	// 	history.update_bonus(best_move, pos, bonus);
+	// }
+
+	return best_eval;
+
+}
+
+
+template Eval Thread::search<ROOT   >(Depth depth, Eval alpha, Eval beta);
+template Eval Thread::search<PVNODE >(Depth depth, Eval alpha, Eval beta);
+template Eval Thread::search<CUTNODE>(Depth depth, Eval alpha, Eval beta);
+template Eval Thread::search<QSNODE >(Depth depth, Eval alpha, Eval beta);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
 
 ThreadInfo::ThreadInfo(Pos& pos, std::string id_) {
 	root_ply = pos.move_log.size();
@@ -65,7 +230,7 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 	if (!ti.searching) return alpha;
 	ti.nodes++;
 
-	if (beta <= -MINMATE && beta != -INF) {
+	if (beta <= -MINMATE && beta != EVAL_MIN) {
 		beta--;
 		if (alpha >= beta) return beta;
 	}
@@ -92,7 +257,7 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 	std::vector<Move> moves = get_legal_moves(pos);
 
 	if (moves.size() == 0) {
-		Eval eval = pos.in_check() ? -INF : 0;
+		Eval eval = pos.in_check() ? EVAL_MIN : 0;
 		entry->save(pos.get_hashkey(), eval, EXACT, DEPTH_MAX, MOVE_NONE, si.tt.gen);
 		return eval;
 	}
@@ -104,7 +269,7 @@ Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, Search
 
 	assert(moves.size());
 
-	Eval besteval = -INF;
+	Eval besteval = EVAL_MIN;
 	Move bestmove = moves[0];
 
 	for (int i = 0; i < moves.size(); i++) {
@@ -156,7 +321,7 @@ Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si) {
 		ti.seldepth = depth;
 	}
 
-	if (beta <= -MINMATE && beta != -INF) {
+	if (beta <= -MINMATE && beta != EVAL_MIN) {
 		beta--;
 		if (alpha >= beta) return beta;
 	}
@@ -181,7 +346,7 @@ Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si) {
     std::vector<Move> moves = get_legal_moves(pos);
 
 	if (moves.size() == 0) {
-		if (pos.in_check()) return -INF;
+		if (pos.in_check()) return EVAL_MIN;
 		else return 0;
 	}
 
@@ -284,7 +449,7 @@ void SearchInfo::worker(ThreadInfo& ti, bool verbose) {
 
         if (depth > max_depth || depth < 0) break;
         
-        search(root_copy, depth, -INF, INF, ti, *this);
+        search(root_copy, depth, EVAL_MIN, EVAL_MAX, ti, *this);
 
 		if (verbose && ti.searching) {
         	// std::cout << "thread " << ti.id << ":";
@@ -341,7 +506,7 @@ Eval sea_gain(Pos& pos, Move move, Eval alpha) {
 		-(target_piece_eval), 
 		pos.get_occ() & ~bb_of(move::from_square(move)), 
 		get_piece_eval(pos.get_mailbox(pos.turn, move::from_square(move))), 
-		-INF, 
+		EVAL_MIN, 
 		-alpha);
 	return result;
 }
@@ -383,7 +548,7 @@ Move get_best_move(Pos& pos, Depth depth) {
 	ThreadInfo ti(pos);
 
 	for (int d = 0; d < depth; d++) {
-		search(pos, depth, -INF, INF, ti, si);
+		search(pos, depth, EVAL_MIN, EVAL_MAX, ti, si);
 	}
 
 	return si.tt.getPV(pos)[0];

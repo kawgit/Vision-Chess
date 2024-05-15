@@ -140,7 +140,7 @@ std::vector<Test> tests = {
 
             int depth;
             for (depth = 1; depth < 127 && ti.searching; depth++) {
-                search(pos, depth, -INF, INF, ti, si);
+                search(pos, depth, EVAL_MIN, EVAL_MAX, ti, si);
 
                 bool found;
                 std::string move_str = move_to_string(si.tt.probe(pos.get_hashkey(), found)->get_move());
