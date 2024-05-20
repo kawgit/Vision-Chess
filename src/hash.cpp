@@ -20,14 +20,13 @@ namespace zobrist {
             
             for (Color color : {WHITE, BLACK})
                 for (Piece piece = PAWN; piece <= KING; piece++)
-                        psqt[color][piece][square] = rand_BB();
+                        psqt[color][piece][square] = rand64();
 
-            ep[square] = rand_BB();
-
-            cr[square] = rand_BB();
+            ep[square] = rand64();
+            cr[square] = rand64();
         }
 
-        wtm = rand_BB();
+        wtm = rand64();
 
         ep[SQUARE_NONE] = 0;
     }

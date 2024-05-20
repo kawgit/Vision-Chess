@@ -185,8 +185,6 @@ void Thread::work() {
     while (requested_state == ACTIVE) {
         Depth depth = pool->pop_depth();
 
-        std::cout << "info string " << int(depth) << " " << int(alpha) << " " << int(beta) << " " << int(delta) << std::endl;
-
         Eval eval = search<ROOT>(depth, alpha, beta);
 
         if (eval <= alpha || eval >= beta)

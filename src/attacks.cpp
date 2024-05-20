@@ -102,7 +102,7 @@ namespace attacks {
 
                 found_magic = true;
                 
-                magics[square] = rand_BB();
+                magics[square] = rand64();
 
                 for (size_t scenario = 0; scenario < blockerboards[square].size(); scenario++) {
                     BB blockerboard = blockerboards[square][scenario];
