@@ -13,15 +13,15 @@ namespace attacks {
 
     const size_t MAGIC_BITS = 14;
     const size_t MAGIC_ENTRY_SIZE = 1ULL << MAGIC_BITS;
-    const size_t MAGIC_SHIFT = N_SQUARES - MAGIC_BITS;
+    const size_t MAGIC_bb_shift = N_SQUARES - MAGIC_BITS;
 
     constexpr std::array<std::array<BB, N_SQUARES>, N_COLORS> pawn_atks = []() constexpr {
 
         std::array<std::array<BB, N_SQUARES>, N_COLORS> result { BB_EMPTY };
         
         for (Square square = A1; square <= H8; square++) {
-            result[WHITE][square] = shift<NORTH>(shift<WEST>(bb_of(square)) | shift<EAST>(bb_of(square)));
-            result[BLACK][square] = shift<SOUTH>(shift<WEST>(bb_of(square)) | shift<EAST>(bb_of(square)));
+            result[WHITE][square] = bb_shift<NORTH>(bb_shift<WEST>(bb_of(square)) | bb_shift<EAST>(bb_of(square)));
+            result[BLACK][square] = bb_shift<SOUTH>(bb_shift<WEST>(bb_of(square)) | bb_shift<EAST>(bb_of(square)));
         }
 
         return result;
@@ -117,14 +117,14 @@ namespace attacks {
 
         for (Square square = A1; square <= H8; square++) {
             
-            result[square] = shift<NORTH>    (bb_of(square))
-                           | shift<NORTHEAST>(bb_of(square))
-                           | shift<EAST>     (bb_of(square))
-                           | shift<SOUTHEAST>(bb_of(square))
-                           | shift<SOUTH>    (bb_of(square))
-                           | shift<SOUTHWEST>(bb_of(square))
-                           | shift<WEST>     (bb_of(square))
-                           | shift<NORTHWEST>(bb_of(square));
+            result[square] = bb_shift<NORTH>    (bb_of(square))
+                           | bb_shift<NORTHEAST>(bb_of(square))
+                           | bb_shift<EAST>     (bb_of(square))
+                           | bb_shift<SOUTHEAST>(bb_of(square))
+                           | bb_shift<SOUTH>    (bb_of(square))
+                           | bb_shift<SOUTHWEST>(bb_of(square))
+                           | bb_shift<WEST>     (bb_of(square))
+                           | bb_shift<NORTHWEST>(bb_of(square));
 
         }
 
@@ -174,12 +174,12 @@ namespace attacks {
     
     inline BB bishop(Square square, BB occupied) {
         assert(is_okay_square(square));
-        return bishop_table[square][(bishop_magics[square] * (occupied & bishop_blockermasks[square])) >> MAGIC_SHIFT];
+        return bishop_table[square][(bishop_magics[square] * (occupied & bishop_blockermasks[square])) >> MAGIC_bb_shift];
     }
 
     inline BB rook(Square square, BB occupied) {
         assert(is_okay_square(square));
-        return rook_table[square][(rook_magics[square] * (occupied & rook_blockermasks[square])) >> MAGIC_SHIFT];
+        return rook_table[square][(rook_magics[square] * (occupied & rook_blockermasks[square])) >> MAGIC_bb_shift];
     }
 
     inline BB queen(Square square, BB occupied) {
@@ -191,9 +191,9 @@ namespace attacks {
 
         assert(is_okay_color(color));
 
-        squares = shift<WEST>(squares) | shift<EAST>(squares);
+        squares = bb_shift<WEST>(squares) | bb_shift<EAST>(squares);
 
-        return color == WHITE ? shift<NORTH>(squares) : shift<SOUTH>(squares);
+        return color == WHITE ? bb_shift<NORTH>(squares) : bb_shift<SOUTH>(squares);
     }
 
     inline constexpr BB knights(BB squares) {
@@ -201,7 +201,7 @@ namespace attacks {
         BB result = BB_EMPTY;
 
         while (squares) {
-            const Square square = poplsb(squares);
+            const Square square = bb_pop(squares);
             result |= knight(square);
         }
 
@@ -213,7 +213,7 @@ namespace attacks {
         BB result = BB_EMPTY;
 
         while (squares) {
-            const Square square = poplsb(squares);
+            const Square square = bb_pop(squares);
             result |= bishop(square, occupied);
         }
 
@@ -225,7 +225,7 @@ namespace attacks {
         BB result = BB_EMPTY;
 
         while (squares) {
-            const Square square = poplsb(squares);
+            const Square square = bb_pop(squares);
             result |= rook(square, occupied);
         }
 
@@ -237,7 +237,7 @@ namespace attacks {
         BB result = BB_EMPTY;
 
         while (squares) {
-            const Square square = poplsb(squares);
+            const Square square = bb_pop(squares);
             result |= bishop(square, occupied) | rook(square, occupied);
         }
 
@@ -249,7 +249,7 @@ namespace attacks {
         BB result = BB_EMPTY;
 
         while (squares) {
-            const Square square = poplsb(squares);
+            const Square square = bb_pop(squares);
             result |= king(square);
         }
 

@@ -12,7 +12,7 @@ namespace movegen {
 
     void add_pawns_from_bb(std::vector<Move>& moves, BB to_squares, const Square offset, const MoveFlag flags) {
         while (to_squares) {
-            Square to_square = poplsb(to_squares);
+            Square to_square = bb_pop(to_squares);
             Square from_square = to_square - offset;
             moves.push_back(make_move(from_square, to_square, flags));
         }
@@ -38,11 +38,11 @@ namespace movegen {
         constexpr Square    forward_offset  = COLOR == WHITE ? 8 : -8;
         constexpr Square    east_offset     = 1;
 
-        BB p1 = shift<forward>(pawns) & ~occupied;
-        BB p2 = shift<forward>(p1)    & ~occupied & mid_rank_bb;
+        BB p1 = bb_shift<forward>(pawns) & ~occupied;
+        BB p2 = bb_shift<forward>(p1)    & ~occupied & mid_rank_bb;
         
-        BB d1 = shift<EAST>(shift<forward>(pawns));
-        BB d2 = shift<WEST>(shift<forward>(pawns));
+        BB d1 = bb_shift<EAST>(bb_shift<forward>(pawns));
+        BB d2 = bb_shift<WEST>(bb_shift<forward>(pawns));
         
         BB ep1 = d1 & ep_bb;
         BB ep2 = d2 & ep_bb;
@@ -105,7 +105,7 @@ namespace movegen {
 
         while (pieces) {
             
-            Square from_square = poplsb(pieces);
+            Square from_square = bb_pop(pieces);
             
             BB to_squares = attacks::lookup(PIECE, from_square, occupied) & ~pos.pieces(COLOR) & moveable;
             
@@ -114,7 +114,7 @@ namespace movegen {
                 BB captures = to_squares & occupied;
 
                 while (captures) {
-                    Square to_square = poplsb(captures);
+                    Square to_square = bb_pop(captures);
                     moves.push_back(make_move(from_square, to_square, CAPTURE));
                 }
 
@@ -126,7 +126,7 @@ namespace movegen {
                 BB quiets = to_squares & ~occupied;
 
                 while (quiets) {
-                    Square to_square = poplsb(quiets);
+                    Square to_square = bb_pop(quiets);
                     moves.push_back(make_move(from_square, to_square, QUIET));
                 }
 
@@ -137,7 +137,7 @@ namespace movegen {
     template<GenType GENTYPE, Color COLOR>
     void add_king_moves(std::vector<Move>& moves, Pos& pos) {
 
-        Square from_square = lsb(pos.pieces(COLOR, KING));
+        Square from_square = bb_peek(pos.pieces(COLOR, KING));
         BB to_squares = attacks::king(from_square) & ~pos.pieces(COLOR);
         
         if constexpr (GENTYPE & FLAG_LEGAL) {
@@ -149,7 +149,7 @@ namespace movegen {
             BB captures = to_squares & pos.pieces(!COLOR);
 
             while (captures) {
-                Square to_square = poplsb(captures);
+                Square to_square = bb_pop(captures);
                 moves.push_back(make_move(from_square, to_square, CAPTURE));
             }
 
@@ -160,7 +160,7 @@ namespace movegen {
             BB quiets = to_squares & ~pos.pieces(!COLOR);
 
             while (quiets) {
-                Square to_square = poplsb(quiets);
+                Square to_square = bb_pop(quiets);
                 moves.push_back(make_move(from_square, to_square, QUIET));
             }
 

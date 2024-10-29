@@ -57,7 +57,7 @@ namespace attacks {
 
         for (Square square = A1; square <= H8; square++) {
 
-            int count = bitcount(blockermasks[square]);
+            int count = bb_count(blockermasks[square]);
 
             for (BB bits = BB_EMPTY; bits < (1ULL << count); bits++) {
 
@@ -66,7 +66,7 @@ namespace attacks {
                 
                 for (int i = 0; i < count; i++) {
                     
-                    Square target_square = poplsb(target_squares);
+                    Square target_square = bb_pop(target_squares);
 
                     blockerboard &= bb_has(bits, i) ? BB_FULL : ~bb_of(target_square);
 
@@ -107,7 +107,7 @@ namespace attacks {
                     BB blockerboard = blockerboards[square][scenario];
                     BB solution     = solutions    [square][scenario];
 
-                    BB index = (blockerboard * magics[square]) >> MAGIC_SHIFT;
+                    BB index = (blockerboard * magics[square]) >> MAGIC_bb_shift;
 
                     if (table[square][index] == 0)
                         table[square][index] = solution;

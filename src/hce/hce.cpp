@@ -128,11 +128,11 @@ const Eval psqt_late[6][64] = {
 };
     
 Eval evaluate_side(const Pos& pos, const Color side, float phase) {
-    Eval eval = bitcount(pos.pieces(side, PAWN))   * 100
-              + bitcount(pos.pieces(side, KNIGHT)) * 280
-              + bitcount(pos.pieces(side, BISHOP)) * 300
-              + bitcount(pos.pieces(side, ROOK))   * 500
-              + bitcount(pos.pieces(side, QUEEN))  * 900;
+    Eval eval = bb_count(pos.pieces(side, PAWN))   * 100
+              + bb_count(pos.pieces(side, KNIGHT)) * 280
+              + bb_count(pos.pieces(side, BISHOP)) * 300
+              + bb_count(pos.pieces(side, ROOK))   * 500
+              + bb_count(pos.pieces(side, QUEEN))  * 900;
 
     Eval eval_early = 0;
     Eval eval_late = 0;
@@ -142,7 +142,7 @@ Eval evaluate_side(const Pos& pos, const Color side, float phase) {
         BB squares = pos.pieces(side, piece);
 
         while (squares) {
-            Square square = flip_components(poplsb(squares), side == WHITE, false);
+            Square square = flip_components(bb_pop(squares), side == WHITE, false);
             eval_early += psqt_early[piece][square];
             eval_late  += psqt_late [piece][square];
         }
@@ -155,10 +155,10 @@ Eval evaluate_side(const Pos& pos, const Color side, float phase) {
 }
 
 float get_phase(const Pos& pos) {
-    return float(bitcount(pos.pieces(KNIGHT)) * 3
-               + bitcount(pos.pieces(BISHOP)) * 5
-               + bitcount(pos.pieces(ROOK))   * 10
-               + bitcount(pos.pieces(QUEEN))  * 20) / 112.0f;
+    return float(bb_count(pos.pieces(KNIGHT)) * 3
+               + bb_count(pos.pieces(BISHOP)) * 5
+               + bb_count(pos.pieces(ROOK))   * 10
+               + bb_count(pos.pieces(QUEEN))  * 20) / 112.0f;
 }
 
 Eval Evaluator::evaluate(const Pos& pos) {

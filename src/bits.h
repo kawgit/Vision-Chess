@@ -10,26 +10,22 @@
 
 extern int lookup67[68];
 
-inline int lsb(const BB n) {
+inline int bb_peek(const BB n) {
 	return __builtin_ctzll(n);
 }
 
-inline void dellsb(BB& bb) {
+inline int bb_pop(BB& bb) {
+	int i = bb_peek(bb);
 	bb &= bb - 1;
-}
-
-inline int poplsb(BB& bb) {
-	int i = lsb(bb);
-	dellsb(bb);
 	return i;
 }
 
 inline bool bb_has_multiple(BB bb) {
-	dellsb(bb);
+	bb &= bb - 1;
 	return bool(bb);
 }
 
-inline int bitcount(BB x) {
+inline int bb_count(BB x) {
 	return __builtin_popcountll(x);
 }
 
@@ -98,37 +94,37 @@ inline float randf(float lb, float ub) {
 	return lb + (float)rand() / (float)RAND_MAX * (float)(ub-lb);
 }
 
-template <Direction D> BB shift(BB a);
+template <Direction D> BB bb_shift(BB a);
 
-template<> inline constexpr BB shift<NORTH>(BB a) {
+template<> inline constexpr BB bb_shift<NORTH>(BB a) {
     return 	a 						 << 8;
 }
 
-template<> inline constexpr BB shift<NORTHEAST>(BB a) {
+template<> inline constexpr BB bb_shift<NORTHEAST>(BB a) {
     return (a & ~bb_of_file(FILE_H)) << 9;
 }
 
-template<> inline constexpr BB shift<EAST>(BB a) {
+template<> inline constexpr BB bb_shift<EAST>(BB a) {
     return (a & ~bb_of_file(FILE_H)) << 1;
 }
 
-template<> inline constexpr BB shift<SOUTHEAST>(BB a) {
+template<> inline constexpr BB bb_shift<SOUTHEAST>(BB a) {
     return (a & ~bb_of_file(FILE_H)) >> 7;
 }
 
-template<> inline constexpr BB shift<SOUTH>(BB a) {
+template<> inline constexpr BB bb_shift<SOUTH>(BB a) {
     return a 						 >> 8;
 }
 
-template<> inline constexpr BB shift<SOUTHWEST>(BB a) {
+template<> inline constexpr BB bb_shift<SOUTHWEST>(BB a) {
     return (a & ~bb_of_file(FILE_A)) >> 9;
 }
 
-template<> inline constexpr BB shift<WEST>(BB a) {
+template<> inline constexpr BB bb_shift<WEST>(BB a) {
     return (a & ~bb_of_file(FILE_A)) >> 1;
 }
 
-template<> inline constexpr BB shift<NORTHWEST>(BB a) {
+template<> inline constexpr BB bb_shift<NORTHWEST>(BB a) {
     return (a & ~bb_of_file(FILE_A)) << 7;
 }
 

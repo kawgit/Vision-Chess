@@ -522,7 +522,7 @@ Eval static_exchange_search(Pos& pos, Square target_square, Color turn, Eval cur
 			& pos.get_piece_mask(turn, pt)
 			& occ;
 		if (attackers) {
-			from = lsb(attackers);
+			from = bb_peek(attackers);
 			from_piece = pt;
 			break;
 		}

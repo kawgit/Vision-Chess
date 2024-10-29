@@ -90,7 +90,7 @@ MovePicker::MovePicker(Pos* pos_, const Move tt_move_, const History* history_) 
 
     // check_bbs
 
-    enemy_king_square = lsb(pos->pieces(pos->notturn(), KING));
+    enemy_king_square = bb_peek(pos->pieces(pos->notturn(), KING));
 
     check_bbs[PAWN]   = attacks::pawn  (enemy_king_square, pos->notturn());
     check_bbs[KNIGHT] = attacks::knight(enemy_king_square                );

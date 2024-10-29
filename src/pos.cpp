@@ -195,7 +195,7 @@ void Pos::do_move(Move move) {
 
 	add_piece(turn(), placed, to_square);
 
-	bool new_ep = move::is_double_pawn_push(move) && (shift<SOUTH>(attacks::pawn(to_square, WHITE)) & pieces(notturn(), PAWN));
+	bool new_ep = move::is_double_pawn_push(move) && (bb_shift<SOUTH>(attacks::pawn(to_square, WHITE)) & pieces(notturn(), PAWN));
 	set_ep(new_ep ? (to_square + from_square) / 2 : SQUARE_NONE);
 
 	if (bb_of(from_square) & cr())
@@ -205,7 +205,7 @@ void Pos::do_move(Move move) {
 	if (moving == KING) {
 		BB our_castle_rooks = cr() & pieces(turn());
 		while (our_castle_rooks) {
-			Square castle_rook_square = poplsb(our_castle_rooks);
+			Square castle_rook_square = bb_pop(our_castle_rooks);
 			switch_cr(castle_rook_square);
 		}
 	}
@@ -279,7 +279,7 @@ void Pos::update_attacks(Color color) {
 
 	if (attacks_updated(color)) return;
 
-	const Square king_square = lsb(pieces(turn(), KING));
+	const Square king_square = bb_peek(pieces(turn(), KING));
 	const BB occupied = pieces() & ~bb_of(king_square);
 	
 	slice->attacked_by[color][PAWN]   = attacks::pawns  (pieces(color, PAWN  ), color    );
@@ -287,7 +287,7 @@ void Pos::update_attacks(Color color) {
 	slice->attacked_by[color][BISHOP] = attacks::bishops(pieces(color, BISHOP), occupied );
 	slice->attacked_by[color][ROOK]   = attacks::rooks  (pieces(color, ROOK  ), occupied );
 	slice->attacked_by[color][QUEEN]  = attacks::queens (pieces(color, QUEEN ), occupied );
-	slice->attacked_by[color][KING]   = attacks::king   (lsb(pieces(color, KING))        );
+	slice->attacked_by[color][KING]   = attacks::king   (bb_peek(pieces(color, KING))        );
 	
 	slice->attacked_by[color][PIECE_ALL] = slice->attacked_by[color][PAWN]
 										 | slice->attacked_by[color][KNIGHT]
@@ -304,7 +304,7 @@ void Pos::update_legal_info() {
 
 	update_attacks(notturn());
 
-	const Square king_square = lsb(pieces(turn(), KING));
+	const Square king_square = bb_peek(pieces(turn(), KING));
 
 	slice->checkers_bb = (attacks::pawn(king_square, turn()) & pieces(notturn(), PAWN))
 			           | (attacks::knight(king_square)       & pieces(notturn(), KNIGHT));
@@ -318,7 +318,7 @@ void Pos::update_legal_info() {
 
 	while (sliding_checkers) {
 		
-		const Square checker = poplsb(sliding_checkers);
+		const Square checker = bb_pop(sliding_checkers);
 		BB blockers = bb_segment(king_square, checker) & occupied;
 
 		const bool is_check = !blockers;                                  // 0 blockers
@@ -348,7 +348,7 @@ bool Pos::is_legal(const Move move) const {
         post_occupied |= bb_of(to_square);
         post_occupied &= ~bb_of(victim_square);
 
-        const Square king_square = lsb(pieces(turn(), KING));
+        const Square king_square = bb_peek(pieces(turn(), KING));
         const bool revealed_check = (attacks::bishop(king_square, post_occupied) & pieces(notturn(), BISHOP))
                                   | (attacks::rook  (king_square, post_occupied) & pieces(notturn(), ROOK))
                                   | (attacks::queen (king_square, post_occupied) & pieces(notturn(), QUEEN));
@@ -357,7 +357,7 @@ bool Pos::is_legal(const Move move) const {
 
 	}
 
-	const BB span = bb_ray(lsb(pieces(turn(), KING)), from_square);
+	const BB span = bb_ray(bb_peek(pieces(turn(), KING)), from_square);
 
 	const bool is_pinned = bb_has(pinned(), from_square);
 	const bool is_onspan = bb_has(    span,   to_square);
@@ -431,15 +431,15 @@ bool Pos::insufficient_material() {
 		return false;
 
 	BB occ = get_occ();
-	int piece_count = bitcount(occ);
+	int piece_count = bb_count(occ);
 
 	if (piece_count == 2) return true; //KvK
-	if (bitcount(get_piece_mask(WHITE, BISHOP) | get_piece_mask(WHITE, KNIGHT)) > 1) return false;
-	if (bitcount(get_piece_mask(BLACK, BISHOP) | get_piece_mask(BLACK, KNIGHT)) > 1) return false;
+	if (bb_count(get_piece_mask(WHITE, BISHOP) | get_piece_mask(WHITE, KNIGHT)) > 1) return false;
+	if (bb_count(get_piece_mask(BLACK, BISHOP) | get_piece_mask(BLACK, KNIGHT)) > 1) return false;
 	if (piece_count == 3) return true;
 	if (piece_count == 4) {
 		if (get_piece_mask(WHITE, BISHOP) && get_piece_mask(BLACK, BISHOP) &&
-		   ((lsb(get_piece_mask(WHITE, BISHOP)) % 2) == (lsb(get_piece_mask(BLACK, BISHOP)) % 2))) 
+		   ((bb_peek(get_piece_mask(WHITE, BISHOP)) % 2) == (bb_peek(get_piece_mask(BLACK, BISHOP)) % 2))) 
 			return true;
 	}
 
@@ -455,7 +455,7 @@ bool Pos::causes_check(Move move) {
 		return result;
 	}
 
-	Square ksq = lsb(get_piece_mask(notturn, KING));
+	Square ksq = bb_peek(get_piece_mask(notturn, KING));
 	BB occ = get_occ();
 	BB rook_rays = attacks::rook(ksq, occ);
 	BB bishop_rays = attacks::bishop(ksq, occ);
@@ -528,7 +528,7 @@ void assert_okay_pos(const Pos& pos) {
 
 		BB cr_bb = pos.cr();
 		while (cr_bb) {
-			Square cr = poplsb(cr_bb);
+			Square cr = bb_pop(cr_bb);
 			assert(pos.piece_on(cr) == ROOK);
 			hashkey ^= zobrist::cr[cr];
 		}

@@ -52,7 +52,7 @@ const AccumulatorSlice* Accumulator::find_best_parent(const Color view, const Po
     // Check ops if we rebuild values from scratch
     for (Color color : { BLACK, WHITE })
         for (Piece piece = PAWN; piece <= KING; piece++)
-            best_ops += bitcount(pos.pieces(color, piece));
+            best_ops += bb_count(pos.pieces(color, piece));
     best_ops -= 1; // since a+b+c has 3 - 1 = 2 operations
 
     // Check ops if we use a parent
@@ -62,7 +62,7 @@ const AccumulatorSlice* Accumulator::find_best_parent(const Color view, const Po
 
         for (Color color : { BLACK, WHITE })
             for (Piece piece = PAWN; piece <= KING; piece++)
-                curr_ops += bitcount(pos.pieces(color, piece) ^ curr->vcp_bbs[view][color][piece]);
+                curr_ops += bb_count(pos.pieces(color, piece) ^ curr->vcp_bbs[view][color][piece]);
 
         if (curr_ops < best_ops) {
             best_ops = curr_ops;

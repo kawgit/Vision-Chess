@@ -57,7 +57,7 @@ void AccumulatorSlice::rem_piece(const Color view, const Color color, const Piec
 //     BB occupied = pos.pieces();
 
 //     while (occupied) {
-//         Square square = poplsb(occupied);
+//         Square square = bb_pop(occupied);
 //         Piece piece = pos.piece_on(square);
 //         Color color = pos.color_on(square);
 
@@ -84,7 +84,7 @@ void AccumulatorSlice::rem_piece(const Color view, const Color color, const Piec
 
 //             while (squares) {
 
-//                 const Square square = flip_components(poplsb(squares), view == BLACK, flipped[view]);
+//                 const Square square = flip_components(bb_pop(squares), view == BLACK, flipped[view]);
 
 //                 values[view] += fkps_weights[fbucket][kbucket[view]][color == view][piece][square];
 
@@ -100,7 +100,7 @@ void AccumulatorSlice::rem_piece(const Color view, const Color color, const Piec
 //     assert(color_piece_bbs[view][KING]);
 //     assert(!bb_has_multiple(color_piece_bbs[view][KING]));
 
-//     Square king_square = lsb(color_piece_bbs[view][KING]);
+//     Square king_square = bb_peek(color_piece_bbs[view][KING]);
 //     flipped[view]      = file_of(king_square) >= FILE_E;
 //     kbucket[view]      = calc_kbucket(view, king_square);
 
@@ -160,7 +160,7 @@ const AccumulatorSlice* Accumulator::find_best_parent(const Color view, const Po
     // Check ops if we rebuild values from scratch
     for (Color color : { BLACK, WHITE })
         for (Piece piece = PAWN; piece <= KING; piece++)
-            best_ops += bitcount(pos.pieces(color, piece));
+            best_ops += bb_count(pos.pieces(color, piece));
     best_ops -= 1; // since a+b+c has 3 - 1 = 2 operations
 
     // Check ops if we use a parent
@@ -170,7 +170,7 @@ const AccumulatorSlice* Accumulator::find_best_parent(const Color view, const Po
 
         for (Color color : { BLACK, WHITE })
             for (Piece piece = PAWN; piece <= KING; piece++)
-                curr_ops += bitcount(pos.pieces(color, piece) ^ curr->vcp_bbs[view][color][piece]);
+                curr_ops += bb_count(pos.pieces(color, piece) ^ curr->vcp_bbs[view][color][piece]);
 
         if (curr_ops < best_ops) {
             best_ops = curr_ops;
