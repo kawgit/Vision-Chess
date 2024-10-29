@@ -107,7 +107,7 @@ void Pos::operator=(const Pos& pos) {
 	slice = slice_stack + offset;
 }
 
-void print(const Pos& pos, bool meta) {
+void print_pos(const Pos& pos, bool meta) {
 
 	for (Rank rank = RANK_8; rank >= RANK_1; rank--) {
 

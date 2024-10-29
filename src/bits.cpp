@@ -4,7 +4,7 @@
 #include <iostream>
 #include <cstdlib>
 
-void print(BB bb) {
+void print_bb(BB bb) {
 	
 	for (Rank rank = RANK_8; rank >= RANK_1; rank--) {
 

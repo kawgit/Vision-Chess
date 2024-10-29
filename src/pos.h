@@ -230,7 +230,7 @@ class Pos {
 	// }
 };
 
-void print(const Pos& pos, bool meta = false);
+void print_pos(const Pos& pos, bool meta = false);
 
 void assert_okay_pos(const Pos& pos);
 

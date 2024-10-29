@@ -183,7 +183,7 @@ void mainloop() {
         return;
     }
     else if (head == "d") {
-        print(*pos.get(), true);
+        print_pos(*pos.get(), true);
     }
     else if (head == "r") {
         Evaluator evaluator;

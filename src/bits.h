@@ -134,7 +134,7 @@ template<> inline constexpr BB shift<NORTHWEST>(BB a) {
     return (a & ~bb_of_file(FILE_A)) << 7;
 }
 
-void print(BB bb);
+void print_bb(BB bb);
 
 constexpr std::array<std::array<BB, N_DIRECTIONS>, N_SQUARES> gun_bbs = []() constexpr {
 	
