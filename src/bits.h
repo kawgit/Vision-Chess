@@ -8,8 +8,6 @@
 #include "types.h"
 #include "util.h"
 
-
-
 extern int lookup67[68];
 
 inline int lsb(const BB n) {
