@@ -108,7 +108,7 @@ inline constexpr bool bb_has(BB bb, Square square) {
 	return bb & bb_of(square);
 }
 
-inline BB rand_BB() {
+inline BB rand64() {
 	return ((BB)rand() << 48) | ((BB)rand() << 32) | ((BB)rand() << 16) | (BB)rand();
 }
 

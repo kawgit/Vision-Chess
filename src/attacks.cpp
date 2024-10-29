@@ -2,13 +2,12 @@
 #include <array>
 #include <cassert>
 #include <iostream>
+#include <random>
 
 #include "attacks.h"
 #include "bits.h"
 #include "types.h"
 #include "util.h"
-
-
 
 namespace attacks {
 
