@@ -47,7 +47,6 @@ void AccumulatorSlice::rem_piece(const Color view, const Color color, const Piec
 
 }
 
-
 // void AccumulatorSlice::reset(const Pos& pos) {
 
 //     accurate = true;
