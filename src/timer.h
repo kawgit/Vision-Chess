@@ -1,10 +1,8 @@
 #pragma once
 
-#include <iostream>
 #include <chrono>
+#include <iostream>
 #include <string>
-
-
 
 typedef uint64_t Timestamp;
 

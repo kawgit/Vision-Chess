@@ -1,10 +1,6 @@
 #include "bits.h"
-#include "pos.h"
 #include "hash.h"
 #include "types.h"
-#include <cstdlib>
-
-
 
 namespace zobrist {
 

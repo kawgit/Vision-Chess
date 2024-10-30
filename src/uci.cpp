@@ -1,10 +1,10 @@
-#include <iostream>
 #include <cassert>
+#include <iostream>
 #include <memory>
 #include <string>
 
-#include "uci.h"
 #include "movepicker.h"
+#include "uci.h"
 
 namespace uci {
 

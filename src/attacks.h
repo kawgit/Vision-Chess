@@ -7,8 +7,6 @@
 #include "types.h"
 #include "util.h"
 
-
-
 namespace attacks {
 
     const size_t MAGIC_BITS = 14;

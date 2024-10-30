@@ -2,9 +2,9 @@
 
 #include <immintrin.h>
 
-#include "types.h"
-#include "pos.h"
 #include "accumulator.h"
+#include "pos.h"
+#include "types.h"
 
 #define ALIGN64 alignas(64)
 

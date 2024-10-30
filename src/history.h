@@ -1,5 +1,5 @@
-#include "types.h"
 #include "pos.h"
+#include "types.h"
 
 struct HistorySlice {
     static const size_t N_COUNTERS = 3;

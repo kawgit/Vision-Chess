@@ -1,7 +1,7 @@
 #include <cassert>
 
-#include "movepicker.h"
 #include "movegen.h"
+#include "movepicker.h"
 
 MovePicker::MovePicker(Pos* pos_, const Move tt_move_, const History* history_) {
 

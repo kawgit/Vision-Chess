@@ -1,17 +1,14 @@
 #pragma once
 
-#include <unistd.h>
-#define sleep_ms(ms) usleep(ms * 1000)
-
 #include <iostream>
 
 #include "attacks.h"
+#include "bits.h"
 #include "move.h"
 #include "movegen.h"
 #include "pos.h"
-#include "util.h"
-#include "bits.h"
 #include "thread.h"
+#include "util.h"
 
 template<bool DIVIDE>
 BB perft(Pos& pos, Depth depth);

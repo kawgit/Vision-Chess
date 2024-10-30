@@ -1,14 +1,15 @@
-#include "pos.h"
-#include "bits.h"
-#include "types.h"
-#include "move.h"
-#include "util.h"
-#include "movegen.h"
+#include <cassert>
+#include <cstring>
 #include <iostream>
 #include <map>
 #include <string>
-#include <cassert>
-#include <cstring>
+
+#include "bits.h"
+#include "move.h"
+#include "movegen.h"
+#include "pos.h"
+#include "types.h"
+#include "util.h"
 
 Pos::Pos(std::string fen) {
 

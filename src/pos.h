@@ -1,9 +1,9 @@
 #pragma once
 
-#include <vector>
+#include <cassert>
 #include <stdint.h>
 #include <string>
-#include <cassert>
+#include <vector>
 
 #include "attacks.h"
 #include "bits.h"

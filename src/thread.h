@@ -1,18 +1,14 @@
 #pragma once
 
-#include <vector>
 #include <mutex>
 #include <thread>
+#include <vector>
 
 #include "evaluator.h"
-#include "pos.h"
-#include "tt.h"
 #include "history.h"
+#include "pos.h"
 #include "timer.h"
-
-// struct SliceData {
-
-// }
+#include "tt.h"
 
 class Thread;
 

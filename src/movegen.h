@@ -1,11 +1,12 @@
 #pragma once
 
-#include "pos.h"
-#include "types.h"
+#include <cassert>
+#include <vector>
+
 #include "bits.h"
 #include "move.h"
-#include <vector>
-#include <cassert>
+#include "pos.h"
+#include "types.h"
 
 
 

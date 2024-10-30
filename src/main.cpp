@@ -1,20 +1,18 @@
 #include <iostream>
-#include <vector>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include "attacks.h"
 #include "bits.h"
 #include "move.h"
 #include "movegen.h"
+#include "movepicker.h"
 #include "pos.h"
 #include "search.h"
-#include "movepicker.h"
-#include "util.h"
-#include "uci.h"
 #include "thread.h"
-
-
+#include "uci.h"
+#include "util.h"
 
 int main() {
 

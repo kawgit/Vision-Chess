@@ -1,10 +1,10 @@
 #include <cstring>
 
-#include "pos.h"
 #include "bits.h"
-#include "tt.h"
-#include "search.h"
 #include "move.h"
+#include "pos.h"
+#include "search.h"
+#include "tt.h"
 
 TT::TT(size_t size) {
 	num_buckets = size / sizeof(TTBucket);

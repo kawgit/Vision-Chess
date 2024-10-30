@@ -17,7 +17,6 @@ add_executable(Vision
         hash.cpp
         history.cpp 
         main.cpp
-        move.cpp 
         movegen.cpp 
         movepicker.cpp 
         pos.cpp 
@@ -25,7 +24,6 @@ add_executable(Vision
         thread.cpp
         timer.cpp 
         tt.cpp 
-        types.cpp 
         uci.cpp 
         util.cpp 
     )

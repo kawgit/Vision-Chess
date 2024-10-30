@@ -1,14 +1,11 @@
-#include <string>
 #include <map>
-#include <vector>
 #include <sstream>
+#include <string>
+#include <vector>
 
+#include "move.h"
 #include "types.h"
 #include "util.h"
-#include "move.h"
-
-
-
 
 std::map<char, Spiece> char_to_spiece_map = {
     {'p', BLACK_PAWN},

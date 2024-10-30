@@ -1,10 +1,6 @@
 #pragma once
 
 #include "types.h"
-#include "bits.h"
-#include "pos.h"
-
-
 
 namespace zobrist {
 

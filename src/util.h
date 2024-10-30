@@ -1,12 +1,11 @@
 #pragma once
 
 #include <string>
+#include <unistd.h>
 
 #include "types.h"
 
-#include <unistd.h>
 #define sleep_ms(ms) usleep(ms * 1000)
-
 #define handled_assert(assertion) {                                                                                       \
     if (!(assertion)) {                                                                                               \
         std::cout << "info string assertion \"" << #assertion << "\" failed at " << __FILE__ << ":" << __LINE__ << std::endl; \

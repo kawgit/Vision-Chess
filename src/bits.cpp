@@ -1,8 +1,9 @@
+#include <cstdlib>
+#include <iostream>
+#include <stdint.h>
+
 #include "bits.h"
 #include "util.h"
-#include <stdint.h>
-#include <iostream>
-#include <cstdlib>
 
 void print_bb(BB bb) {
 	

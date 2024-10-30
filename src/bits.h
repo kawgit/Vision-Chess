@@ -1,9 +1,9 @@
 #pragma once
 
+#include <array>
 #include <cstdlib>
 #include <stdint.h>
 #include <vector>
-#include <array>
 
 #include "types.h"
 #include "util.h"

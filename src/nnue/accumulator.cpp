@@ -1,7 +1,7 @@
 #include <algorithm>
-#include <immintrin.h>
 #include <cstring>
 #include <fstream>
+#include <immintrin.h>
 
 #include "accumulator.h"
 #include "nnue.h"

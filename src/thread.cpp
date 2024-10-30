@@ -1,15 +1,14 @@
-#include <cassert>
-#include <thread>
-#include <iostream>
 #include <algorithm>
+#include <cassert>
+#include <iostream>
+#include <thread>
 
-#include "uci.h"
-#include "types.h"
-#include "thread.h"
 #include "pos.h"
-#include "tt.h"
+#include "thread.h"
 #include "timer.h"
-
+#include "tt.h"
+#include "types.h"
+#include "uci.h"
 
 Pool::Pool(size_t num_threads, size_t tt_size) {
     tt = new TT(tt_size);

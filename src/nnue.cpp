@@ -1,12 +1,12 @@
 #include <algorithm>
-#include <immintrin.h>
 #include <cstring>
 #include <fstream>
+#include <immintrin.h>
 
+#include "accumulator.h"
 #include "nnue.h"
 #include "pos.h"
 #include "types.h"
-#include "accumulator.h"
 
 namespace nnue {
 

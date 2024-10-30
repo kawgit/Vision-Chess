@@ -1,16 +1,16 @@
 #include <iostream>
 
 #include "attacks.h"
+#include "bits.h"
 #include "move.h"
 #include "movegen.h"
-#include "pos.h"
-#include "util.h"
-#include "bits.h"
-#include "timer.h"
-#include "search.h"
-#include "tt.h"
 #include "movepicker.h"
+#include "pos.h"
+#include "search.h"
+#include "timer.h"
+#include "tt.h"
 #include "uci.h"
+#include "util.h"
 
 template BB perft<true >(Pos& pos, Depth depth);
 template BB perft<false>(Pos& pos, Depth depth);

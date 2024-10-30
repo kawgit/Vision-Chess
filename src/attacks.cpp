@@ -1,8 +1,8 @@
-#include <vector>
 #include <array>
 #include <cassert>
 #include <iostream>
 #include <random>
+#include <vector>
 
 #include "attacks.h"
 #include "bits.h"

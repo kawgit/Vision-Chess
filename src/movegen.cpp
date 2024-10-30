@@ -1,5 +1,5 @@
-#include <vector>
 #include <cassert>
+#include <vector>
 
 #include "attacks.h"
 #include "bits.h"

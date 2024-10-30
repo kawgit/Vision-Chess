@@ -1,7 +1,8 @@
-#include "timer.h"
-#include <iostream>
 #include <chrono>
+#include <iostream>
 #include <string>
+
+#include "timer.h"
 
 Timestamp get_current_ms() {
     return std::chrono::duration_cast< std::chrono::milliseconds >(std::chrono::system_clock::now().time_since_epoch()).count();

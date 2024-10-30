@@ -1,11 +1,11 @@
 #pragma once
 
-#include <stdlib.h>
-#include <stdint.h>
-#include <string>
-#include <iostream>
-#include <vector>
 #include <cassert>
+#include <iostream>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string>
+#include <vector>
 
 constexpr size_t INTERNAL_PLY_LIMIT = 512;
 

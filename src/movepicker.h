@@ -1,8 +1,8 @@
 #include <vector>
 
-#include "types.h"
 #include "pos.h"
 #include "thread.h"
+#include "types.h"
 
 class MovePicker {
 

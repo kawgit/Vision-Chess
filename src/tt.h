@@ -2,9 +2,9 @@
 
 #include <algorithm>
 
-#include "pos.h"
 #include "bits.h"
 #include "move.h"
+#include "pos.h"
 #include "types.h"
 
 struct TTEntry {
