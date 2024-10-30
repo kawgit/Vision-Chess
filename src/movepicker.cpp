@@ -104,8 +104,8 @@ MovePicker::MovePicker(Pos* pos_, const Move tt_move_, const History* history_) 
 template<MovePickerStage STAGE>
 Score MovePicker::score_move(const Move move) {
     
-    constexpr Score capture_values  [N_PIECES + 1] = { 100, 300,    300,    500, 900, 0, 0 };
-    constexpr Score promotion_values[N_PIECES    ] = {   0, 100, -10000, -10000,  60, 0    };
+    constexpr Score capture_values  [N_PIECES + 1] = { 100, 300, 300, 500, 900, 0, 0 };
+    constexpr Score promotion_values[N_PIECES    ] = { 0, 100, -10000, -10000, 60, 0 };
 
     if constexpr (STAGE == STAGE_TT_COUNTERS)
         return SCORE_MIN + 5 * (move == tt_move) + 4 * (move == from_to_counter) + 3 * (move == piece_from_counter) + 2 * (move == piece_to_counter);

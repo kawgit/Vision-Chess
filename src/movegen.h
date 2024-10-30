@@ -8,8 +8,6 @@
 #include "pos.h"
 #include "types.h"
 
-
-
 namespace movegen {
 
     template<GenType GENTYPE>
