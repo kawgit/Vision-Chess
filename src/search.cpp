@@ -93,20 +93,20 @@ Eval Thread::search(Depth depth, Eval alpha, Eval beta) {
 	Depth tt_depth = entry->depth;
 	Bound tt_bound = entry->get_bound();
 
-	if (found && tt_depth >= depth) {
+	// if (found && tt_depth >= depth) {
 		
-		if (tt_bound == EXACT)
-			return tt_eval;
+	// 	if (tt_bound == EXACT)
+	// 		return tt_eval;
 
-		if (tt_bound == UB && tt_eval < beta)
-			beta = tt_eval;
+	// 	if (tt_bound == UB && tt_eval < beta)
+	// 		beta = tt_eval;
 
-		if (tt_bound == LB && tt_eval > alpha)
-			alpha = tt_eval;
+	// 	if (tt_bound == LB && tt_eval > alpha)
+	// 		alpha = tt_eval;
 
-		if (alpha >= beta)
-			return beta;
-	}
+	// 	if (alpha >= beta)
+	// 		return beta;
+	// }
 
 	// if constexpr (NODETYPE == CUTNODE) {
 	// 	constexpr Eval alpha_reduction = 100;
@@ -119,31 +119,36 @@ Eval Thread::search(Depth depth, Eval alpha, Eval beta) {
 	Move best_move = MOVE_NONE;
 	Eval best_eval = EVAL_MIN;
 
-    if (!mp.has_move())
-        best_eval = -EVAL_CHECKMATE;
-    else if constexpr (is_qs) {
+	if constexpr (is_qs) {
         best_eval = evaluator.evaluate(pos);
         if (best_eval >= beta) {
 		    tt->save(entry, best_move, best_eval, depth, pos.hashkey(), LB);
             return best_eval;
         }
     }
+    else if (!mp.has_move()) {
+		if (pos.checkers()) {
+			best_eval = -EVAL_CHECKMATE;
+		}
+		else {
+			best_eval = 0;
+		}
+	}
 
 	while (mp.has_move() && (!is_qs || pos.checkers() || mp.stage != STAGE_QUIETS)) {
 
 		Move move = mp.pop();
 
-		if (is_root && requested_state == ACTIVE)
-			uci::print("currmove " + move_to_string(move) + " " + std::to_string(mp.stage));
+		bool is_pv_child = is_pv && (tt_move == MOVE_NONE || tt_move == move);
 
 		do_move(move);
 
 		Eval eval;
 		
-		if (is_qs)
-			eval = -search<QSNODE >(depth - 1, -beta, -std::max(alpha, best_eval));
-		else if (is_pv && move == tt_move)
+		if (is_pv_child)
 			eval = -search<PVNODE >(depth - (1 + (mp.stage == STAGE_QUIETS)), -beta, -std::max(alpha, best_eval));
+		else if (is_qs)
+			eval = -search<QSNODE >(depth - 1, -beta, -std::max(alpha, best_eval));
 		else
 			eval = -search<CUTNODE>(depth - (1 + 2 * (mp.stage == STAGE_QUIETS)), -beta, -std::max(alpha, best_eval));
 
@@ -186,372 +191,3 @@ template Eval Thread::search<ROOT   >(Depth depth, Eval alpha, Eval beta);
 template Eval Thread::search<PVNODE >(Depth depth, Eval alpha, Eval beta);
 template Eval Thread::search<CUTNODE>(Depth depth, Eval alpha, Eval beta);
 template Eval Thread::search<QSNODE >(Depth depth, Eval alpha, Eval beta);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-
-ThreadInfo::ThreadInfo(Pos& pos, std::string id_) {
-	root_ply = pos.move_log.size();
-	id = id_;
-}
-
-Eval search(Pos& pos, Depth depth, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si) {
-	if (!ti.searching) return alpha;
-	ti.nodes++;
-
-	if (beta <= -MINMATE && beta != EVAL_MIN) {
-		beta--;
-		if (alpha >= beta) return beta;
-	}
-
-	if (pos.insufficient_material()) return 0;
-	if (pos.get_halfmove_clock() >= 4) {
-		if (pos.get_halfmove_clock() >= 100) return 0;
-		if (pos.one_repetition(ti.root_ply)) return 0;
-		if (pos.three_repetitions()) return 0;
-	}
-
-	if (depth <= 0) return qsearch(pos, alpha, beta, ti, si);
-
-	bool found = false;
-	TTEntry* entry = si.tt.probe(pos.get_hashkey(), found);
-
-	if (found && entry->get_depth() >= depth && entry->get_gen() == si.tt.gen) {
-		if (entry->get_bound() == EXACT) return entry->get_eval();
-		else if (entry->get_bound() == UB && entry->get_eval() < beta) beta = entry->get_eval();
-		else if (entry->get_bound() == LB && entry->get_eval() > alpha) alpha = entry->get_eval();
-		if (alpha >= beta) return beta;
-	}
-
-	std::vector<Move> moves = get_legal_moves(pos);
-
-	if (moves.size() == 0) {
-		Eval eval = pos.in_check() ? EVAL_MIN : 0;
-		entry->save(pos.get_hashkey(), eval, EXACT, DEPTH_MAX, MOVE_NONE, si.tt.gen);
-		return eval;
-	}
-	
-	int num_good;
-	int num_boring;
-	int num_bad;
-	moves = order(moves, pos, ti, si, num_good, num_boring, num_bad, false);
-
-	assert(moves.size());
-
-	Eval besteval = EVAL_MIN;
-	Move bestmove = moves[0];
-
-	for (int i = 0; i < moves.size(); i++) {
-		Move& move = moves[i];
-
-		pos.do_move(move);
-
-		Eval eval;
-		if (i < num_good) {
-			eval = -search(pos, depth - 1, -beta, -max(alpha, besteval), ti, si);
-		}
-		else if (i < num_good + num_boring) {
-			eval = -search(pos, depth - 2, -beta, -max(alpha, besteval), ti, si);
-		}
-		else {
-			eval = -search(pos, depth - 3, -beta, -max(alpha, besteval), ti, si);
-		}
-
-		pos.undo_move();
-
-		if (!ti.searching && found && i != 0) {
-			break;
-		}
-
-		if (eval > MINMATE) eval--;
-
-		if (eval > besteval) {
-			besteval = eval;
-			bestmove = move;
-			
-			if (besteval >= beta) {
-				si.add_failhigh(pos, bestmove);
-				break;
-			}
-		}
-	}
-
-	if (besteval <= alpha)		entry->save(pos.get_hashkey(), besteval, UB   , depth, bestmove, si.tt.gen);
-	else if (besteval < beta)	entry->save(pos.get_hashkey(), besteval, EXACT, depth, bestmove, si.tt.gen);
-	else						entry->save(pos.get_hashkey(), besteval, LB   , depth, bestmove, si.tt.gen);
-
-	return besteval;
-}
-
-Eval qsearch(Pos& pos, Eval alpha, Eval beta, ThreadInfo& ti, SearchInfo& si) {
-	ti.nodes++;
-	Depth depth = pos.move_log.size() - ti.root_ply;
-	if (depth > ti.seldepth) {
-		ti.seldepth = depth;
-	}
-
-	if (beta <= -MINMATE && beta != EVAL_MIN) {
-		beta--;
-		if (alpha >= beta) return beta;
-	}
-
-    Eval stand_pat = eval_pos(pos, alpha, beta);
-    alpha = max(alpha, stand_pat);
-    if (alpha >= beta) return beta;
-
-	if (pos.insufficient_material()) return 0;
-	// ONLY IF MOVES INCLUDE CHECKS
-	if (pos.get_halfmove_clock() >= 4) {
-		if (pos.get_halfmove_clock() >= 100) return 0;
-		if (pos.one_repetition(ti.root_ply)) return 0;
-		if (pos.three_repetitions()) return 0;
-	}
-
-	// king attacked evasion extension
-	if (pos.in_check()) {
-		return search(pos, 1, alpha, beta, ti, si);
-	}
-
-    std::vector<Move> moves = get_legal_moves(pos);
-
-	if (moves.size() == 0) {
-		if (pos.in_check()) return EVAL_MIN;
-		else return 0;
-	}
-
-	int num_good;
-	int num_boring;
-	int num_bad;
-	moves = order(moves, pos, ti, si, num_good, num_boring, num_bad, true);
-
-	assert(moves.size() == num_good);
-    
-    for (int i = 0; i < num_good; i++) {
-		Move move = moves[i];
-
-		pos.do_move(move);
-		
-		Eval eval = -qsearch(pos, -beta, -alpha, ti, si);
-		
-		pos.undo_move();
-		
-		if (eval > MINMATE) eval--;
-
-		alpha = max(alpha, eval);
-
-		if (alpha >= beta) {
-			alpha = beta;
-			break;
-		}
-    }
-	
-    return alpha;
-}
-
-mutex print_mutex;
-void SearchInfo::launch(bool verbose) {
-	stop();
-	tis.clear();
-
-    is_active = true;
-    start_time = get_current_ms();
-	last_depth_searched = 0;
-    
-    for (int i = 0; i < num_threads; i++) {
-        tis.emplace_back(root_pos, "threadname_" + to_string(i));
-    }
-
-	std::vector<thread> threads;
-    for (int i = 0; i < num_threads; i++) {
-        threads.emplace_back(&SearchInfo::worker, this, ref(tis[i]), ref(verbose));
-    }
-
-    while (true) {
-        if (!is_active
-            || (!ponder && get_time_diff(start_time) > max_time)) {
-            break;
-        }
-
-        sleep_ms(10);
-    }
-    
-    stop();
-	print_uci_info();
-
-    std::vector<Move> pv = tt.getPV(root_pos);
-    std::vector<Move> moves = get_legal_moves(root_pos);
-    print_mutex.lock();
-    std::cout << "bestmove " + (pv.size() > 0 ? move_to_string(pv[0]) : (moves.size() ? move_to_string(moves[0]) : "(none)")) + (pv.size() > 1 ? " ponder " + move_to_string(pv[1]) : "") << std::endl;
-    print_mutex.unlock();
-    
-    for (thread& thr : threads) {
-        thr.join();
-    }
-}
-
-void SearchInfo::stop() {
-	for (ThreadInfo& ti : tis) {
-        ti.searching = false;
-    }
-    is_active = false;
-    last_depth_searched = 0;
-}
-
-void SearchInfo::clear() {
-	for (int i = 0; i < 6; i++) {
-		for (int sq = 0; sq < 64; sq++) {
-			hist_hueristic[i][sq] = 0;
-			cm_hueristic[i][sq] = MOVE_NONE;
-		}
-	}
-	hist_score_max = 0;
-	tt.clear();
-}
-
-void SearchInfo::worker(ThreadInfo& ti, bool verbose) {
-	Pos root_copy = root_pos;
-
-    while (ti.searching) {
-        depth_increment_mutex.lock();
-        Depth depth = ++last_depth_searched;
-        depth_increment_mutex.unlock();
-
-        if (depth > max_depth || depth < 0) break;
-        
-        search(root_copy, depth, EVAL_MIN, EVAL_MAX, ti, *this);
-
-		if (verbose && ti.searching) {
-        	// std::cout << "thread " << ti.id << ":";
-        	print_uci_info();
-		}
-    }
-}
-
-void SearchInfo::print_uci_info() {
-    bool found = false;
-    TTEntry* entry = tt.probe(root_pos.get_hashkey(), found);
-    
-    if (!found) return;
-
-    BB nodes = get_nodes();
-    Timestamp time_elapsed = get_time_diff(start_time);
-
-    std::string msg = "";
-    msg += "info";
-    msg += " depth " + to_string(entry->get_depth());
-	msg += " seldepth " + to_string(get_seldepth());
-    msg += " score " + eval_to_string(entry->get_eval());
-    msg += " nodes " + to_string(nodes);
-    msg += " time " + to_string(time_elapsed);
-    msg += " nps " + to_string(nodes * 1000 / (time_elapsed + 1));
-    msg += " hashfull " + to_string(tt.hashfull());
-    msg += " pv " + to_string(tt.getPV(root_pos)) + "\n";
-
-    print_mutex.lock();
-    std::cout << msg;
-    print_mutex.unlock();
-}
-
-void timer(bool& target, Timestamp time) {
-	Timestamp start = get_current_ms();
-	while (target && get_time_diff(start) < time) {
-		sleep_ms(10);
-	}
-	target = false;
-}
-
-Eval sea_gain(Pos& pos, Move move, Eval alpha) {
-	pos.update_atks();
-
-	Eval target_square = move::to_square(move);
-	Eval target_piece_eval = get_piece_eval(pos.get_mailbox(pos.notturn, target_square));
-	if (!(pos.get_atk(pos.notturn) & bb_of(target_square))) { // hanging
-		return get_piece_eval(pos.get_mailbox(pos.notturn, target_square));
-	}
-	Eval result = -static_exchange_search(
-		pos, 
-		target_square, 
-		pos.notturn, 
-		-(target_piece_eval), 
-		pos.get_occ() & ~bb_of(move::from_square(move)), 
-		get_piece_eval(pos.get_mailbox(pos.turn, move::from_square(move))), 
-		EVAL_MIN, 
-		-alpha);
-	return result;
-}
-
-Eval static_exchange_search(Pos& pos, Square target_square, Color turn, Eval curr_mat, BB occ, Eval target_piece_eval, Eval alpha, Eval beta) {
-	alpha = max(curr_mat, alpha);
-	if (alpha >= beta) return beta;
-
-	Square from = SQUARE_NONE;
-	Piece from_piece = PIECE_NONE;
-	for (Piece pt = PAWN; pt <= KING; pt++) {
-		BB attackers = attacks::lookup(pt, target_square, opp(turn), occ)
-			& pos.get_piece_mask(turn, pt)
-			& occ;
-		if (attackers) {
-			from = bb_peek(attackers);
-			from_piece = pt;
-			break;
-		}
-	}
-
-	if (from == SQUARE_NONE) return curr_mat;
-
-	Eval result_after_move = -static_exchange_search(
-		pos, 
-		target_square, 
-		opp(turn), 
-		-(curr_mat + target_piece_eval), 
-		occ & ~bb_of(from), 
-		get_piece_eval(pos.get_mailbox(turn, from)), 
-		-beta, 
-		-alpha
-		);
-	return max(curr_mat, result_after_move);
-}
-
-Move get_best_move(Pos& pos, Depth depth) {
-	SearchInfo si;
-	ThreadInfo ti(pos);
-
-	for (int d = 0; d < depth; d++) {
-		search(pos, depth, EVAL_MIN, EVAL_MAX, ti, si);
-	}
-
-	return si.tt.getPV(pos)[0];
-}
-
-*/
