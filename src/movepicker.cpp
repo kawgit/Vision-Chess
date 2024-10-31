@@ -126,29 +126,36 @@ Score MovePicker::score_move(const Move move) {
                                     | (attacks::rook  (enemy_king_square, post_occupied) & pos->pieces(pos->turn(), ROOK  ));
 
         const bool is_check     = (check_bbs[moving] & to_bb) || is_revealed_check;
-        const bool is_capture   = move::is_capture(move);
         const bool is_promotion = move::is_promotion(move);
-        const bool is_saving    = (unsafe_bbs[moving] & from_bb) && !(unsafe_bbs[moving] & to_bb);
+        const bool is_capture   = move::is_capture(move);
 
-        if (STAGE == STAGE_LOUDS && !(is_check || is_capture || is_promotion || is_saving))
+        if (STAGE == STAGE_LOUDS && !(is_check || is_promotion || is_capture))
             return SCORE_MIN;
 
         const bool is_tempo = tempo_bbs[moving] & to_bb;
+        const bool is_saving = (unsafe_bbs[moving] & from_bb) && !(unsafe_bbs[moving] & to_bb);
 
         const Score material_value = capture_values[victim]
-                                   + capture_values[moving] * ((unsafe_bbs[moving] & from_bb) - (unsafe_bbs[moving] & to_bb))
+                                   - capture_values[moving] * bool(unsafe_bbs[moving] & to_bb)
                                    + promotion_values[move::promotion_piece(move)] * is_promotion;
 
-        return SCORE_ZERO + 10000 * is_check + 50 * is_tempo + material_value;
+        return SCORE_ZERO
+            + 10000 * is_check
+            + 1000 * is_promotion
+            + 100 * is_capture
+            + 50 * is_tempo
+            + 50 * is_saving
+            + material_value;
     }
 
     if constexpr (STAGE == STAGE_QUIETS) {
 
         const bool is_tempo = tempo_bbs[moving] & to_bb;
+        const bool is_saving = (unsafe_bbs[moving] & from_bb) && !(unsafe_bbs[moving] & to_bb);
 
-        const Score material_value = capture_values[moving] * ((unsafe_bbs[moving] & from_bb) - (unsafe_bbs[moving] & to_bb));
-
-        return SCORE_ZERO + 50 * is_tempo + material_value;
+        return SCORE_ZERO
+            + 50 * is_tempo
+            + 50 * is_saving;
 
     }
 
