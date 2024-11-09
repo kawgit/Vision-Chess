@@ -119,8 +119,6 @@ void mainloop() {
 
         pool->reset(*pos.get());
         pool->tt->gen++;
-
-        std::cout << "hey hey" << std::endl;
     }
     else if (head == "go") {
 
