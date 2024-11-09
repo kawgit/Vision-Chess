@@ -86,7 +86,7 @@ std::map<Piece, char> piece_to_char_map = {
 };
 
 std::string move_to_string(const Move move) {
-    return square_to_string(move::from_square(move)) + square_to_string(move::to_square(move)) + (move::is_promotion(move) ? "=" + std::string(1, piece_to_char_map[move::promotion_piece(move)]) : "");
+    return square_to_string(move::from_square(move)) + square_to_string(move::to_square(move)) + (move::is_promotion(move) ? std::string(1, piece_to_char_map[move::promotion_piece(move)]) : "");
 }
 
 std::string movelist_to_string(const std::vector<Move> moves) {

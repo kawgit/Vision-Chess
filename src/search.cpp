@@ -146,9 +146,9 @@ Eval Thread::search(Depth depth, Eval alpha, Eval beta) {
 		Eval eval;
 		
 		if (is_pv_child)
-			eval = -search<PVNODE >(depth - (1 + (mp.stage == STAGE_QUIETS)), -beta, -std::max(alpha, best_eval));
+			eval = -search<PVNODE >(depth - (1 + 1 * (mp.stage == STAGE_QUIETS)), -beta, -std::max(alpha, best_eval));
 		else if (is_qs)
-			eval = -search<QSNODE >(depth - 1, -beta, -std::max(alpha, best_eval));
+			eval = -search<QSNODE >(depth - (1 + 0 * (mp.stage == STAGE_QUIETS)), -beta, -std::max(alpha, best_eval));
 		else
 			eval = -search<CUTNODE>(depth - (1 + 2 * (mp.stage == STAGE_QUIETS)), -beta, -std::max(alpha, best_eval));
 
@@ -171,8 +171,13 @@ Eval Thread::search(Depth depth, Eval alpha, Eval beta) {
                         best_eval <= alpha ? UB :
 						best_eval >= beta  ? LB :
 											 EXACT;
-	
-	if constexpr (is_root || is_pv)
+
+	if constexpr (is_root) {
+		pool->root_mutex.lock();
+		tt->forcesave(entry, best_move, best_eval, depth, pos.hashkey(), bound);
+		pool->root_mutex.unlock();
+	}
+	else if constexpr (is_pv)
 		tt->forcesave(entry, best_move, best_eval, depth, pos.hashkey(), bound);
 	else
 		tt->save     (entry, best_move, best_eval, depth, pos.hashkey(), bound);

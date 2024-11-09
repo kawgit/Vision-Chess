@@ -68,6 +68,8 @@ void Pool::manage() {
     while (active && get_current_ms() - start_time < max_time) {
         sleep_ms(10);
 
+        root_mutex.lock();
+
         bool found;
         TTEntry* entry = tt->probe(pos_copy.hashkey(), found);
 
@@ -79,10 +81,17 @@ void Pool::manage() {
         Eval      eval  = entry->eval;
                   pv    = tt->probe_pv(pos_copy);
 
+        root_mutex.unlock();
+
         if (time > last_time + 3000
             || depth != last_depth
             || eval  != last_eval
             || pv    != last_pv) {
+
+            last_time  = time;
+            last_depth = depth;
+            last_eval  = eval;
+            if (pv.size()) last_pv = pv;
 
             uci::print("info depth " + std::to_string(depth)
                      + " score cp "  + std::to_string(eval)
@@ -90,12 +99,7 @@ void Pool::manage() {
                      + " nodes "     + std::to_string(nodes())
                      + " nps "       + std::to_string(nodes() * 1000 / time)
                      + " hashfull "  + std::to_string(tt->hashfull())
-                     + " pv "        + movelist_to_string(pv));
-
-            last_time  = time;
-            last_depth = depth;
-            last_eval  = eval;
-            if (pv.size()) last_pv = pv;
+                     + " pv "        + movelist_to_string(last_pv));
         
         }
 
@@ -110,7 +114,7 @@ void Pool::manage() {
 
     active = false;
 
-    std::cout << "bestmove " << (pv.size() ? move_to_string(pv[0]) : "(none)") << (pv.size() >= 2 ? " ponder " + move_to_string(pv[1]) : "") << std::endl;
+    std::cout << "bestmove " << (last_pv.size() ? move_to_string(last_pv[0]) : "(none)") << (last_pv.size() >= 2 ? " ponder " + move_to_string(last_pv[1]) : "") << std::endl;
 
 }
 
@@ -184,7 +188,7 @@ void Thread::work() {
     while (requested_state == ACTIVE) {
         Depth depth = pool->pop_depth();
 
-        Eval eval = search<ROOT>(depth, alpha, beta);
+        Eval eval = search<ROOT>(depth, EVAL_MIN, EVAL_MAX);
 
         if (eval <= alpha || eval >= beta)
             delta += 50;

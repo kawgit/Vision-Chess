@@ -22,6 +22,7 @@ class Pool {
     
     Timestamp max_time;
     std::mutex depth_mutex;
+    std::mutex root_mutex;
     TT* tt;
     std::vector<Thread*> threads;
 

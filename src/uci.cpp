@@ -119,6 +119,8 @@ void mainloop() {
 
         pool->reset(*pos.get());
         pool->tt->gen++;
+
+        std::cout << "hey hey" << std::endl;
     }
     else if (head == "go") {
 
@@ -209,7 +211,10 @@ void mainloop() {
         }
     }
 
-    goto await_command;
+    if (!subcommands.size())
+        goto await_command;
+    else
+        goto process_command;
 }
 
 }
