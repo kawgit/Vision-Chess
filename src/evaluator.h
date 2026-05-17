@@ -5,5 +5,5 @@
 #elif defined(USE_NNUE)
     #include "nnue/nnue.h"
 #else
-    static_assert(false)
+    static_assert(false);
 #endif
